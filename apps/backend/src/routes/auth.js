@@ -42,8 +42,8 @@ router.post('/login', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Auth Error:', err.message);
-        res.status(500).send('Server Error');
+        console.error('🔥 AUTH ERROR:', err);
+        res.status(500).json({ success: false, message: 'Server Error during authentication', error: err.message });
     }
 });
 
