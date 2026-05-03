@@ -22,7 +22,7 @@ class ReceiptService {
     final orderTime = DateTime.tryParse(order['order_time']?.toString() ?? '') ?? DateTime.now();
 
     // Resolve Logos for receipt
-    const String apiBaseUrl = 'http://localhost:5000';
+    const String apiBaseUrl = 'http://zamzamkitchen.net';
     final String logoUrl = tenant['logo_url'] ?? '';
     final String secondaryLogoUrl = tenant['secondary_logo_url'] ?? '';
     pw.ImageProvider? logo;
@@ -210,7 +210,7 @@ class ReceiptService {
     final orderTime = DateTime.tryParse(order['order_time']?.toString() ?? '') ?? DateTime.now();
 
     // Resolve Logo URLs
-    const String apiBaseUrl = 'http://localhost:5000';
+    const String apiBaseUrl = 'http://zamzamkitchen.net';
     String resolveUrl(String? path) {
       if (path == null || path.isEmpty) return '';
       if (path.startsWith('http')) return path;

@@ -29,7 +29,7 @@ import 'customer_management_view.dart';
 
 enum TableStatus { available, occupied, reserved, cleaning }
 
-const String apiBaseUrl = 'http://localhost:5000';
+const String apiBaseUrl = 'http://zamzamkitchen.net';
 
 String resolveImageUrl(String? path) {
   if (path == null || path.isEmpty) return '';

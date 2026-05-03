@@ -43,7 +43,7 @@ class _ExtraManagerState extends State<ExtraManager> {
 
   Future<void> _fetchInventory() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5000/api/inventory'));
+      final response = await http.get(Uri.parse('http://zamzamkitchen.net/api/inventory'));
       if (response.statusCode == 200) {
         setState(() {
           _inventoryItems = jsonDecode(response.body);
@@ -60,7 +60,7 @@ class _ExtraManagerState extends State<ExtraManager> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/menu/extras'),
+        Uri.parse('http://zamzamkitchen.net/api/menu/extras'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'menu_item_id': widget.menuItem['id'],
@@ -91,7 +91,7 @@ class _ExtraManagerState extends State<ExtraManager> {
     setState(() => _isLoading = true);
     try {
       final response = await http.delete(
-        Uri.parse('http://localhost:5000/api/menu/extras/${extra['id']}'),
+        Uri.parse('http://zamzamkitchen.net/api/menu/extras/${extra['id']}'),
       );
 
       if (response.statusCode == 200) {

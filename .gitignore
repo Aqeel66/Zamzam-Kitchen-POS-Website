@@ -57,3 +57,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+
+# Production Deployment Artifacts (Tracked for Hostinger auto-update)
+!apps/backend/public/
+!apps/backend/assets/

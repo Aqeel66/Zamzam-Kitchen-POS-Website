@@ -8,7 +8,7 @@ const db = require('../db');
 // ─── Menu Item Image Storage ────────────────────────────────────────────────
 const menuStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../../pos_terminal/assets/images/menu_items');
+    const uploadDir = path.join(__dirname, '../../assets/images/menu_items');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -37,7 +37,7 @@ router.post('/', uploadMenu.single('image'), (req, res) => {
       success: true,
       message: 'Image uploaded successfully',
       path: relativePath,
-      url: `http://localhost:5000/assets/${relativePath}`
+      url: `http://zamzamkitchen.net/assets/${relativePath}`
     });
   } catch (error) {
     console.error('Upload Error:', error);
@@ -48,7 +48,7 @@ router.post('/', uploadMenu.single('image'), (req, res) => {
 // ─── Logo Upload Storage ─────────────────────────────────────────────────────
 const logoStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../../pos_terminal/assets/images');
+    const uploadDir = path.join(__dirname, '../../assets/images');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -83,7 +83,7 @@ router.post('/logo', uploadLogo.single('logo'), async (req, res) => {
       success: true,
       message: 'Logo uploaded and saved successfully',
       path: relativePath,
-      url: `http://localhost:5000/assets/${relativePath}`
+      url: `http://zamzamkitchen.net/assets/${relativePath}`
     });
   } catch (error) {
     console.error('Logo Upload Error:', error);
@@ -94,7 +94,7 @@ router.post('/logo', uploadLogo.single('logo'), async (req, res) => {
 // ─── Secondary Logo Upload Storage ──────────────────────────────────────────
 const secondaryLogoStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../../pos_terminal/assets/images');
+    const uploadDir = path.join(__dirname, '../../assets/images');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -127,7 +127,7 @@ router.post('/secondary-logo', uploadSecondaryLogo.single('logo'), async (req, r
       success: true,
       message: 'Secondary logo uploaded successfully',
       path: relativePath,
-      url: `http://localhost:5000/assets/${relativePath}`
+      url: `http://zamzamkitchen.net/assets/${relativePath}`
     });
   } catch (error) {
     console.error('Secondary Logo Upload Error:', error);
