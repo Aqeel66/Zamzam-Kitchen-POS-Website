@@ -16,11 +16,15 @@ const pool = mysql.createPool({
 // Test connection on startup but don't crash
 pool.getConnection()
   .then(conn => {
-    console.log('✅ Database connected successfully');
+    console.log('✅ DATABASE CONNECTED: Successfully connected to', process.env.DB_NAME, 'at', process.env.DB_HOST);
     conn.release();
   })
   .catch(err => {
-    console.error('❌ Database connection failed:', err.message);
+    console.error('❌ DATABASE CONNECTION FAILED!');
+    console.error('   Error Code:', err.code);
+    console.error('   Error Message:', err.message);
+    console.error('   Target Host:', process.env.DB_HOST || 'localhost');
+    console.error('   Target User:', process.env.DB_USER || 'root');
     console.warn('⚠️ Server will stay running, but API calls will fail until DB is fixed.');
   });
 

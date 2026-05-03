@@ -43,7 +43,7 @@ class _VariantManagerState extends State<VariantManager> {
 
   Future<void> _fetchInventory() async {
     try {
-      final response = await http.get(Uri.parse('http://zamzamkitchen.net/api/inventory'));
+      final response = await http.get(Uri.parse('https://zamzamkitchen.net/api/inventory'));
       if (response.statusCode == 200) {
         setState(() {
           _inventoryItems = jsonDecode(response.body);
@@ -60,7 +60,7 @@ class _VariantManagerState extends State<VariantManager> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('http://zamzamkitchen.net/api/menu/variants'),
+        Uri.parse('https://zamzamkitchen.net/api/menu/variants'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'menu_item_id': widget.menuItem['id'],
@@ -91,7 +91,7 @@ class _VariantManagerState extends State<VariantManager> {
     setState(() => _isLoading = true);
     try {
       final response = await http.delete(
-        Uri.parse('http://zamzamkitchen.net/api/menu/variants/${variant['id']}'),
+        Uri.parse('https://zamzamkitchen.net/api/menu/variants/${variant['id']}'),
       );
 
       if (response.statusCode == 200) {
