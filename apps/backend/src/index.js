@@ -13,6 +13,16 @@ process.on('uncaughtException', (err) => {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Diagnostics
+const fs = require('fs');
+const envPath = path.resolve(__dirname, '../.env');
+console.log('🔍 Checking .env file at:', envPath);
+if (fs.existsSync(envPath)) {
+  console.log('✅ .env file found');
+} else {
+  console.warn('⚠️ .env file NOT found! Using default environment variables.');
+}
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
@@ -22,6 +32,9 @@ const webPath = path.join(__dirname, '../public');
 
 console.log('📂 Serving static assets from:', assetsPath);
 console.log('🌐 Serving web files from:', webPath);
+if (!fs.existsSync(webPath)) {
+  console.error('❌ CRITICAL: Public folder not found!');
+}
 
 app.use('/assets', express.static(assetsPath));
 app.use(express.static(webPath));
