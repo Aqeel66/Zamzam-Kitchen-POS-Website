@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Trash2, ArrowLeft, MapPin } from 'lucide-react';
+import { ASSETS_BASE_URL } from '../config';
 
 export default function Cart() {
   const { items, removeFromCart, updateQuantity, totalPrice, tableId, tableNumber } = useCart();
@@ -44,7 +45,7 @@ export default function Cart() {
             <div className="cart-items" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '3rem' }}>
                {items.map(item => (
                   <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '16px' }}>
-                     <div style={{ width: '80px', height: '80px', borderRadius: '12px', background: '#e5e7eb', backgroundImage: item.image ? `url(http://localhost:5000/${item.image.startsWith('assets/') ? item.image : `assets/${item.image}`})` : 'url(/placeholder-food.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                     <div style={{ width: '80px', height: '80px', borderRadius: '12px', background: '#e5e7eb', backgroundImage: item.image ? `url(${ASSETS_BASE_URL}/${item.image.startsWith('assets/') ? item.image : `assets/${item.image}`})` : 'url(/placeholder-food.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
                      <div style={{ flex: 1 }}>
                         <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{item.name}</h4>
                         <span style={{ color: '#ff6b35', fontWeight: 700 }}>${item.price.toFixed(2)}</span>

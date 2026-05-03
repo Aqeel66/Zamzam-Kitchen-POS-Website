@@ -158,7 +158,7 @@ router.post('/', async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('API Error:', err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ success: false, message: 'Server Error', error: err.message });
   } finally {
     connection.release();
   }
@@ -377,7 +377,7 @@ router.get('/', async (req, res) => {
     res.json(detailedOrders);
   } catch (err) {
     console.error('Fetch Orders error:', err);
-    res.status(500).send('Server Error');
+    res.status(500).json({ success: false, message: 'Server Error', error: err.message });
   }
 });
 
@@ -449,7 +449,7 @@ router.patch('/:id', async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('Update Order Error:', err);
-    res.status(500).send('Server Error');
+    res.status(500).json({ success: false, message: 'Server Error', error: err.message });
   } finally {
     connection.release();
   }
@@ -672,7 +672,7 @@ router.put('/:id', async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('Update Order Error:', err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ success: false, message: 'Server Error', error: err.message });
   } finally {
     connection.release();
   }
@@ -727,7 +727,7 @@ router.delete('/:orderId/items/:itemId', async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('Delete Item Error:', err);
-    res.status(500).send('Server Error');
+    res.status(500).json({ success: false, message: 'Server Error', error: err.message });
   } finally {
     connection.release();
   }

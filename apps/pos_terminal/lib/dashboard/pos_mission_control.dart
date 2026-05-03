@@ -29,7 +29,11 @@ import 'customer_management_view.dart';
 
 enum TableStatus { available, occupied, reserved, cleaning }
 
-const String apiBaseUrl = 'https://zamzamkitchen.net';
+final String apiBaseUrl = kIsWeb 
+  ? (html.window.location.origin.contains('localhost') || html.window.location.origin.contains('127.0.0.1')
+      ? 'http://localhost:5000' 
+      : html.window.location.origin)
+  : 'https://zamzamkitchen.net';
 
 String resolveImageUrl(String? path) {
   if (path == null || path.isEmpty) return '';
@@ -775,9 +779,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         }
         await _fetchMenu();
       } else {
+        String errorMsg = LocalizationService().translate('category_failed_create');
+        try {
+          final errJson = json.decode(response.body);
+          if (errJson['error'] != null) errorMsg = errJson['error'];
+          else if (errJson['message'] != null) errorMsg = errJson['message'];
+        } catch (_) {}
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${LocalizationService().translate('category_failed_create')}: ${response.body}'), backgroundColor: Colors.red),
+            SnackBar(content: Text('$errorMsg (${response.statusCode})'), backgroundColor: Colors.red),
           );
         }
       }
@@ -840,6 +851,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           );
         }
         await _fetchMenu();
+      } else {
+        String errorMsg = 'Failed to create menu item';
+        try {
+          final errJson = json.decode(response.body);
+          if (errJson['error'] != null) errorMsg = errJson['error'];
+          else if (errJson['message'] != null) errorMsg = errJson['message'];
+        } catch (_) {}
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$errorMsg (${response.statusCode})'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
        debugPrint('Create Item Error: $e');
@@ -860,6 +884,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           );
         }
         await _fetchMenu();
+      } else {
+        String errorMsg = 'Failed to update menu item';
+        try {
+          final errJson = json.decode(response.body);
+          if (errJson['error'] != null) errorMsg = errJson['error'];
+          else if (errJson['message'] != null) errorMsg = errJson['message'];
+        } catch (_) {}
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$errorMsg (${response.statusCode})'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Update Item Error: $e');
@@ -879,9 +916,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         }
         await _fetchMenu();
       } else {
+        String errorMsg = 'Failed to update category';
+        try {
+          final errJson = json.decode(response.body);
+          if (errJson['error'] != null) errorMsg = errJson['error'];
+          else if (errJson['message'] != null) errorMsg = errJson['message'];
+        } catch (_) {}
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${LocalizationService().translate('failed_update_status')}: ${response.statusCode}'), backgroundColor: Colors.red),
+            SnackBar(content: Text('$errorMsg (${response.statusCode})'), backgroundColor: Colors.red),
           );
         }
       }
@@ -1625,10 +1669,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           _fetchSummary();
         });
       } else {
+        String errorMsg = LocalizationService().translate('server_error_retry');
+        try {
+          final errJson = json.decode(response.body);
+          if (errJson['error'] != null) errorMsg = errJson['error'];
+          else if (errJson['message'] != null) errorMsg = errJson['message'];
+        } catch (_) {}
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${LocalizationService().translate('server_error_retry')} (${response.statusCode})'),
+              content: Text('$errorMsg (${response.statusCode})'),
               backgroundColor: Colors.red,
             ),
           );
@@ -4398,7 +4449,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onResetTransactions: _resetTransactionalData,
           );
         case 18: return InventoryDashboard(isDarkMode: _isDarkMode);
-        case 19: return const CustomerManagementView(apiBaseUrl: apiBaseUrl);
+        case 19: return CustomerManagementView(apiBaseUrl: apiBaseUrl);
         default: return _buildDashboardContent();
       }
     } catch (e, stack) {

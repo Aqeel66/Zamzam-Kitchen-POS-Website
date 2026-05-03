@@ -50,7 +50,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
     try {
       final response = await http.post(
-        Uri.parse('https://zamzamkitchen.net/api/auth/login'),
+        Uri.parse('$apiBaseUrl/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': _usernameController.text.trim(),

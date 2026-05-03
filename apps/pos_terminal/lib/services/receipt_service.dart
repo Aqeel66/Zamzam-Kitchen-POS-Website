@@ -22,7 +22,11 @@ class ReceiptService {
     final orderTime = DateTime.tryParse(order['order_time']?.toString() ?? '') ?? DateTime.now();
 
     // Resolve Logos for receipt
-    const String apiBaseUrl = 'https://zamzamkitchen.net';
+    final String apiBaseUrl = kIsWeb 
+      ? (Uri.base.toString().contains('localhost') || Uri.base.toString().contains('127.0.0.1')
+          ? 'http://localhost:5000' 
+          : '${Uri.base.scheme}://${Uri.base.host}${Uri.base.port != 80 && Uri.base.port != 443 ? ":${Uri.base.port}" : ""}')
+      : 'https://zamzamkitchen.net';
     final String logoUrl = tenant['logo_url'] ?? '';
     final String secondaryLogoUrl = tenant['secondary_logo_url'] ?? '';
     pw.ImageProvider? logo;
@@ -210,7 +214,11 @@ class ReceiptService {
     final orderTime = DateTime.tryParse(order['order_time']?.toString() ?? '') ?? DateTime.now();
 
     // Resolve Logo URLs
-    const String apiBaseUrl = 'https://zamzamkitchen.net';
+    final String apiBaseUrl = kIsWeb 
+      ? (Uri.base.toString().contains('localhost') || Uri.base.toString().contains('127.0.0.1')
+          ? 'http://localhost:5000' 
+          : '${Uri.base.scheme}://${Uri.base.host}${Uri.base.port != 80 && Uri.base.port != 443 ? ":${Uri.base.port}" : ""}')
+      : 'https://zamzamkitchen.net';
     String resolveUrl(String? path) {
       if (path == null || path.isEmpty) return '';
       if (path.startsWith('http')) return path;

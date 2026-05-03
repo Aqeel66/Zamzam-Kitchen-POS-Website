@@ -89,7 +89,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 
 // Handle POS Terminal routing (Sub-folder /pos)
-app.get('/pos*', (req, res, next) => {
+app.get(/^\/pos/, (req, res, next) => {
   // If it's an API or Assets route, let it pass through to the 404 handler if not found
   if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
     return next();
@@ -106,7 +106,7 @@ app.get('/pos*', (req, res, next) => {
 });
 
 // Handle Main Website routing (Root /)
-app.get('*', (req, res, next) => {
+app.get(/.*/, (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
     return next();
   }

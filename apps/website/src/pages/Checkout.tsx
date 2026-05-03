@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useState, useEffect } from 'react';
 import { CreditCard, Banknote, Store, Car, Package, Heart, MapPin } from 'lucide-react';
+import { API_BASE_URL, ASSETS_BASE_URL } from '../config';
 
 export default function Checkout() {
   const { totalPrice, items, clearCart, tableId, tableNumber, clearTableContext } = useCart();
@@ -17,7 +18,7 @@ export default function Checkout() {
   const [branchSettings, setBranchSettings] = useState<any>(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/settings')
+    fetch(`${API_BASE_URL}/settings`)
       .then(res => res.json())
       .then(data => {
         setBranchSettings(data.branch);
@@ -78,7 +79,7 @@ export default function Checkout() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
@@ -210,7 +211,7 @@ export default function Checkout() {
                    {items.map(item => (
                       <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e5e7eb', backgroundImage: item.image ? `url(http://localhost:5000/${item.image.startsWith('assets/') ? item.image : `assets/${item.image}`})` : 'url(/placeholder-food.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e5e7eb', backgroundImage: item.image ? `url(${ASSETS_BASE_URL}/${item.image.startsWith('assets/') ? item.image : `assets/${item.image}`})` : 'url(/placeholder-food.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
                             <div>
                                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>{item.name}</p>
                                <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.8rem' }}>Qty: {item.quantity}</p>

@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
     res.json(menuData);
   } catch (error) {
     console.error('Fetch Menu Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -50,25 +50,40 @@ router.get('/', async (req, res) => {
 // @desc    Create a new food category
 router.post('/categories', async (req, res) => {
   try {
-    const { name, description, image } = req.body;
+    console.log('📝 POST /categories - Request Body:', JSON.stringify(req.body, null, 2));
     
+    if (!req.body) {
+      return res.status(400).json({ success: false, message: 'Request body is missing' });
+    }
+
+    const { name, description, image } = req.body;
+
     if (!name) {
-      return res.status(400).json({ success: false, message: 'Category name is required' });
+      console.warn('⚠️ Category creation failed: Name is missing');
+      return res.status(400).json({ success: false, message: 'Name is required' });
     }
 
     const [result] = await db.query(
       'INSERT INTO categories (name, description, image) VALUES (?, ?, ?)',
       [name, description || null, image || null]
     );
-
-    res.status(201).json({
-      success: true,
+    
+    console.log('✅ Category created successfully. ID:', result.insertId);
+    res.status(201).json({ 
+      success: true, 
       message: 'Category created successfully',
-      categoryId: result.insertId
+      categoryId: result.insertId 
     });
   } catch (error) {
-    console.error('Create Category Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('❌ POST /categories - Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during category creation', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      sqlMessage: error.sqlMessage,
+      code: error.code
+    });
   }
 });
 
@@ -87,7 +102,7 @@ router.patch('/categories/:id', async (req, res) => {
     res.json({ success: true, message: 'Category updated successfully' });
   } catch (error) {
     console.error('Update Category Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -99,7 +114,7 @@ router.delete('/categories/:id', async (req, res) => {
     res.json({ success: true, message: 'Category deleted successfully (soft delete)' });
   } catch (error) {
     console.error('Delete Category Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -136,7 +151,7 @@ router.post('/items', async (req, res) => {
     });
   } catch (error) {
     console.error('Create Menu Item Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -166,7 +181,7 @@ router.patch('/items/:id', async (req, res) => {
     res.json({ success: true, message: 'Menu item updated successfully' });
   } catch (error) {
     console.error('Update Menu Item Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -178,7 +193,7 @@ router.delete('/items/:id', async (req, res) => {
     res.json({ success: true, message: 'Menu item deleted successfully (soft delete)' });
   } catch (error) {
     console.error('Delete Menu Item Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -195,7 +210,7 @@ router.post('/variants', async (req, res) => {
     res.status(201).json({ success: true, variantId: result.insertId });
   } catch (error) {
     console.error('Create Variant Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -206,7 +221,7 @@ router.delete('/variants/:id', async (req, res) => {
     res.json({ success: true, message: 'Variant deleted' });
   } catch (error) {
     console.error('Delete Variant Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -221,7 +236,7 @@ router.post('/extras', async (req, res) => {
     res.status(201).json({ success: true, extraId: result.insertId });
   } catch (error) {
     console.error('Create Extra Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -232,7 +247,7 @@ router.delete('/extras/:id', async (req, res) => {
     res.json({ success: true, message: 'Extra deleted' });
   } catch (error) {
     console.error('Delete Extra Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -247,7 +262,7 @@ router.post('/ingredients', async (req, res) => {
     res.status(201).json({ success: true, ingredientId: result.insertId });
   } catch (error) {
     console.error('Create Ingredient Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -258,7 +273,7 @@ router.delete('/ingredients/:id', async (req, res) => {
     res.json({ success: true, message: 'Ingredient deleted' });
   } catch (error) {
     console.error('Delete Ingredient Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 

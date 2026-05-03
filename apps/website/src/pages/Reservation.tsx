@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Store } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 import './Reservation.css';
 
 export default function Reservation() {
@@ -33,7 +34,7 @@ export default function Reservation() {
   // Dynamic Booking Fee Settings
   const [isFeeEnabled, setIsFeeEnabled] = useState(true);
   const [feeAmount, setFeeAmount] = useState(10.00);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'counter'>('card');
+  const [paymentMethod] = useState<'card' | 'counter'>('card');
   const [paymentData, setPaymentData] = useState({
      cardNumber: '',
      expiry: '',
@@ -45,7 +46,7 @@ export default function Reservation() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/settings');
+        const response = await fetch(`${API_BASE_URL}/settings`);
         const data = await response.json();
         if (data.branch) {
           // Treat null as enabled (default on) — only disable if explicitly set to 0
@@ -76,7 +77,7 @@ export default function Reservation() {
 
         let bookedSlots = [];
         try {
-          const response = await fetch(`http://127.0.0.1:5000/api/reservations/availability/${date}`);
+          const response = await fetch(`${API_BASE_URL}/reservations/availability/${date}`);
           const data = await response.json();
           bookedSlots = data.bookedSlots || [];
         } catch (err) {
@@ -114,7 +115,7 @@ export default function Reservation() {
     if (!date || !time) return;
     setLoadingTables(true);
     try {
-      const apiUrl = `http://127.0.0.1:5000/api/reservations/available-tables?date=${date}&time=${time}:00`;
+      const apiUrl = `${API_BASE_URL}/reservations/available-tables?date=${date}&time=${time}:00`;
       console.log('Fetching from:', apiUrl);
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error(`Server responded with ${response.status}`);
@@ -175,7 +176,7 @@ export default function Reservation() {
           await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      const response = await fetch('http://localhost:5000/api/reservations', {
+      const response = await fetch(`${API_BASE_URL}/reservations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

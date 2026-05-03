@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { User, ShoppingCart, Share2, Heart, Globe } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { API_BASE_URL, ASSETS_BASE_URL } from '../config';
 import './Layout.css';
 
 interface LayoutProps {
@@ -19,7 +20,7 @@ export default function Layout({ children }: LayoutProps) {
   });
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/settings')
+    fetch(`${API_BASE_URL}/settings`)
       .then(res => res.json())
       .then(data => {
         if (data.tenant) {
@@ -40,7 +41,7 @@ export default function Layout({ children }: LayoutProps) {
     if (path.startsWith('http')) return path;
     // Remove leading slashes/assets if present to match backend serve logic
     let cleanPath = path.replace(/^\/?(assets\/)?/, '');
-    return `http://localhost:5000/assets/${cleanPath}`;
+    return `${ASSETS_BASE_URL}/${cleanPath}`;
   };
 
   return (

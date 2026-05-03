@@ -2,6 +2,7 @@ import { ShoppingCart, MapPin, Clock, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
+import { API_BASE_URL, ASSETS_BASE_URL } from '../config';
 import './Home.css';
 
 export default function Home() {
@@ -14,7 +15,7 @@ export default function Home() {
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/menu');
+        const response = await fetch(`${API_BASE_URL}/menu`);
         const data = await response.json();
         setMenuData(data);
       } catch (error) {
@@ -82,7 +83,7 @@ export default function Home() {
               ) : displayedItems.map(item => (
                   <div key={item.id} className="menu-card-premium">
                       <div className="card-img-large" style={{ 
-                        backgroundImage: item.image ? `url(http://localhost:5000/${item.image.startsWith('assets/') ? item.image : `assets/${item.image}`})` : 'url(/placeholder-food.jpg)',
+                        backgroundImage: item.image ? `url(${ASSETS_BASE_URL}/${item.image.startsWith('assets/') ? item.image.replace('assets/', '') : item.image})` : 'url(/placeholder-food.jpg)',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                       }}>

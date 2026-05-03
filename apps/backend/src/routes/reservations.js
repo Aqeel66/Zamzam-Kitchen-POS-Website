@@ -174,7 +174,7 @@ router.patch('/:id', async (req, res) => {
      res.json({ success: true, message: 'Reservation updated' });
   } catch (error) {
      console.error('Update Error:', error);
-     res.status(500).json({ success: false, message: 'Server Error' });
+     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 

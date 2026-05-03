@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:pos_terminal/theme_service.dart';
+import '../dashboard/pos_mission_control.dart';
 
 class RecipeManager extends StatefulWidget {
   final Map<String, dynamic> menuItem;
@@ -41,7 +42,7 @@ class _RecipeManagerState extends State<RecipeManager> {
 
   Future<void> _fetchInventory() async {
     try {
-      final response = await http.get(Uri.parse('https://zamzamkitchen.net/api/inventory'));
+      final response = await http.get(Uri.parse('$apiBaseUrl/api/inventory'));
       if (response.statusCode == 200) {
         setState(() {
           _inventoryItems = jsonDecode(response.body);
@@ -58,7 +59,7 @@ class _RecipeManagerState extends State<RecipeManager> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('https://zamzamkitchen.net/api/menu/recipe'),
+        Uri.parse('$apiBaseUrl/api/menu/recipe'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'menu_item_id': widget.menuItem['id'],
@@ -85,7 +86,7 @@ class _RecipeManagerState extends State<RecipeManager> {
     setState(() => _isLoading = true);
     try {
       final response = await http.delete(
-        Uri.parse('https://zamzamkitchen.net/api/menu/recipe/${ingredient['id']}'),
+        Uri.parse('$apiBaseUrl/api/menu/recipe/${ingredient['id']}'),
       );
 
       if (response.statusCode == 200) {

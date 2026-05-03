@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 import './Contact.css';
 
 export default function Contact() {
@@ -10,7 +11,7 @@ export default function Contact() {
     e.preventDefault();
     setStatus('loading');
     try {
-      const resp = await fetch('http://localhost:5000/api/messages', {
+      const resp = await fetch(`${API_BASE_URL}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

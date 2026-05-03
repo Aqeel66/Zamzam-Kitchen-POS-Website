@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Fetch Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -144,7 +144,7 @@ router.post('/gateways', async (req, res) => {
     res.json({ success: true, message: `${gateway_name} settings updated` });
   } catch (error) {
     console.error('Update Gateway Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
