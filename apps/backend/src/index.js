@@ -12,6 +12,8 @@ process.on('uncaughtException', (err) => {
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+console.log('🚀 SERVER STARTING AT:', new Date().toISOString());
+console.log('📝 VERSION: 1.0.4 (Diagnostic Ready)');
 const pool = require('./db');
 
 // Diagnostic Endpoint
@@ -31,8 +33,13 @@ app.get('/api/test-db', async (req, res) => {
       message: 'Database connection failed', 
       error: err.message,
       code: err.code,
-      host: process.env.DB_HOST,
-      env_path: path.resolve(__dirname, '../.env')
+      debug: {
+        host: process.env.DB_HOST || 'NOT SET (Defaulting to 127.0.0.1)',
+        user: process.env.DB_USER || 'NOT SET',
+        database: process.env.DB_NAME || 'NOT SET',
+        has_password: !!process.env.DB_PASSWORD,
+        env_file_check: fs.existsSync(path.resolve(__dirname, '../.env')) ? 'File exists' : 'File missing'
+      }
     });
   }
 });
