@@ -6,18 +6,40 @@ const db = require('../db');
 // @desc    Get all categories and items from the database
 router.get('/', async (req, res) => {
   try {
-    const [categories] = await db.query('SELECT * FROM categories WHERE is_deleted = FALSE');
-    // Show items that are explicitly TRUE OR those that are NULL (default to available)
-    const [items] = await db.query('SELECT * FROM menu_items WHERE is_deleted = FALSE');
+    // Check if is_deleted column exists to avoid 500 error on older schemas
+    const [catColumns] = await db.query('DESCRIBE categories');
+    const hasCatDeleted = catColumns.map(c => c.Field).includes('is_deleted');
+    
+    const [itemColumns] = await db.query('DESCRIBE menu_items');
+    const hasItemDeleted = itemColumns.map(c => c.Field).includes('is_deleted');
+
+    const [categories] = await db.query(`SELECT * FROM categories ${hasCatDeleted ? 'WHERE is_deleted = FALSE' : ''}`);
+    const [items] = await db.query(`SELECT * FROM menu_items ${hasItemDeleted ? 'WHERE is_deleted = FALSE' : ''}`);
     
     // Fetch phase 3 customizations & recipes
-    const [variants] = await db.query('SELECT * FROM menu_item_variants');
-    const [extras] = await db.query('SELECT * FROM menu_item_extras');
-    const [ingredients] = await db.query(`
-      SELECT mii.*, ii.name as ingredient_name, ii.unit as ingredient_unit 
-      FROM menu_item_ingredients mii
-      JOIN inventory_items ii ON mii.inventory_item_id = ii.id
-    `);
+    // Check if tables exist before querying to avoid 500 errors
+    let variants = [];
+    let extras = [];
+    let ingredients = [];
+
+    try {
+      const [vRows] = await db.query('SELECT * FROM menu_item_variants');
+      variants = vRows;
+    } catch (e) { console.warn('menu_item_variants table missing'); }
+
+    try {
+      const [eRows] = await db.query('SELECT * FROM menu_item_extras');
+      extras = eRows;
+    } catch (e) { console.warn('menu_item_extras table missing'); }
+
+    try {
+      const [iRows] = await db.query(`
+        SELECT mii.*, ii.name as ingredient_name, ii.unit as ingredient_unit 
+        FROM menu_item_ingredients mii
+        JOIN inventory_items ii ON mii.inventory_item_id = ii.id
+      `);
+      ingredients = iRows;
+    } catch (e) { console.warn('menu_item_ingredients or inventory_items table missing'); }
 
     // Group items by category to match the expected format
     const menuData = categories.map(category => {
