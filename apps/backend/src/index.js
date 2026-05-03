@@ -12,37 +12,7 @@ process.on('uncaughtException', (err) => {
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-console.log('🚀 SERVER STARTING AT:', new Date().toISOString());
-console.log('📝 VERSION: 1.0.4 (Diagnostic Ready)');
 const pool = require('./db');
-
-// Diagnostic Endpoint
-app.get('/api/test-db', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT 1 + 1 AS solution');
-    res.json({ 
-      success: true, 
-      message: 'Database connection is working!', 
-      host: process.env.DB_HOST,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER
-    });
-  } catch (err) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Database connection failed', 
-      error: err.message,
-      code: err.code,
-      debug: {
-        host: process.env.DB_HOST || 'NOT SET (Defaulting to 127.0.0.1)',
-        user: process.env.DB_USER || 'NOT SET',
-        database: process.env.DB_NAME || 'NOT SET',
-        has_password: !!process.env.DB_PASSWORD,
-        env_file_check: fs.existsSync(path.resolve(__dirname, '../.env')) ? 'File exists' : 'File missing'
-      }
-    });
-  }
-});
 
 // Diagnostics
 const fs = require('fs');
