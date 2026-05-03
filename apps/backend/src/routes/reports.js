@@ -1,0 +1,154 @@
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+
+/**
+ * @route   GET /api/reports/financial
+ * @desc    Get financial report data for a specific period
+ * @params  period (daily, weekly, monthly), startDate, endDate
+ */
+router.get('/financial', async (req, res) => {
+  try {
+    const { period, startDate, endDate } = req.query;
+    let dateFilter = 'DATE(o.order_time) = CURDATE()';
+    
+    if (startDate && endDate) {
+      dateFilter = `o.order_time BETWEEN '${startDate}' AND '${endDate}'`;
+    } else if (period === 'weekly') {
+      dateFilter = 'o.order_time >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+    } else if (period === 'monthly') {
+      dateFilter = 'o.order_time >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+    }
+
+    // 1. Sales Summary
+    const [sales] = await db.query(`
+      SELECT 
+        COUNT(*) as order_count,
+        SUM(total_amount) as gross_sales,
+        SUM(discount_amount) as total_discounts,
+        (SUM(total_amount) - SUM(discount_amount)) as net_sales
+      FROM orders o
+      WHERE ${dateFilter} AND status != 'Cancelled'
+    `);
+
+    // 2. Payments Breakdown
+    const [payments] = await db.query(`
+      SELECT 
+        payment_method,
+        SUM(amount) as total,
+        SUM(tip_amount) as tips
+      FROM payments p
+      JOIN orders o ON p.order_id = o.id
+      WHERE ${dateFilter} AND o.status != 'Cancelled'
+      GROUP BY payment_method
+    `);
+
+    // 3. Expenses Summary
+    const [expenses] = await db.query(`
+      SELECT 
+        COALESCE(SUM(amount), 0) as total_expenses
+      FROM expenses
+      WHERE date BETWEEN IFNULL('${startDate}', DATE_SUB(NOW(), INTERVAL 1 MONTH)) AND IFNULL('${endDate}', NOW())
+    `).catch(() => [[{ total_expenses: 0 }]]); // Handle missing table gracefully for now
+
+    // 4. Cost of Goods Sold (COGS) Estimation
+    // Using current recipe prices * quantities sold
+    const [cogs] = await db.query(`
+      SELECT 
+        SUM(oi.quantity * mii.quantity_required * (
+          SELECT unit_price FROM purchase_order_items 
+          WHERE inventory_item_id = mii.inventory_item_id 
+          ORDER BY id DESC LIMIT 1
+        )) as estimated_cogs
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      JOIN menu_item_ingredients mii ON oi.menu_item_id = mii.menu_item_id
+      WHERE ${dateFilter} AND o.status != 'Cancelled'
+    `).catch(() => [[{ estimated_cogs: 0 }]]);
+
+    const financialData = {
+      summary: sales[0] || { order_count: 0, gross_sales: 0, total_discounts: 0, net_sales: 0 },
+      payments: payments,
+      expenses: expenses[0]?.total_expenses || 0,
+      cogs: cogs[0]?.estimated_cogs || 0,
+      period: period || 'daily'
+    };
+
+    // Calculate Profit
+    financialData.gross_profit = financialData.summary.net_sales - financialData.cogs;
+    financialData.net_profit = financialData.gross_profit - financialData.expenses;
+
+    res.json(financialData);
+  } catch (error) {
+    console.error('Financial Report Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+/**
+ * @route   GET /api/reports/operational
+ * @desc    Get operational breakdown (Table performance, Stations, etc.)
+ */
+router.get('/operational', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let dateFilter = 'DATE(o.order_time) = CURDATE()';
+    let ordersDateFilter = 'DATE(order_time) = CURDATE()';
+
+    if (startDate && endDate) {
+      dateFilter = `DATE(o.order_time) BETWEEN '${startDate}' AND '${endDate}'`;
+      ordersDateFilter = `DATE(order_time) BETWEEN '${startDate}' AND '${endDate}'`;
+    } else if (startDate) {
+      dateFilter = `DATE(o.order_time) = '${startDate}'`;
+      ordersDateFilter = `DATE(order_time) = '${startDate}'`;
+    }
+
+    // 1. Station Performance
+    const [stations] = await db.query(`
+      SELECT 
+        mi.prep_station,
+        COUNT(*) as item_count,
+        COALESCE(SUM(oi.quantity), 0) as total_quantity
+      FROM order_items oi
+      JOIN menu_items mi ON oi.menu_item_id = mi.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE ${dateFilter} AND o.status != 'Cancelled'
+      GROUP BY mi.prep_station
+    `);
+
+    // 2. Table Turnover
+    const [tables] = await db.query(`
+      SELECT 
+        rt.table_number,
+        COUNT(o.id) as sessions,
+        COALESCE(SUM(o.total_amount), 0) as revenue
+      FROM restaurant_tables rt
+      LEFT JOIN orders o ON o.table_id = rt.id AND ${dateFilter} AND o.status != 'Cancelled'
+      GROUP BY rt.id
+      ORDER BY revenue DESC
+    `);
+
+    // 3. Online vs Offline
+    const [origins] = await db.query(`
+      SELECT 
+        origin,
+        COUNT(*) as count,
+        COALESCE(SUM(total_amount), 0) as total
+      FROM orders
+      WHERE ${ordersDateFilter} AND status != 'Cancelled'
+      GROUP BY origin
+    `);
+
+    res.json({
+      stations,
+      tables,
+      origins,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('Operational Report Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+module.exports = router;

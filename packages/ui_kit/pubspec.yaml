@@ -1,0 +1,6 @@
+name: ui_kit
+environment:
+  sdk: ^3.11.3
+dependencies:
+  flutter:
+    sdk: flutter

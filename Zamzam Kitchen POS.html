@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Zamzam Kitchen POS - Professional Terminal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                        "neutral-800": "#3d2a21",
+                        "neutral-700": "#5c4336",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .nav-tab-active { @apply text-primary border-b-2 border-primary; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 overflow-dden min-h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between border-b border-neutral-700 bg-background-light dark:bg-background-dark px-4 py-0 shrink-0 z-10 h-16">
+<div class="flex items-center h-full gap-8">
+<!-- Branding -->
+<div class="flex items-center gap-2 text-primary pr-4 border-r border-neutral-700 h-10">
+<a href="default.asp">
+  <img src="d:\ZK & Halal Logo-1.png" alt="HTML tutorial" style="width:120px;height:55px;">
+</a>
+    
+<div class="leading-none">
+<h1 class="text-sm font-bold tracking-tight uppercase">Zamzam</h1>
+<p class="text-[12px] font-bold text-slate-100 uppercase tracking-widest">Kitchen</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex items-center h-full gap-1">
+<a class="h-full flex items-center px-4 text-sm font-bold text-primary border-b-2 border-primary transition-colors" href="#">POS</a>
+<a class="h-full flex items-center px-4 text-sm font-bold text-slate-400 hover:text-white transition-colors border-b-2 border-transparent" href="#">Dashboard</a>
+<a class="h-full flex items-center px-4 text-sm font-bold text-slate-400 hover:text-white transition-colors border-b-2 border-transparent" href="#">Tables</a>
+<a class="h-full flex items-center px-4 text-sm font-bold text-slate-400 hover:text-white transition-colors border-b-2 border-transparent" href="#">Orders</a>
+<a class="h-full flex items-center px-4 text-sm font-bold text-slate-400 hover:text-white transition-colors border-b-2 border-transparent" href="#">KDS</a>
+<a class="h-full flex items-center px-4 text-sm font-bold text-slate-400 hover:text-white transition-colors border-b-2 border-transparent" href="#">Reservation</a>
+<a class="h-full flex items-center px-4 text-sm font-bold text-slate-400 hover:text-white transition-colors border-b-2 border-transparent" href="#">Waiting</a>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<!-- Search -->
+<div class="relative hidden lg:block mr-2">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="bg-neutral-800/50 border border-neutral-700/50 rounded-lg pl-9 pr-4 py-1.5 text-xs w-48 focus:ring-1 focus:ring-primary text-white transition-all focus:w-64" placeholder="Search..." type="text"/>
+</div>
+
+<div class="flex gap-6 items-center">
+<span class="flex items-center gap-2">
+
+<span id="current-time" class="bg-pmy hover:bg-prary/90 text-white text-[10px] px-2 py-1 rounded">Monday, Oct 23 | 19:42 PM</span>
+</div>
+
+
+<!-- Clock In Button -->
+<button class="bg-primary hover:bg-primary/90 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center shadow-lg shadow-primary/10 transition-all active:scale-95 px-3"><span class="material-symbols-outlined text-sm">alarm_on</span><span class="ml-1 font-bold">IN</span></button>
+<!-- Utility Icons -->
+<div class="flex items-center gap-1 border-l border-neutral-700 pl-3">
+<button class="text-slate-400 hover:text-white p-1.5 transition-colors">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<button class="text-slate-400 hover:text-white p-1.5 transition-colors">
+<span class="material-symbols-outlined text-xl">settings</span>
+</button>
+</div>
+<!-- User Profile -->
+<div class="flex items-center gap-3 ml-1 pl-3 border-l border-neutral-700">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold">Marcus J.</p>
+</div>
+<div class="w-8 h-8 rounded-lg bg-neutral-800 flex items-center justify-center text-primary border border-neutral-700">
+<span class="material-symbols-outlined text-lg">person</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main POS Interface -->
+<main class="flex flex-1 overflow-hidden">
+<!-- Center/Main Area -->
+<section class="flex-1 flex flex-col overflow-hidden bg-background-dark/50">
+<!-- Horizontal Menu Categories - Reduced height and padding -->
+<nav class="bg-neutral-800/80 border-b border-neutral-700 p-1 shrink-0">
+<div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 px-1.5">
+<button class="flex items-center gap-1.5 px-4 py-2 rounded-lg  text-white sha shadow-primary/30 whitespace-nowrap">
+<span class="material-symbols-outlined text-lg">apps</span>
+<span class="font-bold text-[11px] uppercase tracking-wide">All</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 py-2 rounded-lg transition-all whitespace-nowrap hover:bg-neutral-700 text-slate-300">
+<span class="font-bold text-[11px] uppercase tracking-wide">Appetizers</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white shadow-lg shadow-primary/30 whitespace-nowrap transition-all">
+<span class="font-bold text-[11px] uppercase tracking-wide">Main Course</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 py-2 rounded-lg transition-all whitespace-nowrap hover:bg-neutral-700 text-slate-300">
+<span class="font-bold text-[11px] uppercase tracking-wide">Sides &amp; Salads</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 py-2 rounded-lg transition-all whitespace-nowrap hover:bg-neutral-700 text-slate-300">
+<span class="font-bold text-[11px] uppercase tracking-wide">Cocktails</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 py-2 rounded-lg transition-all whitespace-nowrap hover:bg-neutral-700 text-slate-300">
+<span class="font-bold text-[11px] uppercase tracking-wide">Wine List</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 py-2 rounded-lg transition-all whitespace-nowrap hover:bg-neutral-700 text-slate-300">
+<span class="font-bold text-[11px] uppercase tracking-wide">Desserts</span>
+</button>
+</div>
+</nav>
+<div class="flex-1 overflow-y-auto p-4">
+<div class="flex justify-between items-center mb-4">
+<div>
+<h2 class="text-xl font-bold">Main Course Items</h2>
+<!--<p class="text-slate-500 text-[11px]">Station 01 • Kitchen Screen Active</p>-->
+</div>
+<div class="flex gap-1.5">
+<button class="px-3 py-1.5 rounded-md bg-neutral-800 text-[10px] font-bold uppercase border border-neutral-700">Favorites</button>
+<button class="px-3 py-1.5 rounded-md bg-neutral-800 text-[10px] font-bold uppercase border border-neutral-700">Recent</button>
+</div>
+</div>
+<!-- Item Grid - Scaled down cards -->
+<div class="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+<!-- Item Card - Significantly scaled down -->
+<button class="flex flex-col text-left bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl overflow-hidden transition-all group active:scale-95">
+<div class="h-24 w-full bg-cover bg-center bg-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbJ7R9U9wagbEenI0gh6XLhPAwwRVl6txSQ52jPFiduuQ8EGAWQ18rxn87auTaLUypw6RClxMBvwiLEQhm4jp4neyLConJpDq0qQ39Q4jlYG-bYPiqDxd5rkcnP4u6s5Pb4OASbZxonIlm5qFfvJGkjvff5siqcEaMbTeDqQXp0VopBtgXCBU_PzesbqxPFAJGm8iH4Nee1kyhxKn9Mt6MlLJHJdvvg9EN9QS8Nxxt0tvhs4inWPPVFNelHweiK-1ZCdSyZ7lLMvGu')"></div>
+<div class="p-2.5">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-bold text-slate-100 leading-tight text-xs">Ribeye Steak</h4>
+<span class="text-primary font-bold text-xs">$32.00</span>
+</div>
+<!--<p class="text-[10px] text-slate-400 line-clamp-1">12oz grass-fed ribeye, garlic butter...</p>-->
+</div>
+</button>
+<button class="flex flex-col text-left bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl overflow-hidden transition-all group active:scale-95">
+<div class="h-24 w-full bg-cover bg-center bg-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDqUD3E_PVRlcE4m_6wXKtA6E2BhCY3iqrn4SGl90D8g2uEvLwXs_90vOjrROSwPcoP1fMyh9ZUIIU5Qf5yF2GzQPYgMeXxWRPYqv8XVKYrf1MLi7VYkUucyDDDKuH6D8urFTZUKVCDqzo_sPIJWzhoI2pHC_l1jlRMpoF2H64DUNnBDdPJW69pahbA4jFyPqoSNdu3fl5hgINZkk2Tya9VYLHAZr-A3lroaU-odD7NUSaXS6S8a_8eK4dz6mpgohmKsFDh0_iCxa2Z')"></div>
+<div class="p-2.5">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-bold text-slate-100 leading-tight text-xs">Grilled Salmon</h4>
+<span class="text-primary font-bold text-xs">$28.50</span>
+</div>
+<!--<p class="text-[10px] text-slate-400 line-clamp-1">Atlantic salmon, lemon zest, asparagus...</p>-->
+</div>
+</button>
+<button class="flex flex-col text-left bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl overflow-hidden transition-all group active:scale-95">
+<div class="h-24 w-full bg-cover bg-center bg-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD5hyAb7pXI2xTuZU0H8UUrSN_ic2TgjwICBXaJ4hWVBFTqJGrFUdLhylkUmyEW5_oOPAAgnV9BwZai4rhOiR3OlUE54eA3jAauRZPA6Uefny7_aFMcNW5tp_t12iwewYk0e5r3OZ98z4HN2QyP5PJmRWbXofUzIwgRYccN1cPiscOal5t2RptneDI_WE-Pdx4bTI7m84k4J6N7pcmnz-tp9fo1Nm4m5t_cPQ5rRHU1GyDSsPEaokBSMxlAOCfDb5eng13Sq5BRtJxt')"></div>
+<div class="p-2.5">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-bold text-slate-100 leading-tight text-xs">Pasta Carbonara</h4>
+<span class="text-primary font-bold text-xs">$18.00</span>
+</div>
+<!--<p class="text-[10px] text-slate-400 line-clamp-1">Handmade fettuccine, pancetta, pecorino...</p>-->
+</div>
+</button>
+<button class="flex flex-col text-left bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl overflow-hidden transition-all group active:scale-95">
+<div class="h-24 w-full bg-cover bg-center bg-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAI3SgWX9MEAElV6iT31ZgvEKxyILWa-I2bKRTx_0tXH1-NCftdmnzPuMk_j0DHVI9bbVZ1rUhu0BZY-8ODvvwo_pTFDANBOKz1w2saXTTru2LGM-i5muUt4LbuqxL3Czm-Utq3-_4mwPvWVMfofSqPIplK0ITWkU5BkamItLOon2S62viOjgrcOiTpueSU3pIACtyAKxBuMgAhGQHzEQKXmPjvTaUqY9JWu2MuiGu-QnzuuS6xMuF6AXlAzmltFy_QbnImFkXD8GO2')"></div>
+<div class="p-2.5">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-bold text-slate-100 leading-tight text-xs">Mushroom Risotto</h4>
+<span class="text-primary font-bold text-xs">$22.00</span>
+</div>
+<!--<p class="text-[10px] text-slate-400 line-clamp-1">Arborio rice, wild mushrooms, truffle oil...</p>-->
+</div>
+</button>
+<button class="flex flex-col text-left bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl overflow-hidden transition-all group active:scale-95">
+<div class="h-24 w-full bg-cover bg-center bg-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBs99MR9m1lygDfUi5HCE7Wqz0E3FWCVso1LdeIRx4y5jTettAo-r4rKyeTRwsMoKVGKg3xyOZMNH7Y3T5u9uvlzN8Pv2grvkvigBHPp66koOkmtPm8VEEmOjLGIXcUI3VH3qzoyFNwjvBc_Oo4NsYKN3NLts6ynNB0i_mwQmOEVi5mc9RvGrd7vMNpWJPKjjz9iJdlnim3Px5eY5p6-Ed08FcbRK8aASTl6qoIxcMFdQU6sXtRZotcCUxUkYDuh-hkW_YIJLaSkhXW')"></div>
+<div class="p-2.5">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-bold text-slate-100 leading-tight text-xs">Wagyu Burger</h4>
+<span class="text-primary font-bold text-xs">$24.00</span>
+</div>
+<!--<p class="text-[10px] text-slate-400 line-clamp-1">Brioche bun, caramelized onions, aged...</p>-->
+</div>
+</button>
+<button class="flex flex-col text-left bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl overflow-hidden transition-all group active:scale-95">
+<div class="h-24 w-full bg-cover bg-center bg-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDitm30IKra8Q6JfOIQU542xBOdeMZK6bwtsykeKH82434OqvFJVFOas7rZGy7I9Yohe9LDAe9t0WdWgmsGuyulJZ4UZfMnEclTtYBTxm0L7hmewyZOs2M72g42nKXImIK7e0Lx8algrM0QbZP0Bmi2gbOm9bonohV75zeKsARqOq3v03ZxdIljxVUQnNwCs0CEX-tCy83veueW2Pib_2_-SxFKfhrN9Qyes_3C-otuC8SgoNeFJAlRWeF0Uxi-LIAyyhEiPIiRQa-6')"></div>
+<div class="p-2.5">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-bold text-slate-100 leading-tight text-xs">Roasted Chicken</h4>
+<span class="text-primary font-bold text-xs">$24.00</span>
+</div>
+<!--<p class="text-[10px] text-slate-400 line-clamp-1">Organic half chicken, lemon-herb pan jus...</p>-->
+</div>
+</button>
+<button class="flex flex-col text-left bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl overflow-hidden transition-all group active:scale-95">
+<div class="h-24 w-full bg-cover bg-center bg-slate-700" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDtb_P0p20NR8XHWW0FN07uWJNmfyDoRJPaQCmdeLcgyw7rohBTmViauHB3MxtjLa7ViCJmJACkeUn-Ednam45TqEMX7x8RaD35xWT2_3KpRFXbZgpjf_jRKLCPm8Gc6Ie3YicDsH6aYnPrKuxrh6-RGL1ePMod2euKQxURv2ot7CAG71-BvIOn3hfb11Iq5l8-ngx_YJ5mdYJitAKj0TskdVXVCE0k63b-K_gqePyq8ZKQnPPiRaKD07MrWGmb-tmMLSj5qGkBMgK0')"></div>
+<div class="p-2.5">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-bold text-slate-100 leading-tight text-xs">Lamb Chops</h4>
+<span class="text-primary font-bold text-xs">$35.00</span>
+</div>
+<!--<p class="text-[10px] text-slate-400 line-clamp-1">Mint-crusted, red wine reduction, potato...</p>-->
+</div>
+</button>
+<!-- Custom Item Card - Reduced size -->
+<button class="flex flex-col items-center justify-center text-center bg-neutral-800/30 border-2 border-dashed border-neutral-700 rounded-xl h-[142px] group hover:border-primary/50 transition-colors">
+<span class="material-symbols-outlined text-2xl text-neutral-700 group-hover:text-primary transition-colors">add_circle</span>
+<span class="mt-1 font-medium text-[10px] text-neutral-700 group-hover:text-slate-300">Custom Item</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Right Sidebar: Order Summary -->
+<aside class="w-96 bg-background-light dark:bg-background-dark border-l border-neutral-700 flex flex-col shrink-0">
+<div class="p-4 border-b border-neutral-700 flex justify-between items-center bg-neutral-800/20">
+<div>
+<h3 class="font-bold text-lg">Table 12</h3>
+<p class="text-slate-500 text-xs">Customer: Walk-in • 4 Guests</p>
+</div>
+<button class="text-slate-400 hover:text-white">
+<span class="material-symbols-outlined">edit_note</span>
+</button>
+</div>
+<!-- Order Items List -->
+<div class="flex-1 overflow-y-uto">
+<table class="w-full">
+<thead class="bg-neutral-80/50 sticky top-0">
+<tr>
+<th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">Item</th>
+<th class="px-2 py-3 text-center text-xs font-bold uppercase text-slate-500">Qty</th>
+<th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">Total</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-neutral-800">
+<tr class="group hover:bg-neutral-800/30">
+<td class="px-4 py-4">
+<p class="font-medium text-sm">Ribeye Steak</p>
+<p class="text-[10px] text-slate-500 leading-tight">+ Medium Rare<br/>+ Extra Garlic Butter</p>
+</td>
+<td class="px-2 py-4 text-center"><div class="flex items-center justify-center gap-2">
+<button class="w-6 h-6 rounded-full border border-neutral-700 flex items-center justify-center hover:bg-neutral-800 transition-colors group">
+<span class="material-symbols-outlined text-sm text-primary">remove</span>
+</button>
+<span class="text-sm font-bold w-4">1</span>
+<button class="w-6 h-6 rounded-full border border-neutral-700 flex items-center justify-center hover:bg-neutral-800 transition-colors group">
+<span class="material-symbols-outlined text-sm text-primary">add</span>
+</button>
+<button class="ml-1 w-6 h-6 rounded-full border border-neutral-700/50 flex items-center justify-center hover:bg-red-500/10 transition-colors group">
+<span class="material-symbols-outlined text-sm text-slate-500 group-hover:text-red-500">delete</span>
+</button>
+</div></td>
+<td class="px-4 py-4 text-right text-sm font-bold">$32.00</td>
+</tr>
+<tr class="group hover:bg-neutral-800/30">
+<td class="px-4 py-4">
+<p class="font-medium text-sm">Grilled Salmon</p>
+<p class="text-[10px] text-slate-500 leading-tight">+ No Asparagus</p>
+</td>
+<td class="px-2 py-4 text-center"><div class="flex items-center justify-center gap-2">
+<button class="w-6 h-6 rounded-full border border-neutral-700 flex items-center justify-center hover:bg-neutral-800 transition-colors group">
+<span class="material-symbols-outlined text-sm text-primary">remove</span>
+</button>
+<span class="text-sm font-bold w-4">1</span>
+<button class="w-6 h-6 rounded-full border border-neutral-700 flex items-center justify-center hover:bg-neutral-800 transition-colors group">
+<span class="material-symbols-outlined text-sm text-primary">add</span>
+</button>
+<button class="ml-1 w-6 h-6 rounded-full border border-neutral-700/50 flex items-center justify-center hover:bg-red-500/10 transition-colors group">
+<span class="material-symbols-outlined text-sm text-slate-500 group-hover:text-red-500">delete</span>
+</button>
+</div></td>
+<td class="px-4 py-4 text-right text-sm font-bold">$28.50</td>
+</tr>
+<tr class="group hover:bg-neutral-800/30">
+<td class="px-4 py-4">
+<p class="font-medium text-sm">Red Wine Glass</p>
+<p class="text-[10px] text-slate-500">Cabernet Sauvignon</p>
+</td>
+<td class="px-2 py-4 text-center"><div class="flex items-center justify-center gap-2">
+<button class="w-6 h-6 rounded-full border border-neutral-700 flex items-center justify-center hover:bg-neutral-800 transition-colors group">
+<span class="material-symbols-outlined text-sm text-primary">remove</span>
+</button>
+<span class="text-sm font-bold w-4">2</span>
+<button class="w-6 h-6 rounded-full border border-neutral-700 flex items-center justify-center hover:bg-neutral-800 transition-colors group">
+<span class="material-symbols-outlined text-sm text-primary">add</span>
+</button>
+<button class="ml-1 w-6 h-6 rounded-full border border-neutral-700/50 flex items-center justify-center hover:bg-red-500/10 transition-colors group">
+<span class="material-symbols-outlined text-sm text-slate-500 group-hover:text-red-500">delete</span>
+</button>
+</div></td>
+<td class="px-4 py-4 text-right text-sm font-bold">$24.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Calculation Area -->
+<div class="p-6 bg-neutral-800/40 border-t border-neutral-700 space-y-3">
+<div class="flex justify-between text-sm">
+<span class="text-slate-400">Subtotal</span>
+<span class="font-medium">$84.50</span>
+</div><div class="flex justify-between text-sm"><span class="text-slate-400">Tip</span><span class="font-medium">$0.00</span></div><div class="flex justify-between text-sm"><span class="text-slate-400">Discount</span><span class="font-medium">$0.00</span></div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-400">Tax (8%)</span>
+<span class="font-medium">$6.76</span>
+</div>
+<div class="flex justify-between text-2xl font-bold pt-2 border-t border-neutral-700/50">
+<span>Total</span>
+<span class="text-primary">$91.26</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="p-4 grid grid-cols-2 gap-3 shrink-0 bg-background-dark">
+<button class="flex flex-row items-center justify-center gap-2
+ py-2 px-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 transition-colors">
+<span class="material-symbols-outlined text-lg">call_split</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Split Bill</span>
+</button>
+<button class="flex flex-row items-center justify-center gap-2 py-2 px-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 transition-colors">
+<span class="material-symbols-outlined text-lg">print</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Print Receipt</span>
+</button>
+<button class="col-span-2 flex items-center justify-center gap-2 py-2 px-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg shadow-blue-900/40 active:scale-[0.98]">
+<span class="material-symbols-outlined text-2xl">cooking</span>
+<span class="text-sm font-bold uppercase tracking-widest">Send to Kitchen</span>
+</button>
+<button class="col-span-2 flex items-center justify-center gap-2 py-2 px-2 rounded-xl bg-primary hover:bg-primary/90 text-white transition-all shadow-lg shadow-primary/30 active:scale-[0.98]">
+<span class="material-symbols-outlined text-2xl">payments</span>
+<span class="text-sm font-black uppercase tracking-widest">PAY NOW</span>
+</button>
+</div>
+</aside>
+</main>
+<!-- Bottom Status Bar -->
+<footer class="h-10 bg-neutral-800 px-6 flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0 border-t border-neutral-700 z-10">
+<div class="flex gap-6">
+<span>Terminal: #04-OFFICE</span>
+<span>Version: 2.4.1</span>
+<!--<span class="text-green-500 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-green-500"></span> Station Online
+        </span>-->
+</div>
+<div class="flex gap-6 items-center">
+<span class="flex items-center gap-2">
+<!--<span class="w-2 h-2 rounded-full bg-green-500"></span> 
+            Synced to Cloud
+        </span>-->
+<span id="current-time" class="bg-primy hover:bg-priy/90 text-white px-2 py-1 rounded">Monday, Oct 23 | 19:42 PM</span>
+</div>
+</footer>
+</body></html>

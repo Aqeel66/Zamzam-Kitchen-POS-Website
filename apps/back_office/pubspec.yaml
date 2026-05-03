@@ -1,0 +1,7 @@
+name: back_office
+environment:
+  sdk: ^3.11.3
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.1

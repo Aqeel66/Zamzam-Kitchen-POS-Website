@@ -1,0 +1,98 @@
+.success-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #fafaf9;
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Hide the entire website UI */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the invoice container */
+  .print-only, .print-only * {
+    visibility: visible;
+  }
+  
+  .print-only {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    font-family: monospace; /* Thermal printer aesthetic */
+    color: black;
+  }
+  
+  .invoice-container {
+    max-width: 350px;
+    margin: 0 auto;
+  }
+
+  .invoice-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .invoice-header h2 {
+    font-size: 24px;
+    margin-bottom: 5px;
+  }
+
+  .invoice-header p {
+    margin: 3px 0;
+    font-size: 14px;
+  }
+  
+  hr.dashed {
+    border-top: 1px dashed black;
+    border-bottom: none;
+    margin: 15px 0;
+  }
+
+  .invoice-items {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .invoice-items th, .invoice-items td {
+    padding: 8px 0;
+  }
+
+  .invoice-items th {
+    border-bottom: 1px solid black;
+  }
+
+  .invoice-totals {
+    font-size: 14px;
+  }
+
+  .invoice-totals .row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+
+  .invoice-totals .total {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+
+  .invoice-footer {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 20px;
+  }
+}

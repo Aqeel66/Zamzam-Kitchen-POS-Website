@@ -1,0 +1,27 @@
+name: pos_terminal
+environment:
+  sdk: ^3.11.3
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.1
+  ui_kit:
+    path: ../../packages/ui_kit
+  intl: ^0.18.1
+  http_parser: ^4.1.2
+  qr_flutter: 4.1.0
+  fl_chart: ^0.66.0
+  audioplayers: ^6.6.0
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  path_provider: ^2.1.5
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/images/menu_items/
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter

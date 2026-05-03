@@ -1,0 +1,23 @@
+﻿Analyzing pos_terminal...                                       
+
+warning - The URI 'package:flutter_lints/flutter.yaml' included in 'D:\Anti-Gravity Projects\Restaurant Management System\apps\pos_terminal\analysis_options.yaml' can't be found when analyzing 'D:\Anti-Gravity Projects\Restaurant Management System\apps\pos_terminal' - analysis_options.yaml:10:10 - include_file_not_found
+   info - 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead - lib\dashboard\pos_mission_control.dart:4:1 - deprecated_member_use
+warning - The declaration '_buildStatusProgress' isn't referenced - lib\dashboard\pos_mission_control.dart:2758:10 - unused_element
+  error - Target of URI doesn't exist: 'package:flutter_test/flutter_test.dart' - test\widget_test.dart:9:8 - uri_does_not_exist
+  error - The function 'testWidgets' isn't defined - test\widget_test.dart:14:3 - undefined_function
+  error - Undefined class 'WidgetTester' - test\widget_test.dart:14:49 - undefined_class
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+  error - The function 'expect' isn't defined - test\widget_test.dart:19:5 - undefined_function
+  error - Undefined name 'find' - test\widget_test.dart:19:12 - undefined_identifier
+  error - Undefined name 'findsOneWidget' - test\widget_test.dart:19:28 - undefined_identifier
+  error - The function 'expect' isn't defined - test\widget_test.dart:20:5 - undefined_function
+  error - Undefined name 'find' - test\widget_test.dart:20:12 - undefined_identifier
+  error - Undefined name 'findsNothing' - test\widget_test.dart:20:28 - undefined_identifier
+  error - Undefined name 'find' - test\widget_test.dart:23:22 - undefined_identifier
+  error - The function 'expect' isn't defined - test\widget_test.dart:27:5 - undefined_function
+  error - Undefined name 'find' - test\widget_test.dart:27:12 - undefined_identifier
+  error - Undefined name 'findsNothing' - test\widget_test.dart:27:28 - undefined_identifier
+  error - The function 'expect' isn't defined - test\widget_test.dart:28:5 - undefined_function
+  error - Undefined name 'find' - test\widget_test.dart:28:12 - undefined_identifier
+  error - Undefined name 'findsOneWidget' - test\widget_test.dart:28:28 - undefined_identifier
+
