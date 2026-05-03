@@ -10,7 +10,18 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  timezone: '+05:00' // Set session timezone to match user local time
+  timezone: '+05:00'
 });
+
+// Test connection on startup but don't crash
+pool.getConnection()
+  .then(conn => {
+    console.log('✅ Database connected successfully');
+    conn.release();
+  })
+  .catch(err => {
+    console.error('❌ Database connection failed:', err.message);
+    console.warn('⚠️ Server will stay running, but API calls will fail until DB is fixed.');
+  });
 
 module.exports = pool;
