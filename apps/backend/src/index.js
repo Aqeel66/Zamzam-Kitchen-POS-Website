@@ -87,19 +87,34 @@ app.use('/api/expenses', expensesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 
-// Handle Flutter Web routing (Return index.html for non-api routes)
-app.get('*', (req, res, next) => {
+// Handle POS Terminal routing (Sub-folder /pos)
+app.get('/pos*', (req, res, next) => {
   // If it's an API or Assets route, let it pass through to the 404 handler if not found
   if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
     return next();
   }
   
-  // Otherwise, serve the Flutter index.html for SPA routing
+  // Serve the POS index.html for any path starting with /pos
+  const indexPath = path.join(webPath, 'pos/index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error('❌ Error sending POS index.html:', err);
+      next();
+    }
+  });
+});
+
+// Handle Main Website routing (Root /)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
+    return next();
+  }
+  
+  // Serve the main website index.html
   const indexPath = path.join(webPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
-      console.error('❌ Error sending index.html:', err);
-      // If index.html is missing, we fall through to the 404 handler
+      console.error('❌ Error sending Website index.html:', err);
       next();
     }
   });
