@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Trash2, ArrowLeft, MapPin } from 'lucide-react';
-import { ASSETS_BASE_URL, resolveImageUrl } from '../config';
+import { resolveImageUrl } from '../config';
 
 export default function Cart() {
   const { items, removeFromCart, updateQuantity, totalPrice, tableId, tableNumber } = useCart();

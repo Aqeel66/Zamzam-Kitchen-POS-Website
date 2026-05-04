@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useState, useEffect } from 'react';
 import { CreditCard, Banknote, Store, Car, Package, Heart, MapPin } from 'lucide-react';
-import { API_BASE_URL, ASSETS_BASE_URL, resolveImageUrl } from '../config';
+import { API_BASE_URL, resolveImageUrl } from '../config';
 
 export default function Checkout() {
   const { totalPrice, items, clearCart, tableId, tableNumber, clearTableContext } = useCart();

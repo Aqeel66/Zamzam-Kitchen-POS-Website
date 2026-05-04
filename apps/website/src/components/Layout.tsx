@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { User, ShoppingCart, Share2, Heart, Globe, Menu as MenuIcon, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { API_BASE_URL, ASSETS_BASE_URL, resolveImageUrl } from '../config';
+import { API_BASE_URL, resolveImageUrl } from '../config';
 import './Layout.css';
 
 interface LayoutProps {

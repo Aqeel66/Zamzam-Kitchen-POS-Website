@@ -2,7 +2,7 @@ import { ShoppingCart, MapPin, Clock, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { API_BASE_URL, ASSETS_BASE_URL, resolveImageUrl } from '../config';
+import { API_BASE_URL, resolveImageUrl } from '../config';
 import './Home.css';
 
 export default function Home() {
