@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ui_kit/ui_kit.dart';
+import 'package:flutter/foundation.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 enum AppThemeFlavor { light, dark, midnightBlue, emeraldGreen, auraPurple }
 
@@ -8,9 +11,60 @@ class ThemeService extends ChangeNotifier {
   factory ThemeService() => _instance;
   ThemeService._internal();
 
+  static ThemeService get instance => _instance;
+
   AppThemeFlavor _currentFlavor = AppThemeFlavor.dark;
+  Color? _customAccentColor;
+  String? _logoPath;
+  String? _secondaryLogoPath;
+  String _restaurantName = 'ZAMZAM KITCHEN';
+  String _tagline = '';
+
+  ThemeData get currentTheme => themeData;
+
+  static String get apiBaseUrl {
+    if (kIsWeb) {
+      final origin = html.window.location.origin;
+      final hostname = html.window.location.hostname ?? '';
+      if (hostname == 'localhost' || hostname == '127.0.0.1' || 
+          hostname.startsWith('192.168.') || 
+          hostname.startsWith('10.')) {
+        final protocol = html.window.location.protocol ?? 'http:';
+        return '$protocol//$hostname:5000';
+      }
+      return origin;
+    }
+    return kDebugMode ? 'http://localhost:5000' : 'https://zamzamkitchen.net';
+  }
+
 
   AppThemeFlavor get currentFlavor => _currentFlavor;
+  Color? get customAccentColor => _customAccentColor;
+  
+  String? get logoUrl {
+    if (_logoPath == null || _logoPath!.isEmpty) return null;
+    return resolveImageUrl(_logoPath!);
+  }
+
+  String? get secondaryLogoUrl {
+    if (_secondaryLogoPath == null || _secondaryLogoPath!.isEmpty) return null;
+    return resolveImageUrl(_secondaryLogoPath!);
+  }
+  
+  String get restaurantName => _restaurantName;
+  String get tagline => _tagline;
+
+  static String resolveImageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    
+    // Remove any leading slashes or "assets/" to avoid double path segments
+    String cleanPath = path;
+    if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+    if (cleanPath.startsWith('assets/')) cleanPath = cleanPath.substring(7);
+    
+    return '${ThemeService.apiBaseUrl}/assets/$cleanPath';
+  }
 
   void setFlavor(AppThemeFlavor flavor) {
     debugPrint('ThemeService: Setting flavor to $flavor');
@@ -21,44 +75,130 @@ class ThemeService extends ChangeNotifier {
     }
   }
 
-  void setFlavorFromString(String? flavorStr) {
-    if (flavorStr == null) return;
+  void setAccentColor(Color? color) {
+    if (_customAccentColor != color) {
+      _customAccentColor = color;
+      notifyListeners();
+    }
+  }
+
+  void updateBranding({String? logoUrl, String? secondaryLogoUrl, String? restaurantName, String? tagline}) {
+    bool changed = false;
+    if (logoUrl != null && _logoPath != logoUrl) {
+      debugPrint('ThemeService: Updating logo from "$_logoPath" to "$logoUrl"');
+      _logoPath = logoUrl;
+      changed = true;
+    }
+    if (secondaryLogoUrl != null && _secondaryLogoPath != secondaryLogoUrl) {
+      debugPrint('ThemeService: Updating secondary logo from "$_secondaryLogoPath" to "$secondaryLogoUrl"');
+      _secondaryLogoPath = secondaryLogoUrl;
+      changed = true;
+    }
+    if (restaurantName != null && _restaurantName != restaurantName) {
+      debugPrint('ThemeService: Updating restaurant name from "$_restaurantName" to "$restaurantName"');
+      _restaurantName = restaurantName;
+      changed = true;
+    }
+    if (tagline != null && _tagline != tagline) {
+      debugPrint('ThemeService: Updating tagline from "$_tagline" to "$tagline"');
+      _tagline = tagline;
+      changed = true;
+    }
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  void setFlavorFromString(String? flavorStr, {String? accentColorHex, String? logoUrl, String? secondaryLogoUrl, String? restaurantName, String? tagline}) {
+    debugPrint('ThemeService: Syncing from string. Raw Flavor: "$flavorStr", Tagline: "$tagline"');
     
-    switch (flavorStr.toLowerCase()) {
+    // Update local paths if provided
+    if (accentColorHex != null && accentColorHex.isNotEmpty) {
+      _customAccentColor = _hexToColor(accentColorHex);
+    }
+
+    final normalizedFlavor = (flavorStr ?? 'dark').toLowerCase().trim();
+    debugPrint('ThemeService: Normalized Flavor: "$normalizedFlavor"');
+
+    switch (normalizedFlavor) {
+      case 'classic light':
+      case 'classic_light':
       case 'light':
         setFlavor(AppThemeFlavor.light);
         break;
-      case 'dark':
-        setFlavor(AppThemeFlavor.dark);
-        break;
       case 'midnight blue':
+      case 'midnight_blue':
+      case 'midnight':
         setFlavor(AppThemeFlavor.midnightBlue);
         break;
       case 'emerald green':
+      case 'emerald_green':
+      case 'emerald':
         setFlavor(AppThemeFlavor.emeraldGreen);
         break;
       case 'aura purple':
+      case 'aura_purple':
+      case 'aura':
         setFlavor(AppThemeFlavor.auraPurple);
         break;
+      case 'classic dark':
+      case 'classic_dark':
+      case 'dark':
       default:
-        // Default to dark if unknown
         setFlavor(AppThemeFlavor.dark);
+        break;
+    }
+
+    // Update branding state with provided values
+    updateBranding(
+      logoUrl: logoUrl,
+      secondaryLogoUrl: secondaryLogoUrl,
+      restaurantName: restaurantName,
+      tagline: tagline,
+    );
+  }
+
+  Color _hexToColor(String hexString) {
+    final buffer = StringBuffer();
+    if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
+    buffer.write(hexString.replaceFirst('#', ''));
+    try {
+      return Color(int.parse(buffer.toString(), radix: 16));
+    } catch (e) {
+      return ZamamTheme.pulseOrange;
     }
   }
 
   ThemeData get themeData {
+    ThemeData baseTheme;
     switch (_currentFlavor) {
       case AppThemeFlavor.light:
-        return ZamamTheme.lightTheme;
+        baseTheme = ZamamTheme.lightTheme;
+        break;
       case AppThemeFlavor.dark:
-        return ZamamTheme.darkTheme;
+        baseTheme = ZamamTheme.darkTheme;
+        break;
       case AppThemeFlavor.midnightBlue:
-        return ZamamTheme.midnightBlueTheme;
+        baseTheme = ZamamTheme.midnightBlueTheme;
+        break;
       case AppThemeFlavor.emeraldGreen:
-        return ZamamTheme.emeraldGreenTheme;
+        baseTheme = ZamamTheme.emeraldGreenTheme;
+        break;
       case AppThemeFlavor.auraPurple:
-        return ZamamTheme.auraPurpleTheme;
+        baseTheme = ZamamTheme.auraPurpleTheme;
+        break;
     }
+
+    if (_customAccentColor != null) {
+      return baseTheme.copyWith(
+        primaryColor: _customAccentColor,
+        colorScheme: baseTheme.colorScheme.copyWith(
+          primary: _customAccentColor,
+          secondary: _customAccentColor,
+        ),
+      );
+    }
+    return baseTheme;
   }
 
   bool get isDarkMode {

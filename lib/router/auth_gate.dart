@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:pos_terminal/dashboard/pos_mission_control.dart';
+import 'package:pos_terminal/theme_service.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -30,6 +31,35 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // Fetch branding on startup
+    _fetchBranding();
+  }
+
+  Future<void> _fetchBranding() async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final response = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/settings?t=$timestamp'),
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final tenant = data['tenant'];
+        if (tenant != null) {
+          ThemeService.instance.setFlavorFromString(
+            tenant['theme_mode'] ?? 'dark',
+            restaurantName: tenant['restaurant_name'] ?? 'ZAMZAM KITCHEN',
+            tagline: tenant['tagline'] ?? 'Universal Access Portal',
+            logoUrl: tenant['logo_url'],
+            secondaryLogoUrl: tenant['secondary_logo_url'],
+          );
+          if (mounted) setState(() {});
+        }
+      }
+    } catch (e) {
+      debugPrint('AuthGate: Branding Sync Error: $e');
+    }
   }
 
   @override
@@ -48,7 +78,7 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/auth/login'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': _usernameController.text.trim(),
@@ -57,10 +87,6 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final user = data['user'];
-        final List<dynamic> roles = user['roles'] ?? [];
-        
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -93,81 +119,79 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    const Color posOrange = Color(0xFFFF5200);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = theme.primaryColor;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white60 : Colors.black54;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      body: Stack(
-        children: [
-          // Background Gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.center,
-                radius: 1.5,
-                colors: [
-                  posOrange.withValues(alpha: 0.1),
-                  Colors.black,
-                ],
-              ),
-            ),
-          ),
-          
-          Center(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Center(
             child: SingleChildScrollView(
               child: Container(
-                width: 450,
+                width: 480,
                 padding: const EdgeInsets.all(40),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: isDark 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : theme.cardColor.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.dividerColor.withValues(alpha: 0.2)
+                  ),
+                  boxShadow: !isDark ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    )
+                  ] : null,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Pulsing Logo
-                    ScaleTransition(
-                      scale: _pulseAnimation,
-                      child: Container(
-                        height: 120,
-                        width: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: posOrange.withValues(alpha: 0.3),
-                              blurRadius: 30,
-                              spreadRadius: 10,
-                            ),
-                          ],
+                    // Dual Logos Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Primary Logo
+                        _buildLogoCircle(
+                          ThemeService.instance.logoUrl, 
+                          accentColor, 
+                          isDark,
+                          _pulseAnimation,
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(60),
-                          child: Image.asset(
-                            'packages/pos_terminal/assets/images/logo.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.restaurant, color: posOrange, size: 60);
-                            },
+                        
+                        // Secondary Logo
+                        if (ThemeService.instance.secondaryLogoUrl != null) ...[
+                          const SizedBox(width: 20),
+                          _buildLogoCircle(
+                            ThemeService.instance.secondaryLogoUrl, 
+                            accentColor, 
+                            isDark,
+                            null,
+                            isSecondary: true,
                           ),
-                        ),
-                      ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 32),
-                    const Text(
-                      'ZAMZAM KITCHEN',
+                    Text(
+                      ThemeService.instance.restaurantName.toUpperCase(),
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: textColor,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
                       ),
                     ),
-                    const Text(
-                      'Universal Access Portal',
+                    Text(
+                      ThemeService.instance.tagline,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white60,
+                        color: subTextColor,
                         fontSize: 14,
                         letterSpacing: 1.2,
                       ),
@@ -179,6 +203,10 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
                       controller: _usernameController,
                       label: 'Username',
                       icon: Icons.person_outline,
+                      accentColor: accentColor,
+                      isDark: isDark,
+                      textColor: textColor,
+                      subTextColor: subTextColor,
                     ),
                     const SizedBox(height: 20),
                     _buildTextField(
@@ -186,6 +214,10 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
                       label: 'Password',
                       icon: Icons.lock_outline,
                       isPassword: true,
+                      accentColor: accentColor,
+                      isDark: isDark,
+                      textColor: textColor,
+                      subTextColor: subTextColor,
                     ),
                     
                     if (_errorMessage != null)
@@ -206,13 +238,13 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: posOrange,
+                          backgroundColor: accentColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 8,
-                          shadowColor: posOrange.withValues(alpha: 0.4),
+                          shadowColor: accentColor.withValues(alpha: 0.4),
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -237,9 +269,9 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
                     const SizedBox(height: 24),
                     TextButton(
                       onPressed: () {},
-                      child: const Text(
+                      child: Text(
                         'Forgot Password?',
-                        style: TextStyle(color: Colors.white38),
+                        style: TextStyle(color: subTextColor),
                       ),
                     ),
                   ],
@@ -247,39 +279,74 @@ class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin
               ),
             ),
           ),
-        ],
+    );
+  }
+
+  Widget _buildLogoCircle(String? url, Color accentColor, bool isDark, Animation<double>? pulse, {bool isSecondary = false}) {
+    final logoWidget = Container(
+      height: isSecondary ? 80 : 120,
+      width: isSecondary ? 80 : 120,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.transparent,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(isSecondary ? 40 : 60),
+        child: url != null && url.isNotEmpty
+            ? Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => 
+                    Icon(isSecondary ? Icons.verified : Icons.restaurant, color: accentColor, size: isSecondary ? 40 : 60),
+              )
+            : Image.asset(
+                'packages/pos_terminal/assets/images/logo.png',
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => 
+                    Icon(isSecondary ? Icons.verified : Icons.restaurant, color: accentColor, size: isSecondary ? 40 : 60),
+              ),
       ),
     );
+
+    if (pulse != null) {
+      return ScaleTransition(scale: pulse, child: logoWidget);
+    }
+    return logoWidget;
   }
 
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    required Color accentColor,
+    required bool isDark,
+    required Color textColor,
+    required Color subTextColor,
     bool isPassword = false,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: textColor, fontSize: 16),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white38),
-          prefixIcon: Icon(icon, color: const Color(0xFFFF5200).withValues(alpha: 0.7)),
+          labelStyle: TextStyle(color: subTextColor, fontSize: 14),
+          prefixIcon: Icon(icon, color: accentColor.withValues(alpha: 0.8), size: 22),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFFF5200), width: 1),
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: accentColor, width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(vertical: 20),
         ),
       ),
     );

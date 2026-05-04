@@ -39,7 +39,8 @@ router.patch('/tenant', async (req, res) => {
       'business_name',
       'business_email',
       'business_phone',
-      'business_address'
+      'business_address',
+      'tagline'
     ];
     
     const updates = [];

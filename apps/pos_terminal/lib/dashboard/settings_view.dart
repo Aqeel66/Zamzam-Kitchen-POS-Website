@@ -8,10 +8,6 @@ class SettingsView extends StatefulWidget {
   final bool isLoading;
   final Function(String, Map<String, dynamic>) onUpdateSetting;
   final Function(String, Map<String, dynamic>) onSaveGatewaySettings;
-  final Function(String, Map<String, dynamic>) onSaveMessagingSettings;
-  final Function(String, Map<String, dynamic>) onSaveEmailSettings;
-  final Function(String, Map<String, dynamic>) onTestMessagingConnection;
-  final Function(String, Map<String, dynamic>) onTestEmailConnection;
   final VoidCallback onFetchSettings;
   final Future<String?> Function() onPickImage;
   final VoidCallback onResetTransactions;
@@ -24,16 +20,17 @@ class SettingsView extends StatefulWidget {
     required this.isLoading,
     required this.onUpdateSetting,
     required this.onSaveGatewaySettings,
-    required this.onSaveMessagingSettings,
-    required this.onSaveEmailSettings,
-    required this.onTestMessagingConnection,
-    required this.onTestEmailConnection,
     required this.onFetchSettings,
     required this.onPickImage,
     required this.onResetTransactions,
+    required this.onTestTwilio,
+    required this.onTestSMTP,
     this.userPermissions = const [],
     this.initialCategory = 0,
   });
+
+  final Function(Map<String, dynamic>) onTestTwilio;
+  final Function(Map<String, dynamic>) onTestSMTP;
 
   @override
   State<SettingsView> createState() => _SettingsViewState();
@@ -57,8 +54,8 @@ class _SettingsViewState extends State<SettingsView> {
       0: 'manage_settings_general',
       1: 'manage_settings_operations',
       2: 'manage_settings_branding',
-      3: 'manage_settings_payments',
-      4: 'manage_settings_communications',
+      3: 'manage_settings_communications',
+      4: 'manage_settings_payments',
       5: 'manage_settings_reset',
     };
 
@@ -131,10 +128,10 @@ class _SettingsViewState extends State<SettingsView> {
                       _buildSidebarTab(1, LocalizationService().translate('operations'), Icons.restaurant_menu_rounded, themePrimary, themeText, themeHint),
                     if (_hasPermission('manage_settings_branding'))
                       _buildSidebarTab(2, LocalizationService().translate('branding'), Icons.auto_awesome_mosaic_rounded, themePrimary, themeText, themeHint),
-                    if (_hasPermission('manage_settings_payments'))
-                      _buildSidebarTab(3, LocalizationService().translate('payments'), Icons.payments_outlined, themePrimary, themeText, themeHint),
                     if (_hasPermission('manage_settings_communications'))
-                      _buildSidebarTab(4, LocalizationService().translate('communications'), Icons.contact_mail_outlined, themePrimary, themeText, themeHint),
+                      _buildSidebarTab(3, LocalizationService().translate('communications'), Icons.message_rounded, themePrimary, themeText, themeHint),
+                    if (_hasPermission('manage_settings_payments'))
+                      _buildSidebarTab(4, LocalizationService().translate('payments'), Icons.payments_outlined, themePrimary, themeText, themeHint),
                     if (_hasPermission('manage_settings_reset'))
                       _buildSidebarTab(5, LocalizationService().translate('system_reset'), Icons.restart_alt_rounded, themePrimary, themeText, themeHint),
                     const Spacer(),
@@ -190,8 +187,8 @@ class _SettingsViewState extends State<SettingsView> {
       case 0: return _buildGeneralSettings(text, card, border, primary, hint);
       case 1: return _buildOperationalSettings(text, card, border, primary, hint);
       case 2: return _buildBrandingSettings(text, card, border, primary, hint);
-      case 3: return _buildPaymentGateways(text, card, border, primary, hint);
-      case 4: return _buildCommunicationSettings(text, card, border, primary, hint);
+      case 3: return _buildCommunicationSettings(text, card, border, primary, hint);
+      case 4: return _buildPaymentGateways(text, card, border, primary, hint);
       case 5: return _buildResetView(text, card, border, primary, hint);
       default: return _buildGeneralSettings(text, card, border, primary, hint);
     }
@@ -294,11 +291,53 @@ class _SettingsViewState extends State<SettingsView> {
                 onChanged: (val) => widget.onUpdateSetting('branch', {'allow_qr_pay': val ? 1 : 0}),
               ),
               SettingDropdown(
-                label: 'Payment Policy',
-                description: 'Determine when payment is collected (Pay First for Counter, Pay Last for Tables)',
+                label: LocalizationService().translate('payment_policy'),
+                description: LocalizationService().translate('payment_policy_desc'),
                 value: branch['payment_policy'] ?? 'Pay Last',
-                items: const ['Pay First', 'Pay Last'],
+                items: const ['Pay First', 'Pay Last', 'Pay All'],
+                labels: {
+                  'Pay First': LocalizationService().translate('pay_first'),
+                  'Pay Last': LocalizationService().translate('pay_last'),
+                  'Pay All': LocalizationService().translate('pay_all'),
+                },
                 onChanged: (val) => widget.onUpdateSetting('branch', {'payment_policy': val}),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SettingsGridCard(
+            title: LocalizationService().translate('order_channels'),
+            children: [
+              SettingToggle(
+                label: LocalizationService().translate('home_delivery'),
+                description: LocalizationService().translate('home_delivery_desc'),
+                value: (branch['allow_delivery'] == 1 || branch['allow_delivery'] == true),
+                onChanged: (val) => widget.onUpdateSetting('branch', {'allow_delivery': val ? 1 : 0}),
+              ),
+              SettingToggle(
+                label: LocalizationService().translate('customer_pickup'),
+                description: LocalizationService().translate('customer_pickup_desc'),
+                value: (branch['allow_pickup'] == 1 || branch['allow_pickup'] == true),
+                onChanged: (val) => widget.onUpdateSetting('branch', {'allow_pickup': val ? 1 : 0}),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SettingsGridCard(
+            title: LocalizationService().translate('reservations'),
+            children: [
+              SettingToggle(
+                label: LocalizationService().translate('enable_booking_fee'),
+                description: 'Charge a fee for table bookings',
+                value: (branch['is_booking_fee_enabled'] == 1 || branch['is_booking_fee_enabled'] == true),
+                onChanged: (val) => widget.onUpdateSetting('branch', {'is_booking_fee_enabled': val ? 1 : 0}),
+              ),
+              SettingInput(
+                label: LocalizationService().translate('booking_fee'),
+                description: 'Flat amount per reservation',
+                initialValue: branch['booking_fee_amount']?.toString() ?? '0',
+                onChanged: (val) => widget.onUpdateSetting('branch', {'booking_fee_amount': double.tryParse(val) ?? 0.0}),
+                isNumeric: true,
               ),
             ],
           ),
@@ -324,6 +363,25 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               _buildImagePickerSetting('Primary Logo', 'Appears on login and headers', tenant['logo_url'] ?? '', 'logo_url', primary, card, border),
               _buildImagePickerSetting('Secondary Logo', 'Used for dark themes/footers', tenant['secondary_logo_url'] ?? '', 'secondary_logo_url', primary, card, border),
+              SettingInput(
+                label: 'Restaurant Tagline',
+                description: 'A catchy slogan for your business (shown on login screen)',
+                initialValue: tenant['tagline'] ?? '',
+                onChanged: (val) {
+                  widget.onUpdateSetting('tenant', {'tagline': val});
+                  ThemeService().updateBranding(tagline: val);
+                },
+              ),
+              SettingColorPicker(
+                label: 'Primary Accent Color',
+                description: 'This color will be used for buttons, icons, and highlights across the terminal.',
+                value: tenant['primary_accent_color'],
+                onChanged: (val) {
+                  widget.onUpdateSetting('tenant', {'primary_accent_color': val});
+                  // Apply immediately to the UI
+                  ThemeService().setFlavorFromString(tenant['theme_mode'], accentColorHex: val);
+                },
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -334,7 +392,10 @@ class _SettingsViewState extends State<SettingsView> {
                 label: 'Business Legal Name',
                 description: 'Full name for official documents',
                 initialValue: tenant['business_name'] ?? tenant['restaurant_name'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('tenant', {'business_name': val, 'restaurant_name': val}),
+                onChanged: (val) {
+                  widget.onUpdateSetting('tenant', {'business_name': val, 'restaurant_name': val});
+                  ThemeService().updateBranding(restaurantName: val);
+                },
               ),
               SettingInput(
                 label: 'Business Email',
@@ -383,6 +444,12 @@ class _SettingsViewState extends State<SettingsView> {
                 final newPath = await widget.onPickImage();
                 if (newPath != null) {
                   widget.onUpdateSetting('tenant', {key: newPath});
+                  // Update theme service branding immediately
+                  if (key == 'logo_url') {
+                    ThemeService().updateBranding(logoUrl: newPath); 
+                  } else if (key == 'secondary_logo_url') {
+                    ThemeService().updateBranding(secondaryLogoUrl: newPath);
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(horizontal: 16)),
@@ -393,6 +460,178 @@ class _SettingsViewState extends State<SettingsView> {
       ],
     );
   }
+
+  Widget _buildCommunicationSettings(Color text, Color card, Color border, Color primary, Color hint) {
+    final messaging = widget.settings['messaging'] as List? ?? [];
+    final email = widget.settings['email'] as List? ?? [];
+
+    Map<String, dynamic> twilio = Map<String, dynamic>.from(
+      messaging.firstWhere((m) => m != null && m is Map && m['provider_name'] == 'Twilio', orElse: () => {})
+    );
+    Map<String, dynamic> whatsappDirect = Map<String, dynamic>.from(
+      messaging.firstWhere((m) => m != null && m is Map && m['provider_name'] == 'WhatsApp Direct', orElse: () => {})
+    );
+    Map<String, dynamic> smtp = Map<String, dynamic>.from(
+      email.firstWhere((e) => e != null && e is Map && e['provider_name'] == 'SMTP', orElse: () => {})
+    );
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SettingsHeader(
+            title: LocalizationService().translate('communications'),
+            subtitle: LocalizationService().translate('communications_desc'),
+          ),
+          const SizedBox(height: 32),
+          SettingsGridCard(
+            title: 'Twilio (SMS/WhatsApp)',
+            children: [
+              SettingToggle(
+                label: 'Enable Twilio',
+                description: 'Activate Twilio for automated notifications',
+                value: (twilio['is_active'] == 1 || twilio['is_active'] == true),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'Twilio', 'is_active': val ? 1 : 0}),
+              ),
+              SettingInput(
+                label: LocalizationService().translate('account_sid'),
+                description: 'Your Twilio API Account SID',
+                initialValue: twilio['account_sid'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'Twilio', 'account_sid': val}),
+              ),
+              SettingInput(
+                label: LocalizationService().translate('auth_token'),
+                description: 'Secret token for authentication',
+                initialValue: twilio['auth_token'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'Twilio', 'auth_token': val}),
+                isObscure: true,
+              ),
+              SettingInput(
+                label: LocalizationService().translate('sender_number'),
+                description: 'Twilio phone number or WhatsApp sender',
+                initialValue: twilio['sender_number'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'Twilio', 'sender_number': val}),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => widget.onTestTwilio(twilio),
+                icon: const Icon(Icons.send_rounded, size: 18),
+                label: Text(LocalizationService().translate('test_connection')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SettingsGridCard(
+            title: 'WhatsApp Direct (Meta Cloud API)',
+            children: [
+              SettingToggle(
+                label: 'Enable WhatsApp Direct',
+                description: 'Activate Meta WhatsApp Cloud API',
+                value: (whatsappDirect['is_active'] == 1 || whatsappDirect['is_active'] == true),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'WhatsApp Direct', 'is_active': val ? 1 : 0}),
+              ),
+              SettingInput(
+                label: 'Phone Number ID',
+                description: 'Meta WhatsApp Cloud API Phone Number ID',
+                initialValue: whatsappDirect['account_sid'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'WhatsApp Direct', 'account_sid': val}),
+              ),
+              SettingInput(
+                label: 'Access Token',
+                description: 'System User Access Token',
+                initialValue: whatsappDirect['auth_token'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'WhatsApp Direct', 'auth_token': val}),
+                isObscure: true,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => widget.onTestTwilio(whatsappDirect),
+                icon: const Icon(Icons.send_rounded, size: 18),
+                label: Text(LocalizationService().translate('test_connection')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SettingsGridCard(
+            title: LocalizationService().translate('smtp_config'),
+            children: [
+              SettingToggle(
+                label: 'Enable SMTP',
+                description: 'Activate Email notifications',
+                value: (smtp['is_active'] == 1 || smtp['is_active'] == true),
+                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'is_active': val ? 1 : 0}),
+              ),
+              SettingInput(
+                label: LocalizationService().translate('smtp_host'),
+                description: 'Server address (e.g., smtp.gmail.com)',
+                initialValue: smtp['smtp_host'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'smtp_host': val}),
+              ),
+              SettingInput(
+                label: LocalizationService().translate('smtp_port'),
+                description: 'Common ports: 465, 587, 25',
+                initialValue: smtp['smtp_port']?.toString() ?? '',
+                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'smtp_port': int.tryParse(val)}),
+                isNumeric: true,
+              ),
+              SettingInput(
+                label: LocalizationService().translate('smtp_user'),
+                description: 'Username for login',
+                initialValue: smtp['smtp_user'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'smtp_user': val}),
+              ),
+              SettingInput(
+                label: LocalizationService().translate('smtp_pass'),
+                description: 'Password or App Password',
+                initialValue: smtp['smtp_pass'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'smtp_pass': val}),
+                isObscure: true,
+              ),
+              SettingInput(
+                label: LocalizationService().translate('from_email'),
+                description: 'Sender email address',
+                initialValue: smtp['from_email'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'from_email': val}),
+              ),
+              SettingInput(
+                label: LocalizationService().translate('from_name'),
+                description: 'Display name for sent emails',
+                initialValue: smtp['from_name'] ?? '',
+                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'from_name': val}),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => widget.onTestSMTP(smtp),
+                icon: const Icon(Icons.email_rounded, size: 18),
+                label: Text(LocalizationService().translate('test_connection')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   Widget _buildPaymentGateways(Color text, Color card, Color border, Color primary, Color hint) {
     final gateways = widget.settings['payment_gateways'] as List? ?? [];
@@ -474,6 +713,7 @@ class _SettingsViewState extends State<SettingsView> {
                 final dbKey = f['key']!.contains('public') ? 'public_key' : (f['key']!.contains('secret') ? 'secret_key' : 'webhook_secret');
                 widget.onSaveGatewaySettings(name, {dbKey: val});
               },
+              isObscure: f['key']!.contains('secret'),
             ),
           )),
         ],
@@ -496,211 +736,7 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildCommunicationSettings(Color text, Color card, Color border, Color primary, Color hint) {
-    final tenant = widget.settings['tenant'] ?? {};
-    final messaging = widget.settings['messaging'] as List? ?? [];
-    final emails = widget.settings['email'] as List? ?? [];
-    
-    Map<String, dynamic> getMessagingProvider(String name) {
-      final provider = messaging.firstWhere((p) => p != null && p is Map && p['provider_name'] == name, orElse: () => null);
-      return provider != null ? Map<String, dynamic>.from(provider) : {};
-    }
 
-    Map<String, dynamic> getEmailProvider(String name) {
-      final provider = emails.firstWhere((p) => p != null && p is Map && p['provider_name'] == name, orElse: () => null);
-      return provider != null ? Map<String, dynamic>.from(provider) : {};
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SettingsHeader(
-            title: LocalizationService().translate('communications_settings'),
-            subtitle: 'Configure notifications and gateway integrations.',
-          ),
-          const SizedBox(height: 32),
-          
-          // Basic Notifications
-          SettingsGridCard(
-            title: 'In-App Notifications',
-            children: [
-              SettingToggle(
-                label: 'Enable Sound',
-                description: 'Play alert sound on new orders',
-                value: (tenant['notification_sound'] == 1 || tenant['notification_sound'] == true),
-                onChanged: (val) => widget.onUpdateSetting('tenant', {'notification_sound': val}),
-              ),
-              SettingInput(
-                label: 'Volume',
-                description: 'Notification sound volume (0-100)',
-                initialValue: tenant['notification_volume']?.toString() ?? '80',
-                onChanged: (val) => widget.onUpdateSetting('tenant', {'notification_volume': int.tryParse(val) ?? 80}),
-                isNumeric: true,
-              ),
-            ],
-          ),
-          const SizedBox(height: 40),
-
-          // Messaging Gateways
-          Text('Messaging Integrations', style: TextStyle(color: text, fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          _buildMessagingCard('Twilio', Icons.sms_outlined, getMessagingProvider('Twilio'), [
-            {'label': 'Account SID', 'key': 'account_sid'},
-            {'label': 'Auth Token', 'key': 'auth_token'},
-            {'label': 'Sender Number', 'key': 'sender_number'},
-          ], primary, card, text, border, hint),
-          const SizedBox(height: 24),
-          _buildMessagingCard('WhatsApp Direct', Icons.chat_outlined, getMessagingProvider('WhatsApp Direct'), [
-            {'label': 'Account SID', 'key': 'account_sid'},
-            {'label': 'Auth Token', 'key': 'auth_token'},
-            {'label': 'WABA ID', 'key': 'sender_number'},
-          ], primary, card, text, border, hint),
-
-          const SizedBox(height: 40),
-
-          // Email Gateways
-          Text('Email Gateways', style: TextStyle(color: text, fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          _buildEmailCard('SMTP', Icons.mail_rounded, getEmailProvider('SMTP'), [
-            {'label': 'SMTP Host', 'key': 'smtp_host'},
-            {'label': 'SMTP Port', 'key': 'smtp_port'},
-            {'label': 'Username', 'key': 'smtp_user'},
-            {'label': 'Password', 'key': 'smtp_pass'},
-            {'label': 'From Email', 'key': 'from_email'},
-            {'label': 'From Name', 'key': 'from_name'},
-          ], primary, card, text, border, hint),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessagingCard(String name, IconData icon, Map<String, dynamic> data, List<Map<String, String>> fields, Color primary, Color card, Color text, Color border, Color hint) {
-    final dynamic activeVal = data['is_active'];
-    final bool isActive = activeVal == 1 || activeVal == true || activeVal.toString() == '1';
-    String env = data['environment']?.toString() ?? 'sandbox';
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: primary, size: 28),
-              const SizedBox(width: 16),
-              Text(name, style: TextStyle(color: text, fontSize: 20, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              Switch(
-                value: isActive,
-                onChanged: (val) => widget.onSaveMessagingSettings(name, {'is_active': val ? 1 : 0}),
-                activeThumbColor: primary,
-              ),
-            ],
-          ),
-          const Divider(height: 32),
-          Row(
-            children: [
-              Text('Environment:', style: TextStyle(color: text, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 16),
-              _buildSimpleChip(name, 'sandbox', env == 'sandbox', (v) => widget.onSaveMessagingSettings(name, {'environment': v}), primary, card, text, border),
-              const SizedBox(width: 8),
-              _buildSimpleChip(name, 'production', env == 'production', (v) => widget.onSaveMessagingSettings(name, {'environment': v}), primary, card, text, border),
-            ],
-          ),
-          const SizedBox(height: 24),
-          ...fields.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: SettingInput(
-              label: f['label']!,
-              description: '',
-              initialValue: data[f['key']]?.toString() ?? '',
-              onChanged: (val) => widget.onSaveMessagingSettings(name, {f['key']!: val}),
-            ),
-          )),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Spacer(),
-              TextButton.icon(
-                onPressed: () => widget.onTestMessagingConnection(name, data),
-                icon: const Icon(Icons.send_rounded, size: 18),
-                label: Text(LocalizationService().translate('test_connection')),
-                style: TextButton.styleFrom(foregroundColor: primary),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmailCard(String name, IconData icon, Map<String, dynamic> data, List<Map<String, String>> fields, Color primary, Color card, Color text, Color border, Color hint) {
-    final dynamic activeVal = data['is_active'];
-    final bool isActive = activeVal == 1 || activeVal == true || activeVal.toString() == '1';
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: primary, size: 28),
-              const SizedBox(width: 16),
-              Text(name, style: TextStyle(color: text, fontSize: 20, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              Switch(
-                value: isActive,
-                onChanged: (val) => widget.onSaveEmailSettings(name, {'is_active': val ? 1 : 0}),
-                activeThumbColor: primary,
-              ),
-            ],
-          ),
-          const Divider(height: 32),
-          ...fields.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: SettingInput(
-              label: f['label']!,
-              description: '',
-              initialValue: data[f['key']]?.toString() ?? '',
-              onChanged: (val) => widget.onSaveEmailSettings(name, {f['key']!: val}),
-            ),
-          )),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Spacer(),
-              TextButton.icon(
-                onPressed: () => widget.onTestEmailConnection(name, data),
-                icon: const Icon(Icons.send_rounded, size: 18),
-                label: Text(LocalizationService().translate('test_connection')),
-                style: TextButton.styleFrom(foregroundColor: primary),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSimpleChip(String provider, String value, bool isSelected, Function(String) onTap, Color primary, Color card, Color text, Color border) {
-    return GestureDetector(
-      onTap: () => onTap(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? primary : border),
-        ),
-        child: Text(value.toUpperCase(), style: TextStyle(color: isSelected ? Colors.white : text, fontSize: 11, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
 
   Widget _buildResetView(Color text, Color card, Color border, Color primary, Color hint) {
     return SingleChildScrollView(

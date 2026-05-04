@@ -213,9 +213,9 @@ export default function Reservation() {
       <section className="common-hero reservation-hero">
         <div className="hero-overlay"></div>
         <div className="hero-content">
-          <span className="badge mb-3" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem 1rem', borderRadius: '30px', fontSize: '0.85rem', fontWeight: 600 }}>PREMIUM DINING</span>
-          <h1 className="white text-5xl font-bold mb-3">Book <span className="text-orange">Your Table</span></h1>
-          <p className="white opacity-90 text-lg max-w-2xl mx-auto">Fine dining, intimate evenings, and family celebrations – reserve your spot at Zamzam Kitchen.</p>
+          <span className="badge mb-3">PREMIUM DINING</span>
+          <h1 className="white mb-3">Book Your <span className="text-orange">Table</span></h1>
+          <p className="white opacity-90 max-w-2xl mx-auto">Fine dining, intimate evenings, and family celebrations – reserve your spot at Zamzam Kitchen.</p>
         </div>
       </section>
 
@@ -223,6 +223,7 @@ export default function Reservation() {
        <div className="res-layout-grid">
           <div className="res-main-form">
              {/* Selection Trigger - The "Popup" Entry Point */}
+             <h2 className="mb-4">Book Your Table</h2>
              <div className="res-selection-trigger mb-10" onClick={() => { setShowModal(true); setCurrentStep(1); }}>
                 <div className="trigger-item">
                   <span className="label">Date & Time</span>
@@ -323,17 +324,17 @@ export default function Reservation() {
                       {/* Booking Fee Section */}
                       {isFeeEnabled && (
                         <>
-                          <div className="summary-section-divider my-4 h-[1px] bg-white/10"></div>
-                          <div className="summary-row">
-                             <span className="label text-orange font-bold">Booking Fee</span>
-                             <span className="value text-orange font-bold">${feeAmount.toFixed(2)}</span>
+                          <div className="summary-section-divider my-4"></div>
+                          <div className="summary-row highlighted">
+                             <span className="label">Booking Fee</span>
+                             <span className="value">${feeAmount.toFixed(2)}</span>
                           </div>
-                          <p className="text-[10px] text-gray-400 mt-1 italic">* This fee is to prevent fake bookings and will be adjusted in your final bill.</p>
+                          <p className="fee-note">* This fee will be adjusted against your food bill when you arrive. Otherwise it is non-refundable.</p>
                         </>
                       )}
 
                       {/* Guest Info Section */}
-                      <div className="summary-section-divider my-4 h-[1px] bg-white/10"></div>
+                      <div className="summary-section-divider my-4"></div>
                       
                       <div className="summary-row">
                          <span className="label">Name</span>
@@ -378,7 +379,7 @@ export default function Reservation() {
            <div className="res-modal-content" onClick={e => e.stopPropagation()}>
               {/* Processing Overlay */}
               {isProcessingPayment && (
-                <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl">
+                <div className="modal-processing-overlay">
                    <div className="loading-spinner-orange mb-4"></div>
                    <h3 className="text-xl font-bold text-gray-800">Processing Payment</h3>
                    <p className="text-gray-500">Securing your reservation...</p>
@@ -386,14 +387,14 @@ export default function Reservation() {
               )}
 
               <div className="modal-header">
-                 <div className="flex flex-col">
+                 <div className="step-indicator">
                     <h2 className="text-xl font-extrabold">
                        {currentStep === 1 && '1. Pick Slot'}
                        {currentStep === 2 && '2. Select Table'}
                        {currentStep === 3 && '3. Party Size'}
                        {currentStep === 4 && (isFeeEnabled ? '4. Online Payment' : '4. Final Review')}
                     </h2>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Step {currentStep} of 4</p>
+                    <p className="step-text">Step {currentStep} of 4</p>
                  </div>
                  <button className="close-modal" onClick={() => setShowModal(false)}>&times;</button>
               </div>
@@ -535,46 +536,46 @@ export default function Reservation() {
                                 <div className="text-3xl font-black text-orange-600 my-4">${feeAmount.toFixed(2)}</div>
                                 <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 mb-4">
                                     <p className="text-[11px] text-orange-800 leading-tight">
-                                       <strong>Note:</strong> This fee will be <strong>adjusted against your food bill</strong> when you arrive.
+                                       <strong>Note:</strong> This fee will be <strong>adjusted against your food bill</strong> when you arrive. Otherwise it is <strong>non-refundable</strong>.
                                     </p>
                                  </div>
                              </div>
 
                               {/* Payment Method - Card Only */}
-                              <div style={{ background: '#f9fafb', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
-                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                    <h3 style={{ fontSize: '1.4rem', color: '#111827', fontWeight: 700, margin: 0 }}>Payment Method</h3>
-                                    <div style={{ padding: '0.4rem 0.8rem', background: '#fff6f3', border: '1px solid var(--primary-orange)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-orange)', fontWeight: 600, fontSize: '0.9rem' }}>
+                              <div className="payment-method-card">
+                                 <div className="payment-header">
+                                    <h3 className="payment-title">Payment Method</h3>
+                                    <div className="payment-badge">
                                        <CreditCard size={16}/> Credit / Debit Card
                                     </div>
                                  </div>
                                  
-                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                 <div className="payment-fields">
                                     <div className="input-group">
-                                       <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>
+                                       <label className="card-label">
                                           Card Number
-                                          <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 400 }}>Powered by Stripe</span>
+                                          <span className="stripe-text">Powered by Stripe</span>
                                        </label>
                                        <input 
                                           type="text" 
                                           placeholder="0000 0000 0000 0000" 
-                                          style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}
+                                          className="card-input"
                                           value={paymentData.cardNumber}
                                           onChange={e => setPaymentData({...paymentData, cardNumber: e.target.value})}
                                        />
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                                    <div className="card-row">
                                        <input 
                                           type="text" 
                                           placeholder="MM/YY" 
-                                          style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}
+                                          className="card-input"
                                           value={paymentData.expiry}
                                           onChange={e => setPaymentData({...paymentData, expiry: e.target.value})}
                                        />
                                        <input 
                                           type="password" 
                                           placeholder="CVC" 
-                                          style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}
+                                          className="card-input"
                                           value={paymentData.cvc}
                                           onChange={e => setPaymentData({...paymentData, cvc: e.target.value})}
                                        />
@@ -613,26 +614,25 @@ export default function Reservation() {
                  )}
               </div>
 
-               <div className="modal-footer p-6" style={{ background: 'white', borderTop: '1px solid #f3f4f6' }}>
+               <div className="modal-footer">
                   {currentStep === 4 ? (
                     <button 
                        type="button"
-                       className="w-full"
-                       style={{ padding: '1.4rem', fontSize: '1.1rem', border: 'none', borderRadius: '8px', background: 'var(--primary-orange)', color: 'white', fontWeight: 700, cursor: 'pointer', transition: 'transform 0.2s' }}
+                       className="btn-confirm-booking"
                        onClick={confirmBooking}
                        disabled={isProcessingPayment || (isFeeEnabled !== false && paymentMethod === 'card' && (!paymentData.cardNumber || !paymentData.expiry || !paymentData.cvc))}
                     >
                        {isProcessingPayment ? 'Processing...' : isFeeEnabled !== false ? `Confirm Booking · Pay $${feeAmount.toFixed(2)}` : 'Confirm Booking'}
                     </button>
                   ) : (
-                    <div className="flex items-center justify-between gap-4 w-full">
+                    <div className="modal-footer-actions">
                        {currentStep > 1 && (
                           <button className="btn-secondary" onClick={() => setCurrentStep(prev => prev - 1)} disabled={isProcessingPayment}>
                              Back
                           </button>
                        )}
                        <button 
-                          className="btn-primary flex-1 flex items-center justify-center gap-2" 
+                          className="btn-primary-modal" 
                           onClick={handleNext}
                           disabled={isProcessingPayment}
                        >

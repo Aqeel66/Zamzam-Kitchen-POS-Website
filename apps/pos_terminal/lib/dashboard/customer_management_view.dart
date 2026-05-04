@@ -5,11 +5,10 @@ import 'package:flutter/foundation.dart';
 import '../theme_service.dart';
 
 class CustomerManagementView extends StatefulWidget {
-  final String apiBaseUrl;
+
 
   const CustomerManagementView({
     super.key,
-    required this.apiBaseUrl,
   });
 
   @override
@@ -30,7 +29,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
   Future<void> _fetchCustomers() async {
     setState(() => _isLoading = true);
     try {
-      final res = await http.get(Uri.parse('${widget.apiBaseUrl}/api/customers'));
+      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/customers'));
       if (res.statusCode == 200) {
         setState(() => _customers = json.decode(res.body));
       }
@@ -44,8 +43,8 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
   Future<void> _saveCustomer(Map<String, dynamic> customer, {int? id}) async {
     try {
       final url = id == null 
-        ? '${widget.apiBaseUrl}/api/customers'
-        : '${widget.apiBaseUrl}/api/customers/$id';
+        ? '${ThemeService.apiBaseUrl}/api/customers'
+        : '${ThemeService.apiBaseUrl}/api/customers/$id';
       
       final res = id == null 
         ? await http.post(Uri.parse(url), headers: {'Content-Type': 'application/json'}, body: json.encode(customer))
@@ -64,7 +63,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
 
   Future<void> _deleteCustomer(int id) async {
     try {
-      final res = await http.delete(Uri.parse('${widget.apiBaseUrl}/api/customers/$id'));
+      final res = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/customers/$id'));
       if (res.statusCode == 200) {
         _fetchCustomers();
       }

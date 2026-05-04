@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Heart, Info, MapPin, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { API_BASE_URL, ASSETS_BASE_URL } from '../config';
+import { API_BASE_URL, ASSETS_BASE_URL, resolveImageUrl } from '../config';
 import './Menu.css';
 
 export default function Menu() {
@@ -52,7 +52,7 @@ export default function Menu() {
           return (
             <div key={item.id} className={`menu-card-premium ${isLarge ? 'card-large' : ''} ${!isAvailable ? 'unavailable' : ''}`}>
                <div className="card-img-container" style={{ 
-                  backgroundImage: item.image ? `url(${ASSETS_BASE_URL}/${item.image.startsWith('assets/') ? item.image.replace('assets/', '') : item.image})` : 'url(/placeholder-food.jpg)',
+                  backgroundImage: `url(${resolveImageUrl(item.image)})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center'
                }}>
@@ -112,10 +112,10 @@ export default function Menu() {
               <MapPin size={18} />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem', letterSpacing: '0.01em' }}>
+              <div style={{ letterSpacing: '0.01em' }}>
                 📍 Table {tableNumber} — Dine-In Order
               </div>
-              <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>
+              <div style={{ opacity: 0.9 }}>
                 Add items to your cart and we'll bring it to your table
               </div>
             </div>
@@ -161,9 +161,13 @@ export default function Menu() {
             </nav>
 
             <div className="menu-content-area">
-               {menuData.filter(cat => activeCategory === 'All Items' || activeCategory === cat.name).map(category => (
-                 renderSection(category.name, category.items, category.name === 'Mandi')
-               ))}
+               {activeCategory === 'All Items' ? (
+                 renderSection('All Items', menuData.flatMap(cat => cat.items))
+               ) : (
+                 menuData
+                   .filter(cat => cat.name === activeCategory)
+                   .map(category => renderSection(category.name, category.items, category.name === 'Mandi'))
+               )}
             </div>
           </>
         )}

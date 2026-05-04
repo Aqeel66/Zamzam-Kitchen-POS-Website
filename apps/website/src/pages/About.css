@@ -83,6 +83,29 @@
 }
 
 @media (max-width: 768px) {
-  .collage-box { grid-template-columns: 1fr; }
-  .grid-2 { grid-template-columns: 1fr; }
+  .about-hero {
+    height: 300px;
+  }
+  .collage-box { 
+    grid-template-columns: 1fr; 
+  }
+  .collage-img-1 {
+    height: 300px;
+  }
+  .collage-img-2 {
+    height: 200px;
+  }
+  .value-item-box {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-actions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .hero-actions button {
+    width: 100%;
+  }
 }

@@ -12,8 +12,9 @@
   --border-color: #f3f4f6;
 
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
   font-weight: 400;
+  letter-spacing: -0.011em;
 
   color-scheme: light;
   color: var(--text-dark);
@@ -23,6 +24,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 15px;
+    line-height: 1.5;
+  }
 }
 
 body {
@@ -35,8 +43,15 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Outfit', sans-serif;
   color: var(--text-dark);
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
 }
+
+h1 { font-size: clamp(2.5rem, 8vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(2rem, 6vw, 3rem); font-weight: 700; }
+h3 { font-size: clamp(1.5rem, 4vw, 2.25rem); font-weight: 700; }
+h4 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
 
 /* Base UI Components */
 button {
@@ -50,9 +65,11 @@ button {
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 0.6rem 1.2rem;
-  font-weight: 600;
-  font-size: 0.95rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .btn-primary:hover {
@@ -90,6 +107,12 @@ button {
   margin: 0 auto;
 }
 
+@media (max-width: 768px) {
+  .section-padding {
+    padding: 3rem 1.5rem;
+  }
+}
+
 .section-bg-light {
   background-color: var(--bg-light);
 }
@@ -98,6 +121,13 @@ button {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3rem;
+}
+
+@media (max-width: 992px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
 }
 
 .glass-header {
@@ -155,6 +185,19 @@ button {
   margin-bottom: 3.5rem;
 }
 
+@media (max-width: 640px) {
+  .category-nav-pills {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .nav-pill {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+}
+
 .nav-pill {
   padding: 0.75rem 2rem;
   border-radius: 30px;
@@ -170,4 +213,127 @@ button {
   background: var(--primary-orange);
   color: white;
   box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  .text-5xl {
+    font-size: 2.5rem !important;
+  }
+  .text-xl {
+    font-size: 1.1rem !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+.w-full { width: 100%; }
+.mb-8 { margin-bottom: 2rem; }
+.mb-12 { margin-bottom: 3rem; }
+.mt-6 { margin-top: 1.5rem; }
+.gap-10 { gap: 2.5rem; }
+.align-center { align-items: center; }
+
+/* Cart Page Responsiveness */
+.cart-container {
+  min-height: 80vh;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+}
+
+.cart-summary {
+  background: #111827;
+  color: white;
+  padding: 2rem;
+  borderRadius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .cart-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .cart-item-image {
+    width: 100% !important;
+    height: 180px !important;
+  }
+
+  .cart-summary {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .cart-summary .btn-primary {
+    width: 100%;
+  }
+  
+  .cart-page h1 {
+    font-size: 2rem !important;
+  }
+}
+
+/* Checkout Page Responsiveness */
+.checkout-container {
+  min-height: 80vh;
+  max-width: 1000px; /* Increased from 800px for better split view on desktop */
+  margin: 0 auto;
+}
+
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 2.5rem;
+}
+
+@media (max-width: 992px) {
+  .checkout-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .checkout-details-card, .checkout-summary-card, .checkout-payment-card {
+    padding: 1.5rem !important;
+  }
+  
+  .checkout-title {
+    font-size: 1.8rem !important;
+  }
+
+  .checkout-type-btns {
+    flex-direction: column;
+  }
+
+  .checkout-flex-mobile-col {
+    flex-direction: column;
+  }
+
+  .checkout-grid-mobile-1 {
+    grid-template-columns: 1fr !important;
+  }
 }

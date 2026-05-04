@@ -48,10 +48,21 @@
 }
 
 @media (max-width: 1024px) {
-  .grid-standard, .grid-large { grid-template-columns: repeat(2, 1fr); }
+  .grid-standard, .grid-large { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
 }
 @media (max-width: 768px) {
-  .grid-standard, .grid-large { grid-template-columns: 1fr; }
+  .grid-standard, .grid-large { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .menu-hero-header h1 { font-size: 2.25rem; }
+}
+@media (max-width: 480px) {
+  .grid-standard, .grid-large { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+}
+
+/* Category Sections Grid */
+.menu-content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
 }
 
 /* Premium Card Styles */
@@ -70,15 +81,20 @@
 }
 
 .card-img-container {
-  height: 120px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   background-size: cover;
   background-position: center;
   position: relative;
 }
 
-.card-large .card-img-container {
-  height: 140px;
+@media (min-width: 769px) {
+  .card-img-container {
+    aspect-ratio: 16 / 10;
+  }
 }
+
+/* Removed card-large height override to maintain aspect-ratio */
 
 .price-tag {
   position: absolute;
@@ -92,7 +108,7 @@
 }
 
 .card-content {
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 .card-header-row {

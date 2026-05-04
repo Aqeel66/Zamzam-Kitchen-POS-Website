@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, ShoppingCart, Share2, Heart, Globe } from 'lucide-react';
+import { User, ShoppingCart, Share2, Heart, Globe, Menu as MenuIcon, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { API_BASE_URL, ASSETS_BASE_URL } from '../config';
+import { API_BASE_URL, ASSETS_BASE_URL, resolveImageUrl } from '../config';
 import './Layout.css';
 
 interface LayoutProps {
@@ -13,11 +13,18 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { totalItems } = useCart();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [branding, setBranding] = useState({
     logo_url: '',
     secondary_logo_url: '',
-    restaurant_name: 'ZAMZAM KITCHEN'
+    restaurant_name: 'ZAMZAM KITCHEN',
+    tagline: 'AUTHENTIC FLAVORS'
   });
+
+  useEffect(() => {
+    // Close mobile menu on route change
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/settings`)
@@ -27,7 +34,8 @@ export default function Layout({ children }: LayoutProps) {
           setBranding({
             logo_url: data.tenant.logo_url || '',
             secondary_logo_url: data.tenant.secondary_logo_url || '',
-            restaurant_name: data.tenant.restaurant_name || 'ZAMZAM KITCHEN'
+            restaurant_name: data.tenant.restaurant_name || 'ZAMZAM KITCHEN',
+            tagline: data.tenant.tagline || 'AUTHENTIC FLAVORS'
           });
         }
       })
@@ -36,13 +44,6 @@ export default function Layout({ children }: LayoutProps) {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const resolveImageUrl = (path: string) => {
-    if (!path) return '/logo.png';
-    if (path.startsWith('http')) return path;
-    // Remove leading slashes/assets if present to match backend serve logic
-    let cleanPath = path.replace(/^\/?(assets\/)?/, '');
-    return `${ASSETS_BASE_URL}/${cleanPath}`;
-  };
 
   return (
     <div className="layout">
@@ -58,7 +59,7 @@ export default function Layout({ children }: LayoutProps) {
               />
               {branding.secondary_logo_url && (
                 <img 
-                  src={resolveImageUrl(branding.secondary_logo_url)} 
+                  src={resolveImageUrl(branding.secondary_logo_url, '/logo.png')} 
                   alt="Secondary Logo" 
                   style={{ height: '56px', width: 'auto', display: 'block' }} 
                 />
@@ -66,7 +67,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
             <div className="brand-text" style={{ display: 'flex', flexDirection: 'column' }}>
               <span className="restaurant-name" style={{ color: 'var(--text-main)', fontSize: '1.5rem', fontWeight: 800, letterSpacing: '1px', lineHeight: 1 }}>{branding.restaurant_name.toUpperCase()}</span>
-              <span className="restaurant-tagline" style={{ color: 'var(--primary-orange)', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' }}>Authentic Flavors</span>
+              <span className="restaurant-tagline" style={{ color: 'var(--primary-orange)', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' }}>{branding.tagline}</span>
             </div>
           </Link>
 
@@ -79,7 +80,7 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
 
           <div className="header-actions">
-            <Link to="/menu" className="btn-primary">Order Online</Link>
+            <Link to="/menu" className="btn-primary hide-mobile">Order Online</Link>
             <Link to="/auth" className="icon-btn" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none'}}>
               <User size={20} />
             </Link>
@@ -89,7 +90,20 @@ export default function Layout({ children }: LayoutProps) {
                 <span className="cart-badge" style={{position: 'absolute', top: '-5px', right: '-5px', background: 'var(--primary-orange)', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{totalItems}</span>
               )}
             </Link>
+            <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              {isMobileMenuOpen ? <X size={24} /> : <MenuIcon size={24} />}
+            </button>
           </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className={`mobile-nav ${isMobileMenuOpen ? 'open' : ''}`}>
+          <Link to="/" className={isActive('/') ? 'active' : ''}>Home</Link>
+          <Link to="/about" className={isActive('/about') ? 'active' : ''}>About</Link>
+          <Link to="/menu" className={isActive('/menu') ? 'active' : ''}>Menu</Link>
+          <Link to="/reservation" className={isActive('/reservation') ? 'active' : ''}>Reservation</Link>
+          <Link to="/contact" className={isActive('/contact') ? 'active' : ''}>Contact</Link>
+          <Link to="/menu" className="btn-primary" style={{ textAlign: 'center', marginTop: '1rem' }}>Order Online Now</Link>
         </div>
       </header>
 
@@ -103,16 +117,16 @@ export default function Layout({ children }: LayoutProps) {
             <div className="footer-brand-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div className="logo-images" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <img 
-                  src={resolveImageUrl(branding.logo_url)} 
+                  src={resolveImageUrl(branding.logo_url, '/logo.png')} 
                   alt={branding.restaurant_name} 
-                  style={{ height: '40px', width: 'auto', display: 'block' }} 
+                  style={{ height: '56px', width: 'auto', display: 'block' }} 
                   onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                 />
                 {branding.secondary_logo_url && (
                   <img 
-                    src={resolveImageUrl(branding.secondary_logo_url)} 
+                    src={resolveImageUrl(branding.secondary_logo_url, '/logo.png')} 
                     alt="Secondary Logo" 
-                    style={{ height: '40px', width: 'auto', display: 'block' }} 
+                    style={{ height: '56px', width: 'auto', display: 'block' }} 
                   />
                 )}
               </div>

@@ -29,31 +29,8 @@ import 'customer_management_view.dart';
 
 enum TableStatus { available, occupied, reserved, cleaning }
 
-final String apiBaseUrl = kIsWeb 
-  ? (html.window.location.origin.contains('localhost') || html.window.location.origin.contains('127.0.0.1')
-      ? 'http://localhost:5000' 
-      : html.window.location.origin)
-  : 'https://zamzamkitchen.net';
-
-String resolveImageUrl(String? path) {
-  if (path == null || path.isEmpty) return '';
-  if (path.startsWith('http')) return path;
-  
-  // The backend serves the 'pos_terminal/assets' folder under the '/assets' route.
-  // We need to ensure the final URL is: apiBaseUrl/assets/rest/of/path
-  String cleanPath = path;
-  if (cleanPath.startsWith('assets/')) {
-    cleanPath = cleanPath.substring(7);
-  } else if (cleanPath.startsWith('/assets/')) {
-    cleanPath = cleanPath.substring(8);
-  } else if (cleanPath.startsWith('/')) {
-    cleanPath = cleanPath.substring(1);
-  }
-  
-  final resolved = '$apiBaseUrl/assets/$cleanPath';
-  // debugPrint('Resolved Image URL: $resolved');
-  return resolved;
-}
+// Global API Base URL and Image Resolver are now in ThemeService
+// Redundant definitions removed to ensure single source of truth.
 
 class TableModel {
   final String id;
@@ -88,10 +65,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   bool _isSecurityExpanded = false;
   bool _isLoading = true;
   Timer? _refreshTimer;
-  Timer? _clockTimer;
   Timer? _inactivityTimer;
-  String _timeString = '';
-  String _dateString = '';
   Map<String, dynamic> _summaryData = {};
 
   List<dynamic> _placedOrders = [];
@@ -103,7 +77,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   double _discount = 0.0;
   double _tip = 0.0;
   double _reservationFee = 0.0;
-  String _paymentMethod = 'Cash';
+  String? _paymentMethod = 'Cash';
   String _orderType = 'Dine-In';
   String _menuSearchQuery = '';
   int? _editingOrderId;
@@ -122,6 +96,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   final _customerFirstNameController = TextEditingController();
   final _customerPhoneController = TextEditingController();
   final _customerEmailController = TextEditingController();
+  final _customerAddressController = TextEditingController();
   bool _isNewGuestMode = false;
 
   Map<String, dynamic>? _selectedOrderDetails;
@@ -212,12 +187,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       CurvedAnimation(parent: _loadingLogoController, curve: Curves.easeInOut),
     );
 
-    _updateTime();
-    _clockTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _updateTime(),
-    );
-
     _fetchTables();
     
     // Fallback: Ensure loading screen clears eventually
@@ -227,19 +196,26 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       }
     });
 
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    // Background Refresh Logic: Optimized intervals
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      // High-priority operational data (every 60s)
       _fetchReservations();
       _fetchOrders();
       _fetchSummary();
       _fetchTables();
-      _fetchUsers();
-      _fetchRoles();
-      _fetchPermissions();
-      _fetchShifts();
-      _fetchHRStats();
-      _fetchSettings();
-      _fetchTables();
-      _fetchGlobalCustomers();
+      
+      // Secondary data (only if we've reached a 5-min interval)
+      final tickCount = (_refreshTimer?.tick ?? 0);
+      if (tickCount % 5 == 0) {
+        _fetchUsers();
+        _fetchRoles();
+        _fetchPermissions();
+        _fetchShifts();
+        _fetchHRStats();
+        _fetchSettings();
+        _fetchTables();
+        _fetchGlobalCustomers();
+      }
     });
 
     _resetInactivityTimer();
@@ -247,7 +223,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchGlobalCustomers() async {
     try {
-      final res = await http.get(Uri.parse('$apiBaseUrl/api/customers'));
+      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/customers'));
       if (res.statusCode == 200) {
         setState(() => _allCustomers = json.decode(res.body));
       }
@@ -277,28 +253,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-  void _updateTime() {
-    final now = DateTime.now();
-    final hour = now.hour > 12
-        ? now.hour - 12
-        : (now.hour == 0 ? 12 : now.hour);
-    final amPm = now.hour >= 12 ? 'PM' : 'AM';
-    final minute = now.minute.toString().padLeft(2, '0');
-    final month = now.month.toString().padLeft(2, '0');
-    final day = now.day.toString().padLeft(2, '0');
-    final year = now.year;
-    if (mounted) {
-      setState(() {
-        _timeString = '$hour:$minute $amPm';
-        _dateString = '$month/$day/$year';
-      });
-    }
-  }
-
   @override
   void dispose() {
     _refreshTimer?.cancel();
-    _clockTimer?.cancel();
     _inactivityTimer?.cancel();
     _loadingLogoController.dispose();
     for (var controller in _settingControllers.values) {
@@ -315,9 +272,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     final dateStr = "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
     
     try {
-      final summaryRes = await http.get(Uri.parse('$apiBaseUrl/api/orders/summary?startDate=$dateStr')).timeout(const Duration(seconds: 10));
-      final reportsRes = await http.get(Uri.parse('$apiBaseUrl/api/reports/financial?startDate=$dateStr&endDate=$dateStr')).timeout(const Duration(seconds: 10));
-      final opRes = await http.get(Uri.parse('$apiBaseUrl/api/reports/operational?startDate=$dateStr')).timeout(const Duration(seconds: 10));
+      final summaryRes = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/orders/summary?startDate=$dateStr')).timeout(const Duration(seconds: 10));
+      final reportsRes = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/reports/financial?startDate=$dateStr&endDate=$dateStr')).timeout(const Duration(seconds: 10));
+      final opRes = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/reports/operational?startDate=$dateStr')).timeout(const Duration(seconds: 10));
       
       if (summaryRes.statusCode == 200) {
         final data = json.decode(summaryRes.body);
@@ -420,7 +377,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 formKey.currentState!.save();
                 try {
                   final response = await http.post(
-                    Uri.parse('$apiBaseUrl/api/expenses'),
+                    Uri.parse('${ThemeService.apiBaseUrl}/api/expenses'),
                     headers: {'Content-Type': 'application/json'},
                     body: json.encode({
                       'category': selectedCategory,
@@ -457,7 +414,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchInventory() async {
     try {
-      final response = await http.get(Uri.parse('$apiBaseUrl/api/inventory')).timeout(const Duration(seconds: 10));
+      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory')).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final List items = json.decode(response.body);
         if (mounted) {
@@ -479,11 +436,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _updateOrderStatus(dynamic orderId, String newStatus, {String? reason}) async {
     try {
       final response = await http.patch(
-        Uri.parse('$apiBaseUrl/api/orders/$orderId'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/orders/$orderId'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'status': newStatus,
-          'rejection_reason': ?reason,
+          'rejection_reason': reason,
         }),
       );
 
@@ -641,7 +598,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _removeOrderItem(dynamic orderId, dynamic itemId) async {
     try {
       final response = await http.delete(
-        Uri.parse('$apiBaseUrl/api/orders/$orderId/items/$itemId'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/orders/$orderId/items/$itemId'),
       );
 
       if (response.statusCode == 200) {
@@ -716,7 +673,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
           var request = http.MultipartRequest(
             'POST',
-            Uri.parse('$apiBaseUrl/api/upload'),
+            Uri.parse('${ThemeService.apiBaseUrl}/api/upload'),
           );
           request.files.add(http.MultipartFile.fromBytes(
             'image',
@@ -767,7 +724,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _createCategory(String name, String description, String image) async {
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/api/menu/categories'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/menu/categories'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'name': name, 'description': description, 'image': image}),
       );
@@ -804,7 +761,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _updateCategory(dynamic id, String name, String description, String image) async {
     try {
       final response = await http.patch(
-        Uri.parse('$apiBaseUrl/api/menu/categories/$id'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/menu/categories/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'name': name, 'description': description, 'image': image}),
       );
@@ -823,7 +780,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _deleteCategory(dynamic id) async {
     try {
-      final response = await http.delete(Uri.parse('$apiBaseUrl/api/menu/categories/$id'));
+      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/menu/categories/$id'));
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -840,7 +797,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _createMenuItem(Map<String, dynamic> itemData) async {
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/api/menu/items'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/menu/items'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(itemData),
       );
@@ -873,7 +830,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _updateMenuItem(dynamic id, Map<String, dynamic> itemData) async {
     try {
       final response = await http.patch(
-        Uri.parse('$apiBaseUrl/api/menu/items/$id'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/menu/items/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(itemData),
       );
@@ -906,7 +863,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _deleteMenuItem(dynamic id) async {
     debugPrint('Attempting to delete menu item with ID: $id');
     try {
-      final response = await http.delete(Uri.parse('$apiBaseUrl/api/menu/items/$id'));
+      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/menu/items/$id'));
       debugPrint('Delete response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         if (mounted) {
@@ -945,7 +902,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     final dateStr = "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
     try {
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/api/reservations?startDate=$dateStr&endDate=$dateStr'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/reservations?startDate=$dateStr&endDate=$dateStr'),
       );
       if (response.statusCode == 200) {
         if (mounted) {
@@ -962,7 +919,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     final targetDate = date ?? _dashboardDate;
     final dateStr = "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
     try {
-      final response = await http.get(Uri.parse('$apiBaseUrl/api/orders?startDate=$dateStr&endDate=$dateStr&kds=true'))
+      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/orders?startDate=$dateStr&endDate=$dateStr&kds=true'))
           .timeout(const Duration(seconds: 10));
           
       if (response.statusCode == 200) {
@@ -981,7 +938,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _fetchMenu() async {
     try {
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/api/menu'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/menu'),
       ).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
@@ -1052,7 +1009,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _fetchUsers() async {
     setState(() => _isUsersLoading = true);
     try {
-      final resp = await http.get(Uri.parse('$apiBaseUrl/api/users'));
+      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/users'));
       if (resp.statusCode == 200) {
         setState(() => _users = json.decode(resp.body));
       }
@@ -1066,7 +1023,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _fetchRoles() async {
     setState(() => _isRolesLoading = true);
     try {
-      final resp = await http.get(Uri.parse('$apiBaseUrl/api/roles'));
+      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/roles'));
       if (resp.statusCode == 200) {
         setState(() => _roles = json.decode(resp.body));
       }
@@ -1080,7 +1037,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _createRole(Map<String, dynamic> roleData) async {
     try {
       final resp = await http.post(
-        Uri.parse('$apiBaseUrl/api/roles'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/roles'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(roleData),
       );
@@ -1096,7 +1053,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _updateRole(dynamic id, Map<String, dynamic> roleData) async {
     try {
       final resp = await http.put(
-        Uri.parse('$apiBaseUrl/api/roles/$id'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/roles/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(roleData),
       );
@@ -1111,7 +1068,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _deleteRole(dynamic id) async {
     try {
-      final resp = await http.delete(Uri.parse('$apiBaseUrl/api/roles/$id'));
+      final resp = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/roles/$id'));
       if (resp.statusCode == 200) {
         _fetchRoles();
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Role deleted successfully'), backgroundColor: Colors.orange));
@@ -1123,7 +1080,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchPermissions() async {
     try {
-      final resp = await http.get(Uri.parse('$apiBaseUrl/api/permissions'));
+      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/permissions'));
       if (resp.statusCode == 200) {
         setState(() => _permissions = json.decode(resp.body));
       }
@@ -1135,7 +1092,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _fetchShifts() async {
     setState(() => _isHRLoading = true);
     try {
-      final resp = await http.get(Uri.parse('$apiBaseUrl/api/hr/shifts'));
+      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/hr/shifts'));
       if (resp.statusCode == 200) {
         setState(() => _shifts = json.decode(resp.body));
       }
@@ -1148,7 +1105,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchHRStats() async {
     try {
-      final resp = await http.get(Uri.parse('$apiBaseUrl/api/hr/stats'))
+      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/hr/stats'))
           .timeout(const Duration(seconds: 10));
           
       if (resp.statusCode == 200) {
@@ -1182,7 +1139,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _fetchSettings() async {
     setState(() => _isSettingsLoading = true);
     try {
-      final url = '$apiBaseUrl/api/settings';
+      final url = '${ThemeService.apiBaseUrl}/api/settings';
       debugPrint('Fetching settings from: $url');
       final resp = await http.get(Uri.parse(url))
           .timeout(const Duration(seconds: 10));
@@ -1196,11 +1153,33 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           setState(() {
             _settings = _deepCastMap(decoded);
             
+            // Validate current order type against new settings
+            final branch = _settings['branch'] ?? {};
+            final allowPickup = branch['allow_pickup'] == true || branch['allow_pickup'] == 1;
+            final allowDelivery = branch['allow_delivery'] == true || branch['allow_delivery'] == 1;
+
+            if (_orderType == 'Pickup' && !allowPickup) {
+              _orderType = 'Dine-In';
+            } else if (_orderType == 'Delivery' && !allowDelivery) {
+              _orderType = 'Dine-In';
+            }
+            
             // Sync ThemeService with backend setting
-            if (_settings['tenant'] != null && _settings['tenant']['theme_mode'] != null) {
-              final mode = _settings['tenant']['theme_mode'];
-              debugPrint('POSMissionControl: Backend returned theme mode $mode');
-              ThemeService().setFlavorFromString(mode);
+            if (_settings['tenant'] != null) {
+              final tenant = _settings['tenant'];
+              final mode = tenant['theme_mode'];
+              final accentColor = tenant['primary_accent_color'];
+              final resName = tenant['restaurant_name'];
+              
+              debugPrint('POSMissionControl: Syncing theme with mode $mode, accent $accentColor, logo ${tenant['logo_url']}');
+              ThemeService().setFlavorFromString(
+                mode, 
+                accentColorHex: accentColor,
+                logoUrl: tenant['logo_url'], 
+                secondaryLogoUrl: tenant['secondary_logo_url'],
+                restaurantName: resName,
+                tagline: tenant['tagline'],
+              );
             }
 
             // Sync SoundService
@@ -1231,18 +1210,48 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     // Optimistic Update
     if (mounted) {
       setState(() {
-        final Map<String, dynamic> currentType = Map<String, dynamic>.from(_settings[type] ?? {});
-        currentType.addAll(data);
-        _settings[type] = currentType;
+        if (type == 'messaging' || type == 'email') {
+          final List list = List.from(_settings[type] ?? []);
+          final providerName = data['provider_name'];
+          final index = list.indexWhere((e) => e != null && e is Map && e['provider_name'] == providerName);
+          if (index != -1) {
+            list[index] = {...Map<String, dynamic>.from(list[index]), ...data};
+          } else {
+            list.add(data);
+          }
+          _settings[type] = list;
+        } else {
+          final Map<String, dynamic> currentType = Map<String, dynamic>.from(_settings[type] ?? {});
+          currentType.addAll(data);
+          _settings[type] = currentType;
+        }
       });
     }
 
     try {
-      final resp = await http.patch(
-        Uri.parse('$apiBaseUrl/api/settings/$type'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(data),
-      );
+      String url = '${ThemeService.apiBaseUrl}/api/settings/$type';
+      String method = 'PATCH';
+
+      if (type == 'messaging') {
+        url = '${ThemeService.apiBaseUrl}/api/messaging-settings';
+        method = 'POST';
+      } else if (type == 'email') {
+        url = '${ThemeService.apiBaseUrl}/api/email-settings';
+        method = 'POST';
+      }
+
+      final resp = method == 'POST' 
+        ? await http.post(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode(data),
+          )
+        : await http.patch(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode(data),
+          );
+
       if (resp.statusCode == 200) {
         _fetchSettings();
         if (mounted) {
@@ -1272,11 +1281,143 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
+  Future<void> _testTwilio(Map<String, dynamic> config) async {
+    final TextEditingController phoneController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(LocalizationService().translate('test_connection')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Enter a phone number to receive the test WhatsApp/SMS message:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: phoneController,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number (with country code)',
+                hintText: '+1234567890',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final number = phoneController.text.trim();
+              if (number.isEmpty) return;
+              Navigator.pop(context);
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(LocalizationService().translate('test_twilio_msg')))
+              );
+
+              try {
+                final resp = await http.post(
+                  Uri.parse('${ThemeService.apiBaseUrl}/api/messaging-settings/test'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: json.encode({
+                    ...config,
+                    'test_number': number
+                  }),
+                );
+                if (resp.statusCode == 200) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(LocalizationService().translate('test_success')), backgroundColor: Colors.green)
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${LocalizationService().translate('test_failed')}: ${resp.body}'), backgroundColor: Colors.red)
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${LocalizationService().translate('test_failed')}: $e'), backgroundColor: Colors.red)
+                );
+              }
+            },
+            child: const Text('Send Test'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _testSMTP(Map<String, dynamic> config) async {
+    final TextEditingController emailController = TextEditingController(text: config['from_email'] ?? '');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(LocalizationService().translate('test_connection')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Enter an email address to receive the test message:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email Address',
+                hintText: 'example@mail.com',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty) return;
+              Navigator.pop(context);
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(LocalizationService().translate('test_smtp_msg')))
+              );
+
+              try {
+                final resp = await http.post(
+                  Uri.parse('${ThemeService.apiBaseUrl}/api/email-settings/test'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: json.encode({
+                    ...config,
+                    'test_email': email
+                  }),
+                );
+                if (resp.statusCode == 200) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(LocalizationService().translate('test_success')), backgroundColor: Colors.green)
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${LocalizationService().translate('test_failed')}: ${resp.body}'), backgroundColor: Colors.red)
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${LocalizationService().translate('test_failed')}: $e'), backgroundColor: Colors.red)
+                );
+              }
+            },
+            child: const Text('Send Test'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _resetTransactionalData() async {
     setState(() => _isSettingsLoading = true);
     try {
       final resp = await http.post(
-        Uri.parse('$apiBaseUrl/api/settings/reset-transactions'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/settings/reset-transactions'),
         headers: {'Content-Type': 'application/json'},
       );
       if (resp.statusCode == 200) {
@@ -1313,7 +1454,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _createUser(Map<String, dynamic> userData) async {
     try {
       final resp = await http.post(
-        Uri.parse('$apiBaseUrl/api/users'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/users'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(userData),
       );
@@ -1329,7 +1470,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _updateUser(dynamic id, Map<String, dynamic> userData) async {
     try {
       final resp = await http.put(
-        Uri.parse('$apiBaseUrl/api/users/$id'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/users/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(userData),
       );
@@ -1344,7 +1485,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _deleteUser(dynamic id) async {
     try {
-      final resp = await http.delete(Uri.parse('$apiBaseUrl/api/users/$id'));
+      final resp = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/users/$id'));
       if (resp.statusCode == 200) {
         _fetchUsers();
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('user_deleted_success')), backgroundColor: Colors.orange));
@@ -1357,7 +1498,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _updateRolePermissions(dynamic roleId, List<int> permissionIds) async {
     try {
       final resp = await http.put(
-        Uri.parse('$apiBaseUrl/api/roles/$roleId/permissions'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/roles/$roleId/permissions'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'permission_ids': permissionIds}),
       );
@@ -1513,6 +1654,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     _customerFirstNameController.clear();
     _customerPhoneController.clear();
     _customerEmailController.clear();
+    _customerAddressController.clear();
   });
 
   double get _subtotal => _cartItems.fold(
@@ -1590,9 +1732,47 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
+  bool _validateOrderData() {
+    if (_cartItems.isEmpty) {
+      _showWarningDialog(LocalizationService().translate('add_items_to_cart_warning'));
+      return false;
+    }
+    
+    if (_orderType == 'Dine-In') {
+      if (_selectedTable == null) {
+        _showWarningDialog(LocalizationService().translate('select_table_warning'));
+        return false;
+      }
+      if (_selectedWaiter == null) {
+        _showWarningDialog(LocalizationService().translate('select_waiter_warning'));
+        return false;
+      }
+    }
+
+    if (_isNewGuestMode) {
+      if (_customerFirstNameController.text.trim().isEmpty) {
+        _showWarningDialog(LocalizationService().translate('enter_guest_name_warning'));
+        return false;
+      }
+      if (_customerPhoneController.text.trim().isEmpty) {
+        _showWarningDialog(LocalizationService().translate('enter_guest_phone_warning'));
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _placeOrder() async {
 
     if (_cartItems.isEmpty) return;
+    
+    // Validate delivery address
+    if (_orderType == 'Delivery' && _customerAddressController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Delivery address is mandatory'), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
@@ -1626,8 +1806,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         'payment_amount': _payableAmount,
         'order_type': _orderType,
         'table_id': _selectedTable != null ? int.tryParse(_selectedTable!.id) : null,
-        'status': _editingOrderId != null ? null : (_paymentPolicy == 'Pay First' ? (_isSplitActive ? 'Partially Paid' : 'Paid') : 'Ordered'),
-        'payment_method': _paymentPolicy == 'Pay First' ? _paymentMethod : null,
+        'status': (
+              (_paymentPolicy == 'Pay First' || (_paymentPolicy == 'Pay All' && _paymentMethod != null)) 
+                ? (_isSplitActive ? 'Partially Paid' : 'Paid') 
+                : (_editingOrderId != null ? 'Ordered' : 'Ordered') // Default to Ordered for POS updates/creates
+            ),
+        'payment_method': (_paymentPolicy == 'Pay First' || (_paymentPolicy == 'Pay All' && _paymentMethod != null)) ? _paymentMethod : null,
         'tip_amount': _tip,
         'discount_amount': _discount,
         'user_id': _selectedWaiter?['id'],
@@ -1636,18 +1820,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           'first_name': _customerFirstNameController.text,
           'phone': _customerPhoneController.text,
           'email': _customerEmailController.text,
-        } : null,
+          'address': _customerAddressController.text,
+        } : (_orderType == 'Delivery' ? {'address': _customerAddressController.text} : null),
+        'shipping_address': _customerAddressController.text,
         'origin': 'In-Store',
       };
 
       final response = _editingOrderId != null
         ? await http.put(
-            Uri.parse('$apiBaseUrl/api/orders/$_editingOrderId'),
+            Uri.parse('${ThemeService.apiBaseUrl}/api/orders/$_editingOrderId'),
             headers: {'Content-Type': 'application/json'},
             body: json.encode(body),
           )
         : await http.post(
-            Uri.parse('$apiBaseUrl/api/orders'),
+            Uri.parse('${ThemeService.apiBaseUrl}/api/orders'),
             headers: {'Content-Type': 'application/json'},
             body: json.encode(body),
           );
@@ -1704,7 +1890,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/api/orders/$orderId/checkout'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/orders/$orderId/checkout'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'payment_method': paymentMethod,
@@ -2278,7 +2464,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               try {
                                 final dateStr = '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
                                 final timeStr = '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00';
-                                final resp = await http.get(Uri.parse('$apiBaseUrl/api/reservations/available-tables?date=$dateStr&time=$timeStr'));
+                                final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/reservations/available-tables?date=$dateStr&time=$timeStr'));
                                 if (resp.statusCode == 200) {
                                   final data = json.decode(resp.body);
                                   setDialogState(() {
@@ -2320,7 +2506,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
                               try {
                                 final resp = await http.post(
-                                  Uri.parse('$apiBaseUrl/api/reservations'),
+                                  Uri.parse('${ThemeService.apiBaseUrl}/api/reservations'),
                                   headers: {'Content-Type': 'application/json'},
                                   body: json.encode(resBody),
                                 );
@@ -3036,7 +3222,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       if (tableId != null) body['table_id'] = tableId;
 
       await http.patch(
-        Uri.parse('$apiBaseUrl/api/reservations/$id'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/reservations/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(body),
       );
@@ -3406,7 +3592,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
                   try {
                     final resp = await http.post(
-                      Uri.parse('$apiBaseUrl/api/tables'),
+                      Uri.parse('${ThemeService.apiBaseUrl}/api/tables'),
                       headers: {'Content-Type': 'application/json'},
                       body: json.encode(tableBody),
                     );
@@ -3958,35 +4144,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Builder(
-                builder: (_) {
-                  final logoUrl = (_settings['tenant']?['logo_url'] ?? '').toString();
-                  if (logoUrl.isNotEmpty) {
-                    return Image.network(
-                      resolveImageUrl(logoUrl),
-                      height: 55,
-                      fit: BoxFit.contain,
-                      errorBuilder: (c, e, s) => const SizedBox.shrink(),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
+              if (ThemeService().logoUrl != null && ThemeService().logoUrl!.isNotEmpty)
+                Image.network(
+                  ThemeService().logoUrl!,
+                  height: 55,
+                  fit: BoxFit.contain,
+                  errorBuilder: (c, e, s) => const SizedBox.shrink(),
+                ),
               const SizedBox(width: 12),
-              Builder(
-                builder: (_) {
-                  final secondaryLogoUrl = (_settings['tenant']?['secondary_logo_url'] ?? '').toString();
-                  if (secondaryLogoUrl.isNotEmpty) {
-                    return Image.network(
-                      resolveImageUrl(secondaryLogoUrl),
-                      height: 55,
-                      fit: BoxFit.contain,
-                      errorBuilder: (c, e, s) => const SizedBox.shrink(),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
+              if (ThemeService().secondaryLogoUrl != null && ThemeService().secondaryLogoUrl!.isNotEmpty)
+                Image.network(
+                  ThemeService().secondaryLogoUrl!,
+                  height: 55,
+                  fit: BoxFit.contain,
+                  errorBuilder: (c, e, s) => const SizedBox.shrink(),
+                ),
             ],
           ),
           const SizedBox(width: 16),
@@ -3995,7 +4167,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                (_settings['tenant']?['restaurant_name'] ?? 'ZAMZAM KITCHEN').toString(),
+                ThemeService().restaurantName.toUpperCase(),
                 style: TextStyle(
                   color: themeText,
                   fontSize: 22,
@@ -4004,11 +4176,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 ),
               ),
               Text(
-                LocalizationService().translate('mission_control'),
+                ThemeService().tagline,
                 style: TextStyle(
                   color: themeHint,
                   fontSize: 10,
                   letterSpacing: 1.2,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -4035,6 +4208,24 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   ),
                   _buildHeaderTab(
                     3, 
+                    LocalizationService().translate('orders'), 
+                    Icons.receipt_long_rounded,
+                    count: _placedOrders.where((o) {
+                      final s = o['status'].toString().toLowerCase();
+                      return ['pending', 'ordered', 'preparing', 'ready', 'paid', 'partially paid'].contains(s);
+                    }).length
+                  ),
+                  _buildHeaderTab(
+                    4, 
+                    LocalizationService().translate('waiting'), 
+                    Icons.watch_later_outlined,
+                    count: _placedOrders.where((o) {
+                      final s = o['status']?.toString().toLowerCase();
+                      return ['pending', 'ordered', 'preparing', 'ready', 'paid', 'partially paid'].contains(s);
+                    }).length
+                  ),
+                  _buildHeaderTab(
+                    5, 
                     LocalizationService().translate('reservation'), 
                     Icons.event_available_rounded,
                     count: _reservations.where((r) {
@@ -4048,28 +4239,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     }).length
                   ),
                   _buildHeaderTab(
-                    4, 
-                    LocalizationService().translate('orders'), 
-                    Icons.receipt_long_rounded,
-                    count: _placedOrders.where((o) {
-                      final s = o['status'].toString().toLowerCase();
-                      return ['pending', 'ordered', 'preparing', 'ready', 'paid', 'partially paid'].contains(s);
-                    }).length
-                  ),
-                  _buildHeaderTab(
-                    5, 
+                    6, 
                     LocalizationService().translate('tables'), 
                     Icons.grid_view_rounded,
                     count: _restaurantTables?.length ?? 0
-                  ),
-                  _buildHeaderTab(
-                    6, 
-                    LocalizationService().translate('waiting'), 
-                    Icons.watch_later_outlined,
-                    count: _placedOrders.where((o) {
-                      final s = o['status']?.toString().toLowerCase();
-                      return ['pending', 'ordered', 'preparing', 'ready', 'paid', 'partially paid'].contains(s);
-                    }).length
                   ),
                 ],
               ),
@@ -4079,26 +4252,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           // Utility Icons (Right)
           Row(
             children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _dateString,
-                    style: TextStyle(
-                      color: themeText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    _timeString,
-                    style: TextStyle(
-                      color: themeText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
+              DigitalClock(
+                showDate: true,
+                style: TextStyle(
+                  color: themeText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(width: 24),
               _buildHeaderIcon(
@@ -4285,7 +4445,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       ),
                     ],
                   ),
-                  child: Image.asset('packages/pos_terminal/assets/images/logo.png'),
+                  child: ThemeService().logoUrl != null && ThemeService().logoUrl!.isNotEmpty
+                    ? Image.network(ThemeService().logoUrl!)
+                    : Image.asset('packages/pos_terminal/assets/images/logo.png'),
                 ),
               ),
               const SizedBox(height: 32),
@@ -4314,13 +4476,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       case 2:
         return _buildKDSView();
       case 3:
-        return _buildReservationsView();
-      case 4:
         return _buildOrdersView();
-      case 5:
-        return _buildTablesView();
-      case 6:
+      case 4:
         return _buildWaitingView();
+      case 5:
+        return _buildReservationsView();
+      case 6:
+        return _buildTablesView();
       default:
         return const Center(child: Text('Coming Soon'));
     }
@@ -4354,7 +4516,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onUpdateCategory: _updateCategory,
             onDeleteCategory: _deleteCategory,
             onPickImage: _pickImage,
-            resolveImageUrl: resolveImageUrl,
+
           );
         case 14: return FoodItemManagementView(
             isDarkMode: _isDarkMode,
@@ -4365,7 +4527,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onDeleteMenuItem: _deleteMenuItem,
             onPickImage: _pickImage,
             onRefreshMenu: _fetchMenu,
-            resolveImageUrl: resolveImageUrl,
+
           );
         case 5: return _buildKDSView();
         case 6: return HumanResourceView(
@@ -4383,7 +4545,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             placedOrders: _placedOrders,
             shifts: _shifts,
             isLoading: _isLoading,
-            apiBaseUrl: apiBaseUrl,
+
           );
         case 8: return _buildTableQRCodeView();
         case 9: return UserManagementView(
@@ -4416,21 +4578,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onUpdateRolePermissions: _updateRolePermissions,
             initialSubTab: 1,
           );
-        case 11: return SettingsView(
-            settings: _settings,
-            isLoading: _isSettingsLoading,
-            userPermissions: widget.user?['permissions'] ?? [],
-            onUpdateSetting: _updateSetting,
-            onSaveGatewaySettings: _saveGatewaySettings,
-            onSaveMessagingSettings: _saveMessagingSettings,
-            onSaveEmailSettings: _saveEmailSettings,
-            onTestMessagingConnection: _testMessagingConnection,
-            onTestEmailConnection: _testEmailConnection,
-            onFetchSettings: _fetchSettings,
-            onPickImage: _pickImage,
-            onResetTransactions: _resetTransactionalData,
-            initialCategory: 4,
-          );
         case 12: 
         case 15:
         case 16: // Settings UI extracted to settings_view.dart
@@ -4440,16 +4587,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             userPermissions: widget.user?['permissions'] ?? [],
             onUpdateSetting: _updateSetting,
             onSaveGatewaySettings: _saveGatewaySettings,
-            onSaveMessagingSettings: _saveMessagingSettings,
-            onSaveEmailSettings: _saveEmailSettings,
-            onTestMessagingConnection: _testMessagingConnection,
-            onTestEmailConnection: _testEmailConnection,
             onFetchSettings: _fetchSettings,
             onPickImage: _pickImage,
             onResetTransactions: _resetTransactionalData,
+            onTestTwilio: _testTwilio,
+            onTestSMTP: _testSMTP,
           );
         case 18: return InventoryDashboard(isDarkMode: _isDarkMode);
-        case 19: return CustomerManagementView(apiBaseUrl: apiBaseUrl);
+        case 19: return const CustomerManagementView();
         default: return _buildDashboardContent();
       }
     } catch (e, stack) {
@@ -4578,14 +4723,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             _buildSidebarSubNav(9, LocalizationService().translate('user_management')),
             _buildSidebarSubNav(10, LocalizationService().translate('role_permissions')),
           ],
-          if (_hasPermission('manage_settings_communications'))
-            _buildSidebarNav(11, LocalizationService().translate('communications'), Icons.contact_mail_outlined),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Divider(height: 1, color: themeBorder),
           ),
           if (_hasPermission('manage_settings_general') || _hasPermission('manage_settings_operations') || 
-              _hasPermission('manage_settings_branding') || _hasPermission('manage_settings_payments'))
+              _hasPermission('manage_settings_branding') || _hasPermission('manage_settings_payments') ||
+              _hasPermission('manage_settings_communications') || _hasPermission('manage_settings_reset'))
             _buildSidebarNav(
               12, 
               LocalizationService().translate('system_settings'), 
@@ -4697,7 +4841,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             ElevatedButton(
               onPressed: () async {
                 final resp = await http.post(
-                  Uri.parse('$apiBaseUrl/api/hr/clock-in'),
+                  Uri.parse('${ThemeService.apiBaseUrl}/api/hr/clock-in'),
                   headers: {'Content-Type': 'application/json'},
                   body: json.encode({'user_id': 1, 'branch_id': 1, 'hourly_rate': 25.0}),
                 );
@@ -4751,7 +4895,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               itemBuilder: (context, index) {
                 final table = tables[index];
                 // URL that encodes into the QR code — matches the website route
-                const String websiteBaseUrl = 'http://localhost:5173';
+                final String websiteBaseUrl = kIsWeb 
+                    ? (html.window.location.origin.contains('localhost') || html.window.location.origin.contains('127.0.0.1')
+                        ? 'http://localhost:5173' 
+                        : html.window.location.origin)
+                    : 'https://zamzamkitchen.net';
                 final qrData = '$websiteBaseUrl/menu?table=${Uri.encodeComponent(table.label)}&tid=${table.id}';
                 
                 return Container(
@@ -5533,8 +5681,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       padding: EdgeInsets.zero,
       itemCount: filteredItems.length + 1,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 1.25,
+        crossAxisCount: 5,
+        childAspectRatio: 1.1,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
@@ -5615,7 +5763,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         ),
                         image: item['image'] != null && item['image'].toString().isNotEmpty
                             ? DecorationImage(
-                                image: NetworkImage(resolveImageUrl(item['image'] as String)),
+                                image: NetworkImage(ThemeService.resolveImageUrl(item['image'] as String)),
                                 fit: BoxFit.cover,
                               )
                             : null,
@@ -5684,7 +5832,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         Expanded(
                           child: Text(
                             item['description']?.toString() ?? item['category']?.toString() ?? '',
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(color: themeHint, fontSize: 11, height: 1.2),
                           ),
@@ -5741,20 +5889,24 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   _buildTypeButton(LocalizationService().translate('dine_in'), Icons.restaurant, _orderType == 'Dine-In', () {
                     setState(() => _orderType = 'Dine-In');
                   }),
-                  const SizedBox(width: 8),
-                  _buildTypeButton(LocalizationService().translate('pickup'), Icons.shopping_bag_outlined, _orderType == 'Pickup', () {
-                    setState(() {
-                      _orderType = 'Pickup';
-                      _selectedTable = null;
-                    });
-                  }),
-                  const SizedBox(width: 8),
-                  _buildTypeButton(LocalizationService().translate('delivery'), Icons.delivery_dining_outlined, _orderType == 'Delivery', () {
-                    setState(() {
-                      _orderType = 'Delivery';
-                      _selectedTable = null;
-                    });
-                  }),
+                  if (_settings['branch']?['allow_pickup'] == true || _settings['branch']?['allow_pickup'] == 1) ...[
+                    const SizedBox(width: 8),
+                    _buildTypeButton(LocalizationService().translate('pickup'), Icons.shopping_bag_outlined, _orderType == 'Pickup', () {
+                      setState(() {
+                        _orderType = 'Pickup';
+                        _selectedTable = null;
+                      });
+                    }),
+                  ],
+                  if (_settings['branch']?['allow_delivery'] == true || _settings['branch']?['allow_delivery'] == 1) ...[
+                    const SizedBox(width: 8),
+                    _buildTypeButton(LocalizationService().translate('delivery'), Icons.delivery_dining_outlined, _orderType == 'Delivery', () {
+                      setState(() {
+                        _orderType = 'Delivery';
+                        _selectedTable = null;
+                      });
+                    }),
+                  ],
                 ],
               ),
               if (_orderType == 'Dine-In') ...[
@@ -5816,44 +5968,50 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                
-                // Customer / Guest Selection
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: themeBg.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: themeBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _isNewGuestMode ? 'NEW GUEST REGISTRATION' : 'SELECT CUSTOMER (LOYALTY)',
-                            style: TextStyle(color: themeHint, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
-                          ),
-                          InkWell(
-                            onTap: () => setState(() => _isNewGuestMode = !_isNewGuestMode),
-                            child: Text(
-                              _isNewGuestMode ? 'SEARCH EXISTING' : 'ADD NEW GUEST',
-                              style: TextStyle(color: themePrimary, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (!_isNewGuestMode)
-                        _buildCustomerSelector()
-                      else
-                        _buildNewGuestForm(),
-                    ],
-                  ),
-                ),
               ],
+              
+              const SizedBox(height: 12),
+              
+              // Customer / Guest Selection (Mandatory for Delivery)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: themeBg.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: themeBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _isNewGuestMode ? 'NEW GUEST REGISTRATION' : 'SELECT CUSTOMER (LOYALTY)',
+                          style: TextStyle(color: themeHint, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                        ),
+                        InkWell(
+                          onTap: () => setState(() => _isNewGuestMode = !_isNewGuestMode),
+                          child: Text(
+                            _isNewGuestMode ? 'SEARCH EXISTING' : 'ADD NEW GUEST',
+                            style: TextStyle(color: themePrimary, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (!_isNewGuestMode)
+                      _buildCustomerSelector()
+                    else
+                      _buildNewGuestForm(),
+                    
+                    if (_orderType == 'Delivery' && !_isNewGuestMode) ...[
+                      const SizedBox(height: 8),
+                      _buildCRMField(_customerAddressController, 'Delivery Address', Icons.location_on_outlined),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -5926,28 +6084,26 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             DataCell(
                               Row(
                                 children: [
-                                  item['image'] != null
-                                      ? Image.network(
-                                          resolveImageUrl(item['image'] as String),
-                                          width: 20,
-                                          height: 20,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (
-                                                context,
-                                                error,
-                                                stackTrace,
-                                              ) => Icon(
-                                                Icons.restaurant_menu_rounded,
-                                                color: themePrimary,
-                                                size: 18,
-                                              ),
-                                        )
-                                      : Icon(
-                                          Icons.restaurant_menu_rounded,
-                                          color: themePrimary,
-                                          size: 18,
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: item['image'] != null && item['image'].toString().isNotEmpty
+                                    ? Image.network(
+                                        ThemeService.resolveImageUrl(item['image'] as String),
+                                        width: 32,
+                                        height: 32,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Container(
+                                          width: 32, height: 32,
+                                          color: themePrimary.withValues(alpha: 0.05),
+                                          child: Icon(Icons.fastfood, size: 16, color: themePrimary),
                                         ),
+                                      )
+                                    : Container(
+                                        width: 32, height: 32,
+                                        color: themePrimary.withValues(alpha: 0.05),
+                                        child: Icon(Icons.fastfood, size: 16, color: themePrimary),
+                                      ),
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
@@ -6189,70 +6345,109 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     ),
                     const SizedBox(width: 8),
                   ],
-                  // Primary Action Button (Send to Kitchen OR Pay Now)
-                  Expanded(
-                    child: SizedBox(
-                      height: 42,
-                      child: ElevatedButton.icon(
-                        icon: _isLoading 
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : Icon(
-                              (_editingOrderId != null || _paymentPolicy == 'Pay Last') 
-                                ? Icons.send_to_mobile_rounded 
-                                : Icons.check_circle_outline_rounded, 
-                              color: Colors.white, 
-                              size: 18
-                            ),
-                        label: Text(
-                          (_editingOrderId != null) 
-                            ? LocalizationService().translate('update_order').toUpperCase()
-                            : (_paymentPolicy == 'Pay First' 
-                                ? LocalizationService().translate('complete_payment').toUpperCase()
-                                : LocalizationService().translate('send_to_kitchen').toUpperCase()),
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
-                        ),
-                        onPressed: _isLoading ? null : () {
-                          if (_cartItems.isEmpty) {
-                            _showWarningDialog(LocalizationService().translate('add_items_to_cart_warning'));
-                            return;
-                          }
-                          
-                          if (_orderType == 'Dine-In') {
-                            if (_selectedTable == null) {
-                              _showWarningDialog(LocalizationService().translate('select_table_warning'));
-                              return;
-                            }
-                            if (_selectedWaiter == null) {
-                              _showWarningDialog(LocalizationService().translate('select_waiter_warning'));
-                              return;
-                            }
-                          }
-
-                          if (_paymentPolicy == 'Pay First' && _editingOrderId == null) {
-                            if (_isNewGuestMode) {
-                              if (_customerFirstNameController.text.trim().isEmpty) {
-                                _showWarningDialog(LocalizationService().translate('enter_guest_name_warning'));
-                                return;
-                              }
-                              if (_customerPhoneController.text.trim().isEmpty) {
-                                _showWarningDialog(LocalizationService().translate('enter_guest_phone_warning'));
-                                return;
-                              }
-                            }
-                            _showCheckoutDialog();
-                          } else {
+                  // Primary Action Button(s) (Send to Kitchen AND/OR Pay Now)
+                  if (_paymentPolicy == 'Pay All') ...[
+                    // Send to Kitchen / Update Order Button
+                    Expanded(
+                      flex: 4,
+                      child: SizedBox(
+                        height: 42,
+                        child: ElevatedButton.icon(
+                          icon: _isLoading 
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Icon(
+                                _editingOrderId != null ? Icons.update_rounded : Icons.send_to_mobile_rounded, 
+                                color: Colors.white, 
+                                size: 18
+                              ),
+                          label: Text(
+                            LocalizationService().translate(_editingOrderId != null ? 'update_order' : 'send_to_kitchen').toUpperCase(),
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5),
+                          ),
+                          onPressed: _isLoading ? null : () {
+                            if (!_validateOrderData()) return;
+                            _paymentMethod = null; // Ensure method is null for unpaid flow
                             _placeOrder();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: themePrimary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade700,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    // Complete Payment Button
+                    Expanded(
+                      flex: 4,
+                      child: SizedBox(
+                        height: 42,
+                        child: ElevatedButton.icon(
+                          icon: _isLoading 
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+                          label: Text(
+                            LocalizationService().translate('complete_payment').toUpperCase(),
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5),
+                          ),
+                          onPressed: _isLoading ? null : () {
+                            if (!_validateOrderData()) return;
+                            _showCheckoutDialog();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    Expanded(
+                      child: SizedBox(
+                        height: 42,
+                        child: ElevatedButton.icon(
+                          icon: _isLoading 
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Icon(
+                                (_editingOrderId != null || _paymentPolicy == 'Pay Last') 
+                                  ? Icons.send_to_mobile_rounded 
+                                  : Icons.check_circle_outline_rounded, 
+                                color: Colors.white, 
+                                size: 18
+                              ),
+                          label: Text(
+                            (_editingOrderId != null) 
+                              ? LocalizationService().translate('update_order').toUpperCase()
+                              : (_paymentPolicy == 'Pay First' 
+                                  ? LocalizationService().translate('complete_payment').toUpperCase()
+                                  : LocalizationService().translate('send_to_kitchen').toUpperCase()),
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                          ),
+                          onPressed: _isLoading ? null : () {
+                            if (!_validateOrderData()) return;
+
+                            if (_paymentPolicy == 'Pay First' && _editingOrderId == null) {
+                              _showCheckoutDialog();
+                            } else {
+                              _placeOrder();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: themePrimary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -6584,6 +6779,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         _buildCRMField(_customerPhoneController, 'Phone Number', Icons.phone_android),
         const SizedBox(height: 8),
         _buildCRMField(_customerEmailController, 'Email (Optional)', Icons.email_outlined),
+        if (_orderType == 'Delivery') ...[
+          const SizedBox(height: 8),
+          _buildCRMField(_customerAddressController, 'Delivery Address', Icons.location_on_outlined),
+        ],
       ],
     );
   }
@@ -6841,7 +7040,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         
                         if (order['origin'] != null && order['origin'] != 'In-Store')
                           _buildOriginBadge(order['origin']),
-                        _buildPaymentStatusBadge(order['status'] ?? 'Unknown'),
+                        _buildPaymentStatusBadge(order),
                       ],
                     ),
                   ],
@@ -7001,12 +7200,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-  Widget _buildPaymentStatusBadge(String status) {
-    bool isPaid = status == 'Paid' || status == 'Partially Paid' || status == 'Served';
-    if (isPaid) return const SizedBox.shrink(); // Hide if already paid/served to avoid duplication with status chip
+  Widget _buildPaymentStatusBadge(Map<String, dynamic> order) {
+    String status = order['status'] ?? 'Unknown';
+    // An order is considered paid if status is 'Paid' or it has a payment method record
+    bool isPaid = status == 'Paid' || (order['payment_method'] != null && order['payment_method'].toString().isNotEmpty);
+    
+    if (isPaid) return const SizedBox.shrink(); // Hide if already paid to avoid clutter
     
     Color color = Colors.deepOrange;
-    String label = 'UNPAID';
+    String label = LocalizationService().translate('unpaid').toUpperCase();
     IconData icon = Icons.error_outline;
 
     return Row(
@@ -7131,17 +7333,38 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: themePrimary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text('x${item['quantity']}', style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold)),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: item['image'] != null && item['image'].toString().isNotEmpty
+                                ? Image.network(
+                                    ThemeService.resolveImageUrl(item['image'] as String),
+                                    width: 45,
+                                    height: 45,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      width: 45, height: 45,
+                                      color: themePrimary.withValues(alpha: 0.1),
+                                      child: Icon(Icons.fastfood, size: 20, color: themePrimary),
+                                    ),
+                                  )
+                                : Container(
+                                    width: 45, height: 45,
+                                    color: themePrimary.withValues(alpha: 0.1),
+                                    child: Icon(Icons.fastfood, size: 20, color: themePrimary),
+                                  ),
                             ),
                             const SizedBox(width: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: themePrimary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text('x${item['quantity']}', style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -7475,7 +7698,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     ),
                                     const SizedBox(width: 8),
                                     _buildOriginBadge(order['origin']),
-                                    _buildPaymentStatusBadge(order['status'] ?? 'Unknown'),
+                                    _buildPaymentStatusBadge(order),
                                   ],
                                 ),
                                 Row(
@@ -8102,7 +8325,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     ),
                                     const SizedBox(width: 8),
                                     _buildOriginBadge(order['origin']),
-                                    _buildPaymentStatusBadge(order['status'] ?? 'Unknown'),
+                                    _buildPaymentStatusBadge(order),
                                   ],
                                 ),
                                 Row(
@@ -8552,7 +8775,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   }
   Future<void> _fetchTables() async {
     try {
-      final response = await http.get(Uri.parse('$apiBaseUrl/api/tables'));
+      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/tables'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         if (mounted) {
@@ -8608,7 +8831,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   void _updateTableCoord(ui_kit.RestaurantTable table, double x, double y) async {
     try {
       await http.patch(
-        Uri.parse('$apiBaseUrl/api/tables/${table.id}'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'pos_x': x, 'pos_y': y}),
       );
@@ -8620,7 +8843,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   void _updateTableStatus(ui_kit.RestaurantTable table, String newStatusDb) async {
     try {
       await http.patch(
-        Uri.parse('$apiBaseUrl/api/tables/${table.id}'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'status': newStatusDb}),
       );
@@ -8817,7 +9040,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                final resp = await http.delete(Uri.parse('$apiBaseUrl/api/tables/${table.id}'));
+                final resp = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'));
                 if (resp.statusCode == 200) {
                   if (!mounted) return;
                   _fetchTables();
@@ -8887,7 +9110,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               };
               try {
                 final resp = await http.patch(
-                  Uri.parse('$apiBaseUrl/api/tables/${table.id}'),
+                  Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'),
                   headers: {'Content-Type': 'application/json'},
                   body: json.encode(body),
                 );
@@ -9071,7 +9294,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _saveGatewaySettings(String name, Map<String, dynamic> data) async {
     try {
       final resp = await http.post(
-        Uri.parse('$apiBaseUrl/api/payment-gateways'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/payment-gateways'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({...data, 'gateway_name': name}),
       );
@@ -9088,153 +9311,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-  Future<void> _saveMessagingSettings(String name, Map<String, dynamic> data) async {
-    try {
-      final resp = await http.post(
-        Uri.parse('$apiBaseUrl/api/messaging-settings'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({...data, 'provider_name': name}),
-      );
-      if (resp.statusCode == 200) {
-        _fetchSettings();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Messaging settings updated successfully'))
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error saving messaging settings: $e');
-    }
-  }
 
-  Future<void> _testMessagingConnection(String provider, Map<String, dynamic> data) async {
-    final phoneController = TextEditingController();
-    if (!mounted) return;
-    
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Test Connection'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Enter a phone number to send a test message:'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number',
-                hintText: '+1234567890',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Send Test')),
-        ],
-      ),
-    );
-
-    if (result == true && phoneController.text.isNotEmpty) {
-      try {
-        final resp = await http.post(
-          Uri.parse('$apiBaseUrl/api/messaging-settings/test'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            ...data,
-            'provider_name': provider,
-            'test_number': phoneController.text,
-          }),
-        );
-        final decoded = json.decode(resp.body);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(decoded['message'] ?? 'Test complete'))
-          );
-        }
-      } catch (e) {
-        debugPrint('Error testing messaging connection: $e');
-      }
-    }
-  }
-
-  Future<void> _saveEmailSettings(String name, Map<String, dynamic> data) async {
-    try {
-      final resp = await http.post(
-        Uri.parse('$apiBaseUrl/api/email-settings'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({...data, 'provider_name': name}),
-      );
-      if (resp.statusCode == 200) {
-        _fetchSettings();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Email settings updated successfully'))
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error saving email settings: $e');
-    }
-  }
-
-  Future<void> _testEmailConnection(String provider, Map<String, dynamic> data) async {
-    final emailController = TextEditingController();
-    if (!mounted) return;
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Test Email Connection'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Enter an email address to send a test message:'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email Address',
-                hintText: 'test@example.com',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Send Test')),
-        ],
-      ),
-    );
-
-    if (result == true && emailController.text.isNotEmpty) {
-      try {
-        final resp = await http.post(
-          Uri.parse('$apiBaseUrl/api/email-settings/test'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            ...data,
-            'provider_name': provider,
-            'test_email': emailController.text,
-          }),
-        );
-        final decoded = json.decode(resp.body);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(decoded['message'] ?? 'Test complete'))
-          );
-        }
-      } catch (e) {
-        debugPrint('Error testing email connection: $e');
-      }
-    }
-  }
 }
 
 class _StatusRow extends StatelessWidget {
@@ -9501,3 +9578,62 @@ class _TrendChart extends StatelessWidget {
 }
 
 
+class DigitalClock extends StatefulWidget {
+  final TextStyle? style;
+  final bool showDate;
+  const DigitalClock({super.key, this.style, this.showDate = false});
+
+  @override
+  State<DigitalClock> createState() => _DigitalClockState();
+}
+
+class _DigitalClockState extends State<DigitalClock> {
+  late Timer _timer;
+  String _timeString = '';
+  String _dateString = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _updateTime();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTime());
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void _updateTime() {
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final amPm = now.hour >= 12 ? 'PM' : 'AM';
+    final minute = now.minute.toString().padLeft(2, '0');
+    
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    final year = now.year;
+
+    if (mounted) {
+      setState(() {
+        _timeString = '$hour:$minute $amPm';
+        _dateString = '$month/$day/$year';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.showDate) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(_dateString, style: widget.style),
+          Text(_timeString, style: widget.style),
+        ],
+      );
+    }
+    return Text(_timeString, style: widget.style);
+  }
+}

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:pos_terminal/theme_service.dart';
 import 'package:pos_terminal/localization_service.dart';
+import 'package:pos_terminal/dashboard/pos_mission_control.dart';
 
 class PurchaseManagementView extends StatefulWidget {
   final bool isDarkMode;
@@ -63,35 +64,42 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
 
   Future<void> _fetchSuppliers() async {
     try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:5000/api/purchases/suppliers'));
+      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers'));
       if (response.statusCode == 200) {
         setState(() => _suppliers = jsonDecode(response.body));
+      } else {
+        _showError('Failed to load suppliers: ${response.statusCode}');
       }
     } catch (e) {
       if (kDebugMode) print('Fetch Suppliers Error: $e');
+      _showError('Connection Error: $e');
     }
   }
 
   Future<void> _fetchInventory() async {
     try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:5000/api/inventory'));
+      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'));
       if (response.statusCode == 200) {
         setState(() => _inventoryItems = jsonDecode(response.body));
+      } else {
+        _showError('Failed to load inventory: ${response.statusCode}');
       }
     } catch (e) {
-      _showError('Failed to load inventory');
+      _showError('Failed to load inventory: $e');
     }
   }
 
   Future<void> _fetchPurchases() async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:5000/api/purchases'));
+      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases'));
       if (response.statusCode == 200) {
         setState(() => _purchases = jsonDecode(response.body));
+      } else {
+        _showError('Failed to load purchases: ${response.statusCode}');
       }
     } catch (e) {
-      _showError('Failed to load purchases');
+      _showError('Failed to load purchases: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -169,7 +177,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:5000/api/purchases'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'invoice_number': _invoiceController.text,
@@ -186,7 +194,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         _fetchInventory(); 
         _showSuccess('Purchase recorded successfully');
       } else {
-        _showError('Failed to save purchase');
+        _showError('Failed to save purchase: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       _showError(e.toString());
@@ -223,13 +231,13 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       http.Response response;
       if (_editingSupplier == null) {
         response = await http.post(
-          Uri.parse('http://127.0.0.1:5000/api/purchases/suppliers'),
+          Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(data),
         );
       } else {
         response = await http.put(
-          Uri.parse('http://127.0.0.1:5000/api/purchases/suppliers/${_editingSupplier['id']}'),
+          Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers/${_editingSupplier['id']}'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(data),
         );
@@ -239,9 +247,11 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         _resetSupplierForm();
         _fetchSuppliers();
         _showSuccess('Supplier saved successfully');
+      } else {
+        _showError('Failed to save supplier: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      _showError('Error saving supplier');
+      _showError('Error saving supplier: $e');
     }
   }
 
@@ -267,13 +277,15 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
 
   Future<void> _deleteSupplier(int id) async {
     try {
-      final response = await http.delete(Uri.parse('http://127.0.0.1:5000/api/purchases/suppliers/$id'));
+      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers/$id'));
       if (response.statusCode == 200) {
         _fetchSuppliers();
         _showSuccess('Supplier deleted');
+      } else {
+        _showError('Failed to delete supplier: ${response.statusCode}');
       }
     } catch (e) {
-      _showError('Error deleting supplier');
+      _showError('Error deleting supplier: $e');
     }
   }
 
@@ -281,16 +293,18 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   Future<void> _linkItemToSupplier(int itemId, int? supplierId) async {
     try {
       final response = await http.put(
-        Uri.parse('http://127.0.0.1:5000/api/purchases/inventory/$itemId/supplier'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/inventory/$itemId/supplier'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'supplier_id': supplierId}),
       );
       if (response.statusCode == 200) {
         _fetchInventory();
         _showSuccess('Inventory linkage updated');
+      } else {
+        _showError('Failed to update linkage: ${response.statusCode}');
       }
     } catch (e) {
-      _showError('Error updating linkage');
+      _showError('Error updating linkage: $e');
     }
   }
 
@@ -298,7 +312,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
     if (threshold < 0) return;
     try {
       final response = await http.put(
-        Uri.parse('http://127.0.0.1:5000/api/inventory/$itemId'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/inventory/$itemId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'low_stock_threshold': threshold}),
       );
@@ -504,7 +518,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
     setState(() => _isLoading = true);
     try {
       final response = await http.put(
-        Uri.parse('http://127.0.0.1:5000/api/purchases/$id/status'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/$id/status'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'status': status}),
       );
@@ -536,7 +550,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
 
     setState(() => _isLoading = true);
     try {
-      final response = await http.delete(Uri.parse('http://127.0.0.1:5000/api/purchases/$id'));
+      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/$id'));
       if (response.statusCode == 200) {
         _fetchAllData();
         _showSuccess('Purchase deleted');

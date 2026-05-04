@@ -2,7 +2,7 @@ import { ShoppingCart, MapPin, Clock, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { API_BASE_URL, ASSETS_BASE_URL } from '../config';
+import { API_BASE_URL, ASSETS_BASE_URL, resolveImageUrl } from '../config';
 import './Home.css';
 
 export default function Home() {
@@ -40,13 +40,15 @@ export default function Home() {
       {/* Hero Section - Matching Image */}
       <section className="hero-section">
         <div className="hero-overlay"></div>
+        
+        {/* Photography-focused Hero (Matching Menu Page Style) */}
+
         <div className="hero-content text-center">
             <h1 className="hero-title white">
-                Delicious Dining <span className="text-orange">Delivered</span> <br/> to Your Door
+                We Serve <span className="text-orange">Best Halal Food</span>
             </h1>
             <p className="hero-subtitle white">
-                Experience the finest local ingredients and artisanal recipes at Zamzam Kitchen. <br/>
-                Order online for pickup or delivery within minutes.
+                Experience the finest local ingredients and artisanal recipes at Zamzam Kitchen. Order online for pickup or delivery within minutes.
             </p>
             <div className="hero-actions justify-center">
                 <button className="btn-primary" onClick={() => navigate('/menu')}>Order Online Now</button>
@@ -83,7 +85,7 @@ export default function Home() {
               ) : displayedItems.map(item => (
                   <div key={item.id} className="menu-card-premium">
                       <div className="card-img-large" style={{ 
-                        backgroundImage: item.image ? `url(${ASSETS_BASE_URL}/${item.image.startsWith('assets/') ? item.image.replace('assets/', '') : item.image})` : 'url(/placeholder-food.jpg)',
+                        backgroundImage: `url(${resolveImageUrl(item.image)})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                       }}>

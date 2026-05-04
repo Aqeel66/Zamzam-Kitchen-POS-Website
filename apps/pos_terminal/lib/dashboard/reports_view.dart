@@ -13,7 +13,7 @@ class ReportsView extends StatefulWidget {
   final List<dynamic> placedOrders;
   final List<dynamic> shifts;
   final bool isLoading;
-  final String apiBaseUrl;
+
 
   const ReportsView({
     super.key,
@@ -23,7 +23,6 @@ class ReportsView extends StatefulWidget {
     required this.placedOrders,
     required this.shifts,
     required this.isLoading,
-    required this.apiBaseUrl,
   });
 
   @override
@@ -72,7 +71,7 @@ class _ReportsViewState extends State<ReportsView> {
 
   Future<void> _fetchPurchases() async {
     try {
-      final res = await http.get(Uri.parse('${widget.apiBaseUrl}/api/purchases'));
+      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases'));
       if (res.statusCode == 200) {
         setState(() => _purchases = json.decode(res.body));
       }
@@ -83,7 +82,7 @@ class _ReportsViewState extends State<ReportsView> {
 
   Future<void> _fetchMenuData() async {
     try {
-      final res = await http.get(Uri.parse('${widget.apiBaseUrl}/api/menu'));
+      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/menu'));
       if (res.statusCode == 200) {
         setState(() => _menuData = json.decode(res.body));
       }
@@ -94,7 +93,7 @@ class _ReportsViewState extends State<ReportsView> {
 
   Future<void> _fetchExpenses() async {
     try {
-      final res = await http.get(Uri.parse('${widget.apiBaseUrl}/api/expenses'));
+      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/expenses'));
       if (res.statusCode == 200) {
         setState(() => _expenses = json.decode(res.body));
       }
@@ -105,7 +104,7 @@ class _ReportsViewState extends State<ReportsView> {
 
   Future<void> _fetchSuppliers() async {
     try {
-      final res = await http.get(Uri.parse('${widget.apiBaseUrl}/api/purchases/suppliers'));
+      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers'));
       if (res.statusCode == 200) {
         setState(() => _suppliers = json.decode(res.body));
       }
@@ -116,7 +115,7 @@ class _ReportsViewState extends State<ReportsView> {
 
   Future<void> _fetchInventory() async {
     try {
-      final res = await http.get(Uri.parse('${widget.apiBaseUrl}/api/inventory'));
+      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'));
       if (res.statusCode == 200) {
         setState(() => _inventoryItems = json.decode(res.body));
       }
@@ -127,7 +126,7 @@ class _ReportsViewState extends State<ReportsView> {
 
   Future<void> _fetchAvailableDates() async {
     try {
-      final res = await http.get(Uri.parse('${widget.apiBaseUrl}/api/orders/data-range'))
+      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/orders/data-range'))
           .timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(res.body);
@@ -810,7 +809,7 @@ class _ReportsViewState extends State<ReportsView> {
   Future<void> _fetchFilteredReport() async {
     setState(() => _isReportLoading = true);
     try {
-      final baseUrl = widget.apiBaseUrl;
+      final baseUrl = ThemeService.apiBaseUrl;
       final queryParams = {
         'status': _reportStatusFilter,
         'type': _reportTypeFilter,

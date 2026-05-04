@@ -207,6 +207,13 @@
 @media (max-width: 1024px) {
   .res-layout-grid {
      grid-template-columns: 1fr;
+     gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .guest-form-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -276,6 +283,27 @@
   font-weight: 700;
   font-size: 0.9rem;
   margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .res-selection-trigger {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+  .trigger-item.border-left {
+    border-left: none;
+    border-top: 1px solid #eee;
+    padding-left: 0;
+    margin-left: 0;
+    padding-top: 1.5rem;
+    width: 100%;
+  }
+  .btn-change {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 /* Modal Styles */
@@ -357,8 +385,14 @@
 
 .modal-time-grid, .modal-guests-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .modal-time-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .step-1-layout {
@@ -582,4 +616,185 @@
 @keyframes zoomIn95 {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+/* Added Styles from Cleanup */
+.summary-section-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+}
+
+.summary-row.highlighted .label,
+.summary-row.highlighted .value {
+  color: var(--primary-orange);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.fee-note {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.modal-processing-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+}
+
+.step-indicator {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-text {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.25rem;
+}
+
+.payment-method-card {
+  background: #f9fafb;
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.payment-title {
+  font-size: 1.25rem;
+  color: #111827;
+  font-weight: 700;
+  margin: 0;
+}
+
+.payment-badge {
+  padding: 0.4rem 0.8rem;
+  background: #fff6f3;
+  border: 1px solid var(--primary-orange);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-orange);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.payment-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.stripe-text {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.card-input {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: white;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.modal-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.btn-primary-modal {
+  flex: 1;
+  padding: 1rem;
+  background: var(--primary-orange);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-confirm-booking {
+  width: 100%;
+  padding: 1.25rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary-orange);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-confirm-booking:hover {
+  background: var(--primary-orange-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(242, 92, 5, 0.2);
+}
+
+@media (max-width: 640px) {
+  .payment-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .payment-badge {
+    width: 100%;
+    justify-content: center;
+  }
+  .res-modal-overlay {
+    padding: 1rem;
+  }
+  .modal-header {
+    padding: 1rem 1.5rem;
+  }
+  .modal-body-scroll {
+    padding: 1.5rem;
+  }
 }

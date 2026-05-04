@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:pos_terminal/theme_service.dart';
 import 'package:pos_terminal/localization_service.dart';
+import 'package:pos_terminal/dashboard/pos_mission_control.dart';
 
 class InventoryDashboard extends StatefulWidget {
   final bool isDarkMode;
@@ -46,11 +47,13 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
   Future<void> _fetchInventory() async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:5000/api/inventory'));
+      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'));
       if (response.statusCode == 200) {
         setState(() {
           _inventoryItems = jsonDecode(response.body);
         });
+      } else {
+        _showError("${LocalizationService().translate('failed_to_load_inventory')} (Status: ${response.statusCode})");
       }
     } catch (e) {
       _showError(LocalizationService().translate('failed_to_load_inventory'));
@@ -84,13 +87,13 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
       http.Response response;
       if (_editingId == null) {
         response = await http.post(
-          Uri.parse('http://127.0.0.1:5000/api/inventory'),
+          Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(body),
         );
       } else {
         response = await http.put(
-          Uri.parse('http://127.0.0.1:5000/api/inventory/$_editingId'),
+          Uri.parse('${ThemeService.apiBaseUrl}/api/inventory/$_editingId'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(body),
         );
@@ -121,7 +124,7 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
   Future<void> _deleteItem(int id) async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.delete(Uri.parse('http://127.0.0.1:5000/api/inventory/$id'));
+      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory/$id'));
       if (response.statusCode == 200) {
         if (_editingId == id) _resetForm();
         _fetchInventory();

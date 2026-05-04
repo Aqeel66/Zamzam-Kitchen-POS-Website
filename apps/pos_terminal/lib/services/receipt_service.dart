@@ -3,6 +3,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:pos_terminal/theme_service.dart';
 import 'package:flutter/foundation.dart';
 
 class ReceiptService {
@@ -21,20 +22,14 @@ class ReceiptService {
     final currency = tenant['currency'] ?? '\$';
     final orderTime = DateTime.tryParse(order['order_time']?.toString() ?? '') ?? DateTime.now();
 
-    // Resolve Logos for receipt
-    final String apiBaseUrl = kIsWeb 
-      ? (Uri.base.toString().contains('localhost') || Uri.base.toString().contains('127.0.0.1')
-          ? 'http://localhost:5000' 
-          : '${Uri.base.scheme}://${Uri.base.host}${Uri.base.port != 80 && Uri.base.port != 443 ? ":${Uri.base.port}" : ""}')
-      : 'https://zamzamkitchen.net';
     final String logoUrl = tenant['logo_url'] ?? '';
     final String secondaryLogoUrl = tenant['secondary_logo_url'] ?? '';
     pw.ImageProvider? logo;
     pw.ImageProvider? secondaryLogo;
-    
+
     try {
       if (logoUrl.isNotEmpty) {
-        final url = logoUrl.startsWith('http') ? logoUrl : '$apiBaseUrl/assets/$logoUrl';
+        final url = ThemeService.resolveImageUrl(logoUrl);
         if (_logoCache.containsKey(url)) {
           logo = pw.MemoryImage(_logoCache[url]!);
         } else {
@@ -46,7 +41,7 @@ class ReceiptService {
         }
       }
       if (secondaryLogoUrl.isNotEmpty) {
-        final url = secondaryLogoUrl.startsWith('http') ? secondaryLogoUrl : '$apiBaseUrl/assets/$secondaryLogoUrl';
+        final url = ThemeService.resolveImageUrl(secondaryLogoUrl);
         if (_logoCache.containsKey(url)) {
           secondaryLogo = pw.MemoryImage(_logoCache[url]!);
         } else {
@@ -213,28 +208,8 @@ class ReceiptService {
     final currency = tenant['currency'] ?? '\$';
     final orderTime = DateTime.tryParse(order['order_time']?.toString() ?? '') ?? DateTime.now();
 
-    // Resolve Logo URLs
-    final String apiBaseUrl = kIsWeb 
-      ? (Uri.base.toString().contains('localhost') || Uri.base.toString().contains('127.0.0.1')
-          ? 'http://localhost:5000' 
-          : '${Uri.base.scheme}://${Uri.base.host}${Uri.base.port != 80 && Uri.base.port != 443 ? ":${Uri.base.port}" : ""}')
-      : 'https://zamzamkitchen.net';
-    String resolveUrl(String? path) {
-      if (path == null || path.isEmpty) return '';
-      if (path.startsWith('http')) return path;
-      String clean = path;
-      if (clean.startsWith('assets/')) {
-        clean = clean.substring(7);
-      } else if (clean.startsWith('/assets/')) {
-        clean = clean.substring(8);
-      } else if (clean.startsWith('/')) {
-        clean = clean.substring(1);
-      }
-      return '$apiBaseUrl/assets/$clean';
-    }
-
-    final String primaryLogoUrl = resolveUrl(tenant['logo_url']);
-    final String secondaryLogoUrl = resolveUrl(tenant['secondary_logo_url']);
+    final String primaryLogoUrl = ThemeService.resolveImageUrl(tenant['logo_url']);
+    final String secondaryLogoUrl = ThemeService.resolveImageUrl(tenant['secondary_logo_url']);
 
     // Fetch images with manual HTTP request for better reliability
     pw.ImageProvider? primaryLogo;

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useState, useEffect } from 'react';
 import { CreditCard, Banknote, Store, Car, Package, Heart, MapPin } from 'lucide-react';
-import { API_BASE_URL, ASSETS_BASE_URL } from '../config';
+import { API_BASE_URL, ASSETS_BASE_URL, resolveImageUrl } from '../config';
 
 export default function Checkout() {
   const { totalPrice, items, clearCart, tableId, tableNumber, clearTableContext } = useCart();
@@ -108,8 +108,8 @@ export default function Checkout() {
   }
 
   return (
-    <div className="section-padding" style={{ minHeight: '80vh', maxWidth: '800px', margin: '0 auto' }}>
-       <h1 style={{ marginBottom: '0.75rem' }}>Checkout</h1>
+    <div className="section-padding checkout-container">
+       <h1 className="checkout-title mb-3">Checkout</h1>
 
        {/* QR Table Banner */}
        {isQrOrder && tableNumber && (
@@ -131,12 +131,12 @@ export default function Checkout() {
          </div>
        )}
        
-       <form onSubmit={handleCheckout} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '2.5rem' }}>
+       <form onSubmit={handleCheckout} className="checkout-grid">
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* Order Type — hidden for QR dine-in orders */}
               {!isQrOrder && (
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="checkout-type-btns" style={{ display: 'flex', gap: '1rem' }}>
                    {(branchSettings?.allow_delivery !== 0) && (
                      <button 
                         type="button" 
@@ -159,7 +159,7 @@ export default function Checkout() {
               )}
 
              {/* Details */}
-             <div style={{ background: '#f9fafb', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+             <div className="checkout-details-card" style={{ background: '#f9fafb', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
                 <h3 style={{ fontSize: '1.4rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Your Details</h3>
                 <div className="input-group" style={{ marginBottom: '1.5rem' }}>
                    <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>
@@ -194,7 +194,7 @@ export default function Checkout() {
 
           {/* Payment & Summary */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-             <div style={{ background: '#111827', color: 'white', padding: '2.5rem', borderRadius: '16px' }}>
+             <div className="checkout-summary-card" style={{ background: '#111827', color: 'white', padding: '2.5rem', borderRadius: '16px' }}>
                 <h3 style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1.5rem', fontSize: '1.4rem' }}>Order Summary</h3>
 
                 {/* Table info row for QR orders */}
@@ -211,7 +211,7 @@ export default function Checkout() {
                    {items.map(item => (
                       <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e5e7eb', backgroundImage: item.image ? `url(${ASSETS_BASE_URL}/${item.image.startsWith('assets/') ? item.image : `assets/${item.image}`})` : 'url(/placeholder-food.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e5e7eb', backgroundImage: `url(${resolveImageUrl(item.image)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
                             <div>
                                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>{item.name}</p>
                                <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.8rem' }}>Qty: {item.quantity}</p>
@@ -228,7 +228,7 @@ export default function Checkout() {
                 </div>
 
                 {/* Promo Code Input */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+                <div className="checkout-flex-mobile-col" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
                    <input 
                       type="text" 
                       placeholder="Promo Code (Try ZAMZAM10)" 
@@ -258,7 +258,7 @@ export default function Checkout() {
                    <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.8rem', color: '#9ca3af' }}>
                       <Heart size={16} /> Add a Tip (Optional)
                    </p>
-                   <div style={{ display: 'flex', gap: '0.5rem' }}>
+                   <div className="checkout-flex-mobile-col" style={{ display: 'flex', gap: '0.5rem' }}>
                       {[0, 10, 15, 20].map(pct => (
                          <button 
                             type="button" 
@@ -285,10 +285,10 @@ export default function Checkout() {
                 </div>
              </div>
 
-             <div style={{ background: '#f9fafb', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+             <div className="checkout-payment-card" style={{ background: '#f9fafb', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
                  <h3 style={{ marginBottom: '1.5rem', fontSize: '1.4rem' }}>Payment Method</h3>
                  
-                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+                 <div className="checkout-flex-mobile-col" style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
                     <button type="button" onClick={() => setPaymentMethod('card')} style={{ flex: 1, padding: '0.8rem 0.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: `2px solid ${paymentMethod === 'card' ? 'var(--primary-orange)' : '#e5e7eb'}`, background: paymentMethod === 'card' ? '#fff6f3' : 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: paymentMethod === 'card' ? 'var(--primary-orange)' : '#4b5563' }}>
                        <CreditCard size={18}/> Card
                     </button>
@@ -319,7 +319,7 @@ export default function Checkout() {
                           </label>
                           <input required type="text" placeholder="0000 0000 0000 0000" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
                        </div>
-                       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                       <div className="checkout-grid-mobile-1" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
                           <input required type="text" placeholder="MM/YY" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
                           <input required type="text" placeholder="CVC" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
                        </div>

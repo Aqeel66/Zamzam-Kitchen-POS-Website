@@ -14,7 +14,7 @@ class FoodItemManagementView extends StatefulWidget {
   final Function(dynamic) onDeleteMenuItem;
   final Future<String?> Function() onPickImage;
   final VoidCallback onRefreshMenu;
-  final String Function(String) resolveImageUrl;
+
 
   const FoodItemManagementView({
     super.key,
@@ -26,7 +26,6 @@ class FoodItemManagementView extends StatefulWidget {
     required this.onDeleteMenuItem,
     required this.onPickImage,
     required this.onRefreshMenu,
-    required this.resolveImageUrl,
   });
 
   @override
@@ -160,7 +159,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                                     borderRadius: BorderRadius.circular(8),
                                     image: DecorationImage(
                                       image: item['image'] != null && item['image'].toString().isNotEmpty
-                                        ? NetworkImage(widget.resolveImageUrl(item['image']))
+                                        ? NetworkImage(ThemeService.resolveImageUrl(item['image']))
                                         : const AssetImage('assets/images/placeholder.png') as ImageProvider,
                                       fit: BoxFit.cover,
                                       onError: (_, _) => const Icon(Icons.broken_image),
@@ -317,7 +316,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                           child: _itemImageController.text.isNotEmpty 
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.network(widget.resolveImageUrl(_itemImageController.text), fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported, size: 20, color: Colors.grey)),
+                                child: Image.network(ThemeService.resolveImageUrl(_itemImageController.text), fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported, size: 20, color: Colors.grey)),
                               )
                             : const Icon(Icons.image_search_rounded, color: Colors.grey),
                         ),
