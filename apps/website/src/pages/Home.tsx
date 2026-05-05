@@ -15,7 +15,7 @@ export default function Home() {
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/menu`);
+        const response = await fetch(`${API_BASE_URL}/menu?v=${Date.now()}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
