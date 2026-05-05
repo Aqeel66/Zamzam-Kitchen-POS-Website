@@ -8,6 +8,7 @@ class RestaurantTable {
   final String label;
   final TableStatus status;
   final int capacity;
+  final int currentOccupancy; // Tracks currently seated people
   final String? type;
   final String? size;
   double x;
@@ -18,6 +19,7 @@ class RestaurantTable {
     required this.label,
     required this.status,
     required this.capacity,
+    this.currentOccupancy = 0,
     this.type,
     this.size,
     required this.x,
@@ -55,23 +57,20 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
   @override
   void didUpdateWidget(VisualFloorPlan oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Sync external changes
     setState(() {
       tables = List.from(widget.initialTables);
     });
   }
 
-  Color _getStatusColor(TableStatus status) {
-    switch (status) {
-      case TableStatus.available:
-        return Colors.green.shade400;
-      case TableStatus.occupied:
-        return ZamamTheme.pulseOrange;
-      case TableStatus.reserved:
-        return Colors.blue.shade400;
-      case TableStatus.needsClearing:
-        return Colors.amber.shade500;
-    }
+  Color _getStatusColor(RestaurantTable table) {
+    if (table.status == TableStatus.needsClearing) return Colors.amber.shade500;
+    if (table.status == TableStatus.reserved) return Colors.blue.shade400;
+    
+    // Dynamic color based on available capacity
+    final available = table.capacity - table.currentOccupancy;
+    if (available <= 0) return Colors.red.shade600; // FULL
+    if (available < table.capacity) return Colors.orange.shade600; // PARTIALLY OCCUPIED
+    return Colors.green.shade400; // EMPTY/AVAILABLE
   }
 
   @override
@@ -95,11 +94,8 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
                 child: _buildTableWidget(table),
               ),
               onDragEnd: (details) {
-                final RenderBox renderBox =
-                    context.findRenderObject() as RenderBox;
-                final Offset localOffset = renderBox.globalToLocal(
-                  details.offset,
-                );
+                final RenderBox renderBox = context.findRenderObject() as RenderBox;
+                final Offset localOffset = renderBox.globalToLocal(details.offset);
 
                 setState(() {
                   final index = tables.indexWhere((t) => t.id == table.id);
@@ -129,70 +125,50 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
   }
 
   Widget _buildTableWidget(RestaurantTable table, {bool isDragging = false}) {
+    final available = table.capacity - table.currentOccupancy;
+    
     final content = Material(
       color: Colors.transparent,
       child: Container(
-        width: 80,
-        height: 80,
+        width: 100,
+        height: 100,
         decoration: BoxDecoration(
-          color: _getStatusColor(table.status),
+          color: _getStatusColor(table),
           shape: table.type == 'Round' ? BoxShape.circle : BoxShape.rectangle,
-          borderRadius: table.type == 'Round' ? null : BorderRadius.circular(table.type == 'Rectangular' ? 4 : 12),
-          boxShadow: isDragging
-              ? [
-                  const BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : [
-                  const BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    spreadRadius: 1,
-                  ),
-                ],
+          borderRadius: table.type == 'Round' ? null : BorderRadius.circular(table.type == 'Rectangular' ? 6 : 16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDragging ? 0.3 : 0.1),
+              blurRadius: isDragging ? 15 : 5,
+              spreadRadius: isDragging ? 3 : 1,
+            ),
+          ],
         ),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(_getTypeIcon(table.type), size: 16, color: Colors.white.withValues(alpha: 0.7)),
+              Icon(_getTypeIcon(table.type), size: 18, color: Colors.white.withValues(alpha: 0.8)),
               const SizedBox(height: 2),
               Text(
                 table.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chair_outlined, size: 10, color: Colors.white.withValues(alpha: 0.7)),
-                  const SizedBox(width: 2),
+                  const Icon(Icons.chair_rounded, size: 14, color: Colors.white),
+                  const SizedBox(width: 4),
                   Text(
-                    '${table.capacity}',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10),
+                    '$available / ${table.capacity}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
-                  if (table.size != null) ...[
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        table.size!.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
                 ],
+              ),
+              Text(
+                available == 0 ? 'FULL' : 'AVAIL',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -200,14 +176,9 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
       ),
     );
     
-    // If not dragging, wrap in GestureDetector
     if (!isDragging) {
       return GestureDetector(
-        onTap: () {
-          if (widget.onTableTap != null) {
-            widget.onTableTap!(table);
-          }
-        },
+        onTap: () => widget.onTableTap?.call(table),
         child: content,
       );
     }

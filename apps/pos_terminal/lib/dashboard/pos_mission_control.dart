@@ -9299,6 +9299,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       ],
     );
   }
+  int _calculateOccupancy(String tableLabel) {
+    int total = 0;
+    for (var order in _placedOrders) {
+      // Only count active (unpaid) orders for this table
+      final status = (order['status']?.toString() ?? '').toLowerCase();
+      final paymentStatus = (order['payment_status']?.toString() ?? '').toLowerCase();
+      final pMethod = (order['payment_method']?.toString() ?? '');
+      bool isPaid = status == 'paid' || paymentStatus == 'paid' || pMethod.isNotEmpty;
+      
+      if (!isPaid && status != 'cancelled' && status != 'rejected' && order['table_number']?.toString() == tableLabel) {
+        // Fallback to 1 if party_size is missing, as most orders have at least 1 person
+        total += int.tryParse(order['party_size']?.toString() ?? '1') ?? 1;
+      }
+    }
+    return total;
+  }
+
   Future<void> _fetchTables() async {
     try {
       final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/tables'));
@@ -9321,6 +9338,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   label: t['table_number'].toString(),
                   status: status,
                   capacity: t['capacity'] is int ? t['capacity'] : int.tryParse(t['capacity'].toString()) ?? 4,
+                  currentOccupancy: _calculateOccupancy(t['table_number'].toString()),
                   type: t['table_type'],
                   size: t['table_size'],
                   x: double.tryParse(t['pos_x'].toString()) ?? 0,
