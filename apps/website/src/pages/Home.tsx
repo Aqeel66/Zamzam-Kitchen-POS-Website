@@ -100,7 +100,7 @@ export default function Home() {
                     <div className="special-img" style={{ 
                       backgroundImage: `url(${resolveImageUrl(item.image)})`
                     }}>
-                      <div className="special-badge">{item.badge || 'SPECIAL'}</div>
+                      {item.badge && <div className="special-badge orange-gold">{item.badge}</div>}
                     </div>
                     <div className="special-info">
                       <div className="special-header">
@@ -155,7 +155,7 @@ export default function Home() {
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                       }}>
-                          {item.badge && <span className={`card-badge ${item.badge === 'BEST SELLER' ? 'orange' : 'green'}`}>{item.badge}</span>}
+                          {item.badge && <span className="card-badge orange-gold">{item.badge}</span>}
                       </div>
                       <div className="card-body">
                           <div className="title-price-row">
