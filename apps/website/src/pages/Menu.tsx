@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Heart, Info, MapPin, X } from 'lucide-react';
+import { Plus, Heart, MapPin, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { API_BASE_URL, resolveImageUrl } from '../config';
 import './Menu.css';

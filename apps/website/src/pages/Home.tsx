@@ -1,4 +1,4 @@
-import { ShoppingCart, MapPin, Clock, Phone, Plus } from 'lucide-react';
+import { MapPin, Clock, Phone, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';

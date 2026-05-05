@@ -277,7 +277,7 @@ class _ReportsViewState extends State<ReportsView> {
     final financials = widget.financialData;
     
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -286,7 +286,7 @@ class _ReportsViewState extends State<ReportsView> {
               Expanded(child: _buildKPI(LocalizationService().translate('net_sales'), '\$${(double.tryParse(today['total']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', Icons.payments_outlined, Colors.green, card, text, border, hint)),
               const SizedBox(width: 20),
               Expanded(child: _buildKPI(LocalizationService().translate('total_orders'), '${today['count'] ?? 0}', Icons.receipt_long_outlined, primary, card, text, border, hint)),
-              const SizedBox(width: 20),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildKPI(
                   LocalizationService().translate('avg_order'), 
@@ -299,9 +299,9 @@ class _ReportsViewState extends State<ReportsView> {
               Expanded(child: _buildKPI(LocalizationService().translate('est_profit'), '\$${(double.tryParse(financials['net_profit']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', Icons.trending_up_rounded, Colors.purple, card, text, border, hint)),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 12),
           _buildReconciliationCard(text, card, border, primary, hint),
-          const SizedBox(height: 40),
+          const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -330,7 +330,7 @@ class _ReportsViewState extends State<ReportsView> {
                   card, text, border
                 ),
               ),
-              const SizedBox(width: 32),
+              const SizedBox(width: 16),
               Expanded(
                 flex: 3,
                 child: _buildCard(
@@ -348,7 +348,7 @@ class _ReportsViewState extends State<ReportsView> {
 
   Widget _buildSalesLog(Color text, Color card, Color border, Color primary, Color hint) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(16),
       child: _buildCard(
         LocalizationService().translate('recent_transactions'),
         SizedBox(
@@ -392,7 +392,7 @@ class _ReportsViewState extends State<ReportsView> {
     final customizations = widget.summaryData['customizations'] as List? ?? [];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -449,7 +449,7 @@ class _ReportsViewState extends State<ReportsView> {
       children: [
         // Top KPI Boxes (Matching Inventory Report style)
         Padding(
-          padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -490,7 +490,7 @@ class _ReportsViewState extends State<ReportsView> {
 
         // Filter Bar
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: card,
             border: Border(bottom: BorderSide(color: border)),
@@ -606,11 +606,11 @@ class _ReportsViewState extends State<ReportsView> {
               const SizedBox(width: 16),
               // Search Input
               Container(
-                width: 250,
-                height: 52,
+                width: 220,
+                height: 44,
                 decoration: BoxDecoration(
                   color: card,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: border),
                 ),
                 child: TextField(
@@ -681,7 +681,7 @@ class _ReportsViewState extends State<ReportsView> {
           child: _isReportLoading 
             ? Center(child: CircularProgressIndicator(color: primary))
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(16),
                 child: _buildCard(
                   LocalizationService().translate('orders_in_view'),
                   _reportOrders.isEmpty
@@ -855,7 +855,7 @@ class _ReportsViewState extends State<ReportsView> {
 
   Widget _buildStaffReport(Color text, Color card, Color border, Color primary, Color hint) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(16),
       child: _buildCard(
         'Staff Performance (Today)',
         widget.shifts.isEmpty 
@@ -910,23 +910,23 @@ class _ReportsViewState extends State<ReportsView> {
       children: [
         // Top KPIs
         Padding(
-          padding: const EdgeInsets.fromLTRB(32, 24, 32, 0),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
                 ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
+                  constraints: const BoxConstraints(minWidth: 180),
                   child: _buildKPI('Total Items', '${_inventoryItems.length}', Icons.category_outlined, primary, card, text, border, hint),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 12),
                 ConstrainedBox(
                   constraints: const BoxConstraints(minWidth: 220),
                   child: _buildKPI('Low Stock Alerts', '$lowStockCount', Icons.warning_amber_rounded, Colors.orange, card, text, border, hint),
                 ),
                 const SizedBox(width: 20),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
+                  constraints: const BoxConstraints(minWidth: 180),
                   child: _buildKPI('Inventory Value', '\$${totalValue.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined, Colors.green, card, text, border, hint),
                 ),
               ],
@@ -936,11 +936,11 @@ class _ReportsViewState extends State<ReportsView> {
 
         // Filter Bar (Replicating Detailed Orders Report pattern)
         Container(
-          margin: const EdgeInsets.fromLTRB(32, 32, 32, 0),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: card,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: border),
           ),
           child: SingleChildScrollView(
@@ -988,21 +988,21 @@ class _ReportsViewState extends State<ReportsView> {
                     if (kDebugMode) print('Inventory Date Picker Error: $e');
                   }
                 },
-                icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
+                icon: Icon(Icons.calendar_month_outlined, size: 18, color: primary),
                 label: Text(
                   _invDateRange == null 
                     ? 'Current Snapshot' 
                     : '${_invDateRange!.start.toString().split(' ')[0]} to ${_invDateRange!.end.toString().split(' ')[0]}',
-                  style: TextStyle(color: text, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: text, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   side: BorderSide(color: border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   backgroundColor: card,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               // Item Filter
               _buildFilterDropdown(
                 'All Items',
@@ -1011,7 +1011,7 @@ class _ReportsViewState extends State<ReportsView> {
                 (val) => setState(() => _invItemFilter = val!),
                 text, card, border, primary
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               // Supplier Filter
               _buildFilterDropdown(
                 'All Suppliers',
@@ -1020,7 +1020,7 @@ class _ReportsViewState extends State<ReportsView> {
                 (val) => setState(() => _invSupplierFilter = val!),
                 text, card, border, primary
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               // Status Filter
               _buildFilterDropdown(
                 'Status',
@@ -1029,7 +1029,7 @@ class _ReportsViewState extends State<ReportsView> {
                 (val) => setState(() => _invStatusFilter = val!),
                 text, card, border, primary
               ),
-              const SizedBox(width: 32),
+              const SizedBox(width: 12),
               IconButton(
                 onPressed: () {
                   setState(() {
@@ -1039,7 +1039,7 @@ class _ReportsViewState extends State<ReportsView> {
                     _invDateRange = null;
                   });
                 },
-                icon: Icon(Icons.refresh_rounded, color: hint),
+                icon: Icon(Icons.refresh_rounded, color: hint, size: 20),
                 tooltip: 'Reset Filters',
               ),
             ],
@@ -1219,11 +1219,11 @@ class _ReportsViewState extends State<ReportsView> {
 
         // Filter Bar
         Container(
-          margin: const EdgeInsets.fromLTRB(32, 16, 32, 0),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: card,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: border),
           ),
           child: SingleChildScrollView(
@@ -1266,9 +1266,9 @@ class _ReportsViewState extends State<ReportsView> {
                   style: TextStyle(color: text, fontWeight: FontWeight.bold),
                 ),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   side: BorderSide(color: border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
               const SizedBox(width: 16),
@@ -1392,20 +1392,20 @@ class _ReportsViewState extends State<ReportsView> {
 
   Widget _buildKPI(String label, String value, IconData icon, Color color, Color card, Color text, Color border, Color hint) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: card,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 16),
-          Text(label, style: TextStyle(color: hint, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-          const SizedBox(height: 4),
-          Text(value, style: TextStyle(color: text, fontSize: 24, fontWeight: FontWeight.bold)),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(label, style: TextStyle(color: hint, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+          const SizedBox(height: 2),
+          Text(value, style: TextStyle(color: text, fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -1413,17 +1413,17 @@ class _ReportsViewState extends State<ReportsView> {
 
   Widget _buildCard(String title, Widget content, Color card, Color text, Color border) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: card,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
+          Text(title, style: TextStyle(color: text, fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
           content,
         ],
       ),
