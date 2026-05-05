@@ -798,3 +798,90 @@
     padding: 1.5rem;
   }
 }
+
+/* Payment Processing Overlay */
+.payment-processing-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeInCheckout 0.3s ease-out;
+}
+
+.processing-card {
+  background: white;
+  padding: 3.5rem 2.5rem;
+  border-radius: 32px;
+  text-align: center;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: slideUpCheckout 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #6366f1;
+  border-radius: 50%;
+  animation: spinCheckout 1s linear infinite;
+  margin-bottom: 2rem;
+}
+
+.stripe-logo-loading {
+  height: 28px;
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+
+.processing-card h3 {
+  color: #111827;
+  margin-bottom: 0.75rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.processing-card p {
+  color: #4b5563;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+}
+
+.encryption-badge {
+  background: #f0fdf4;
+  color: #166534;
+  padding: 0.6rem 1.2rem;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+@keyframes spinCheckout {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeInCheckout {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpCheckout {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

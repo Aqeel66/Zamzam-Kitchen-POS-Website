@@ -1,5 +1,7 @@
-import { CheckCircle, Printer, MessageCircle, Mail, Share2 } from 'lucide-react';
+import { CheckCircle, Printer, MessageCircle, Mail, Share2, ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { API_BASE_URL, resolveImageUrl } from '../config';
 import './Success.css';
 
 export default function Success() {
@@ -9,6 +11,22 @@ export default function Success() {
   const type = queryParams.get('type') || 'order';
   const method = queryParams.get('method');
   const orderData = location.state?.orderData;
+
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/settings`)
+      .then(res => res.json())
+      .then(data => {
+        setSettings(data);
+      })
+      .catch(err => console.error("Error fetching settings:", err));
+  }, []);
+
+  const tenant = settings?.tenant || {};
+  const branch = settings?.branch || {};
+  const rawCurrency = tenant.currency || '$';
+  const currencyDisplay = rawCurrency === '$' ? 'AUD' : rawCurrency;
 
   const messages = {
     order: {
@@ -23,145 +41,221 @@ export default function Success() {
 
   const content = type === 'reservation' ? messages.reservation : messages.order;
 
-  // Generate Notifications
-  const waText = orderData 
-    ? `Hello! Your order from Zamzam Kitchen is confirmed. Total: $${orderData.total.toFixed(2)}. We will notify you when it is ready.`
-    : `Hello! Your Table Reservation at Zamzam Kitchen is confirmed. We look forward to providing you an amazing dining experience!`;
+  // Generate Action Links
+  const orderSummaryText = orderData 
+    ? `Hello! My order #${orderData.order_number || orderData.id} from Zamzam Kitchen is confirmed. Total: ${currencyDisplay}${orderData.total.toFixed(2)}. Check it here: ${window.location.href}`
+    : `Hello! My Table Reservation at Zamzam Kitchen is confirmed. Looking forward to it!`;
     
-  const waLink = `https://wa.me/?text=${encodeURIComponent(waText)}`;
-  const mailLink = `mailto:?subject=Zamzam Kitchen Confirmation&body=${encodeURIComponent(waText)}`;
+  const waLink = `https://wa.me/?text=${encodeURIComponent(orderSummaryText)}`;
+  const mailLink = `mailto:?subject=Zamzam Kitchen Invoice #${orderData?.order_number || 'Order'}&body=${encodeURIComponent(orderSummaryText)}`;
 
   const shareReceipt = async () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: 'Zamzam Kitchen Statement',
-          text: waText,
+          title: 'Zamzam Kitchen Invoice',
+          text: orderSummaryText,
           url: window.location.href,
         });
       } else {
-        alert("Web Share API is not supported in this browser.");
+        alert("Sharing is not supported on this browser.");
       }
     } catch (err) {
       console.error(err);
     }
   };
 
+  const handleDownload = () => {
+    const element = document.querySelector('.invoice-container');
+    if (!element) return;
+
+    // Direct download using html2pdf if available, else fallback to print
+    const orderNum = orderData?.order_number || orderData?.id || 'Order';
+    const finalFilename = orderNum.startsWith('#') ? orderNum : `#${orderNum}`;
+
+    const opt = {
+      margin:       [0, 0],
+      filename:     `${finalFilename}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    const generate = () => {
+      (window as any).html2pdf().from(element).set(opt).save();
+    };
+
+    // Check if html2pdf is already loaded
+    if (window.hasOwnProperty('html2pdf')) {
+      generate();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = generate;
+      document.head.appendChild(script);
+    }
+  };
+
   return (
     <>
     <div className="success-page section-padding no-print">
-       <CheckCircle size={90} color="#ff6b35" style={{ marginBottom: '2rem' }} />
-       <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem', color: '#111827' }}>{content.title}</h1>
-       <p style={{ color: '#4b5563', fontSize: '1.25rem', maxWidth: '600px', marginBottom: '2rem', lineHeight: 1.6 }}>
-          {content.desc}
-       </p>
+       <CheckCircle size={70} color="#ff6b35" className="success-icon" />
+       <h1 className="success-title">{content.title}</h1>
+       <p className="success-desc">{content.desc}</p>
        
-       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '2rem', marginBottom: '3rem', width: '100%', maxWidth: '500px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-          <p style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '1.5rem', color: '#111827' }}>Simulate real-time notifications (Backend Required):</p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem' }}>
-             <a href={waLink} target="_blank" rel="noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: '#25D366', textDecoration: 'none' }}>
-                <MessageCircle size={32} />
-                <span style={{ fontWeight: 600, color: '#374151' }}>Test WhatsApp</span>
-             </a>
-             <a href={mailLink} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', textDecoration: 'none' }}>
-                <Mail size={32} />
-                <span style={{ fontWeight: 600, color: '#374151' }}>Test Email</span>
-             </a>
-          </div>
+       <div className="invoice-actions-bar">
+          <button className="action-btn download" onClick={handleDownload}>
+            <Printer size={20} />
+            <span>Download PDF</span>
+          </button>
           
-          {method === 'counter' && type === 'order' && (
-             <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e5e7eb', color: '#ef4444', fontWeight: 600 }}>
-                Please proceed to the register upon arrival to complete your payment via Cash or Terminal.
-             </div>
-          )}
-          {method === 'cash' && type === 'order' && (
-             <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e5e7eb', color: '#111827', fontWeight: 500 }}>
-                Your order will be shipped shortly. Please pay the driver with exact cash.
-             </div>
-          )}
+          <a href={waLink} target="_blank" rel="noreferrer" className="action-btn whatsapp">
+            <MessageCircle size={20} />
+            <span>WhatsApp</span>
+          </a>
+
+          <a href={mailLink} className="action-btn email">
+            <Mail size={20} />
+            <span>Email</span>
+          </a>
+
+          <button className="action-btn share" onClick={shareReceipt}>
+            <Share2 size={20} />
+            <span>Share</span>
+          </button>
        </div>
 
-       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button className="btn-primary" onClick={() => navigate('/')} style={{ background: 'var(--primary-orange)', color: 'white', border: 'none', padding: '1rem 2.5rem', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer' }}>Return to Home</button>
-          
-          {orderData && (
-             <>
-                <button className="btn-outline" onClick={() => window.print()} style={{ background: 'white', color: '#374151', border: '2px solid #e5e7eb', padding: '1rem 2.5rem', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <Printer size={20} /> Download PDF Invoice
-                </button>
-                <button className="btn-outline" onClick={shareReceipt} style={{ background: 'white', color: '#3b82f6', border: '2px solid #bfdbfe', padding: '1rem 2.5rem', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <Share2 size={20} /> Share Invoice
-                </button>
-             </>
-          )}
+       {method === 'counter' && type === 'order' && (
+          <div className="payment-notice">
+             <p>Please proceed to the register upon arrival to complete your payment.</p>
+          </div>
+       )}
+
+       <div className="success-footer" style={{ marginTop: '1rem' }}>
+          <button className="btn-primary home-btn" onClick={() => navigate('/')} style={{ padding: '0.75rem 2rem' }}>
+             <ArrowLeft size={18} />
+             Return to Home
+          </button>
        </div>
     </div>
 
-    {/* Printable Invoice Layout (Hidden normally, shown on Print) */}
+    {/* Live Invoice Preview (Always visible for review & capture) */}
     {orderData && (
-       <div className="print-only invoice-container">
-          <div className="invoice-header">
-             <h2>ZAMZAM KITCHEN</h2>
-             <p>Racecourse Road, VIC, Melbourne</p>
-             <p>Ph: (000) 000-0000</p>
-             <p>Date: {orderData.date}</p>
-             <p><strong>Order Type: {orderData.order_type.toUpperCase()}</strong></p>
-             <p><strong>Payment: {orderData.payment_method.toUpperCase()}</strong></p>
-          </div>
-          <hr className="dashed" />
-          <table className="invoice-items">
-             <thead>
-                <tr>
-                   <th style={{textAlign:'left'}}>Item</th>
-                   <th style={{textAlign:'center'}}>Qty</th>
-                   <th style={{textAlign:'right'}}>Price</th>
+       <div className="invoice-preview-wrapper">
+          <div className="invoice-container">
+             <header className="invoice-header">
+            <div className="header-top">
+              <div className="brand-section">
+                {tenant.logo_url ? (
+                  <div className="invoice-logo">
+                    <img src={resolveImageUrl(tenant.logo_url)} alt={tenant.restaurant_name} />
+                  </div>
+                ) : (
+                  <h1 className="business-name-fallback">{tenant.restaurant_name || 'ZAMZAM KITCHEN'}</h1>
+                )}
+                <div className="business-info">
+                  <h2 className="business-name-caps">{(tenant.business_name || tenant.restaurant_name || 'Zamzam Kitchen').toUpperCase()}</h2>
+                  {tenant.business_address && <p className="business-detail">{tenant.business_address}</p>}
+                  <p className="business-detail">
+                    {tenant.business_phone && <span>Tel: {tenant.business_phone}</span>}
+                    {tenant.business_phone && tenant.business_email ? ' | ' : ''}
+                    {tenant.business_email && <span>Email: {tenant.business_email}</span>}
+                  </p>
+                </div>
+              </div>
+
+              <div className="header-right">
+                {(branch.secondary_logo_url || tenant.secondary_logo_url) && (
+                  <div className="invoice-secondary-logo">
+                    <img src={resolveImageUrl(branch.secondary_logo_url || tenant.secondary_logo_url)} alt="Halal Certification" />
+                  </div>
+                )}
+                <div className="invoice-meta">
+                  <h1 className="invoice-title">{type === 'reservation' ? 'BOOKING RECEIPT' : 'INVOICE'}</h1>
+                  <div className="badge-container">
+                    <span className="origin-badge">WEBSITE</span>
+                    <span className={`status-badge-alt ${(orderData.status || 'PAID').toUpperCase()}`}>{(orderData.status || 'PAID').toUpperCase()}</span>
+                  </div>
+                  <p className="meta-row"><strong>Order No:</strong> {orderData.order_number?.startsWith('#') ? orderData.order_number : `#${orderData.order_number || orderData.id}`}</p>
+                  <p className="meta-row"><strong>Date:</strong> {new Date(orderData.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="invoice-divider-main"></div>
+          </header>
+
+          <section className="bill-to-section">
+            <h3 className="section-title">BILL TO:</h3>
+            <p className="customer-name">{orderData.customer_name || 'Valued Customer'}</p>
+            <p className="order-type">Type: {orderData.order_type || 'Takeaway'}</p>
+          </section>
+
+          <table className="invoice-table">
+            <thead>
+              <tr>
+                <th>DESCRIPTION</th>
+                <th>QTY</th>
+                <th>UNIT PRICE</th>
+                <th>SUBTOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orderData.items.map((item: any, i: number) => (
+                <tr key={i}>
+                  <td>
+                    <div className="item-name">{item.name}</div>
+                    {item.variants && item.variants.map((v: any, vi: number) => (
+                      <div key={vi} className="item-modifier">- {v.name}</div>
+                    ))}
+                    {item.extras && item.extras.map((e: any, ei: number) => (
+                      <div key={ei} className="item-modifier">+ {e.name}</div>
+                    ))}
+                  </td>
+                  <td>{item.quantity}</td>
+                  <td>{currencyDisplay}{item.price.toFixed(2)}</td>
+                  <td>{currencyDisplay}{(item.price * item.quantity).toFixed(2)}</td>
                 </tr>
-             </thead>
-             <tbody>
-                {orderData.items.map((item: any, i: number) => (
-                   <tr key={i}>
-                      <td>{item.name}</td>
-                      <td style={{textAlign:'center'}}>{item.quantity}</td>
-                      <td style={{textAlign:'right'}}>${(item.price * item.quantity).toFixed(2)}</td>
-                   </tr>
-                ))}
-             </tbody>
+              ))}
+            </tbody>
           </table>
-          <hr className="dashed" />
-          <div className="invoice-totals">
-             <div className="row">
+
+          <div className="invoice-footer-section">
+            <div className="totals-area">
+              <div className="total-row">
                 <span>Subtotal:</span>
-                <span>${orderData.subtotal.toFixed(2)}</span>
-             </div>
-             {orderData.discount > 0 && (
-                <div className="row" style={{ color: '#4b5563' }}>
-                   <span>Discount:</span>
-                   <span>-${orderData.discount.toFixed(2)}</span>
+                <span>{currencyDisplay}{orderData.subtotal.toFixed(2)}</span>
+              </div>
+              {orderData.discount > 0 && (
+                <div className="total-row discount">
+                  <span>Discount:</span>
+                  <span>-{currencyDisplay}{orderData.discount.toFixed(2)}</span>
                 </div>
-             )}
-             {orderData.order_type === 'Delivery' && (
-                <div className="row">
-                   <span>Delivery Fee:</span>
-                   <span>${orderData.deliveryFee.toFixed(2)}</span>
+              )}
+              {orderData.tip > 0 && (
+                <div className="total-row">
+                  <span>Tip:</span>
+                  <span>{currencyDisplay}{orderData.tip.toFixed(2)}</span>
                 </div>
-             )}
-             {orderData.tip > 0 && (
-                <div className="row">
-                   <span>Tip Amount:</span>
-                   <span>${orderData.tip.toFixed(2)}</span>
-                </div>
-             )}
-             <div className="row total">
-                <span>TOTAL:</span>
-                <span>${orderData.total.toFixed(2)}</span>
-             </div>
+              )}
+              <div className="invoice-divider-sub"></div>
+              <div className="total-row grand-total">
+                <span>GRAND TOTAL:</span>
+                <span>{currencyDisplay}{orderData.total.toFixed(2)}</span>
+              </div>
+            </div>
           </div>
-          <hr className="dashed" />
-          <div className="invoice-footer">
-             <p>Thank you for choosing Zamzam Kitchen!</p>
-             <p>100% Halal Certified</p>
-          </div>
+
+          <footer className="invoice-bottom">
+            <div className="footer-divider"></div>
+            <div className="footer-content">
+              <p className="thank-you-msg italic">Thank you for choosing {tenant.restaurant_name || 'Zamzam Kitchen'}!</p>
+              <p className="system-tag">Generated by Centralized System v2.4.0</p>
+            </div>
+          </footer>
        </div>
+    </div>
     )}
     </>
   );

@@ -38,8 +38,10 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
   final _itemPriceController = TextEditingController();
   final _itemDietaryController = TextEditingController();
   final _itemImageController = TextEditingController();
+  final _badgeController = TextEditingController();
   
   bool _isAvailable = true;
+  bool _isFeatured = false;
   String? _selectedCategoryId;
   String _selectedPrepStation = 'General';
   final List<String> _prepStations = ['Bar', 'Grill', 'Fryer', 'Salad', 'Dessert', 'General'];
@@ -53,6 +55,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
     _itemPriceController.dispose();
     _itemDietaryController.dispose();
     _itemImageController.dispose();
+    _badgeController.dispose();
     super.dispose();
   }
 
@@ -64,10 +67,13 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
       _itemPriceController.text = item['price'].toString();
       _itemDietaryController.text = item['dietary_info'] ?? '';
       _itemImageController.text = item['image'] ?? '';
+      _badgeController.text = item['badge'] ?? '';
       _selectedCategoryId = item['category_id']?.toString();
       _selectedPrepStation = item['prep_station'] ?? 'General';
       final av = item['is_available'];
       _isAvailable = av == true || av == 1 || av == null;
+      final ft = item['is_featured'];
+      _isFeatured = ft == true || ft == 1;
     });
   }
 
@@ -79,9 +85,11 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
       _itemPriceController.clear();
       _itemDietaryController.clear();
       _itemImageController.clear();
+      _badgeController.clear();
       _selectedCategoryId = null;
       _selectedPrepStation = 'General';
       _isAvailable = true;
+      _isFeatured = false;
     });
   }
 
@@ -158,11 +166,8 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
                                     image: DecorationImage(
-                                      image: item['image'] != null && item['image'].toString().isNotEmpty
-                                        ? NetworkImage(ThemeService.resolveImageUrl(item['image']))
-                                        : const AssetImage('assets/images/placeholder.png') as ImageProvider,
+                                      image: ThemeService.getImage(item['image']),
                                       fit: BoxFit.cover,
-                                      onError: (_, _) => const Icon(Icons.broken_image),
                                     ),
                                   ),
                                 ),
@@ -316,7 +321,10 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                           child: _itemImageController.text.isNotEmpty 
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.network(ThemeService.resolveImageUrl(_itemImageController.text), fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported, size: 20, color: Colors.grey)),
+                                child: Image(
+                                  image: ThemeService.getImage(_itemImageController.text),
+                                  fit: BoxFit.cover,
+                                ),
                               )
                             : const Icon(Icons.image_search_rounded, color: Colors.grey),
                         ),
@@ -331,6 +339,17 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                       activeThumbColor: themePrimary,
                       contentPadding: EdgeInsets.zero,
                     ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      title: Text('Feature on Website?', style: TextStyle(color: themeText, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Show this item in the "Chef\'s Specials" carousel', style: TextStyle(color: themeHint, fontSize: 12)),
+                      value: _isFeatured,
+                      onChanged: (val) => setState(() => _isFeatured = val),
+                      activeThumbColor: Colors.amber,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 20),
+                    FormTextField(label: 'Badge Label (e.g., NEW, POPULAR)', controller: _badgeController),
                     if (_editingId != null) ...[
                       const SizedBox(height: 24),
                       const Divider(),
@@ -379,6 +398,8 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                           'prep_station': _selectedPrepStation,
                           'image': _itemImageController.text,
                           'is_available': _isAvailable ? 1 : 0,
+                          'is_featured': _isFeatured ? 1 : 0,
+                          'badge': _badgeController.text,
                         };
                         if (_editingId == null) {
                           widget.onCreateMenuItem(itemData);

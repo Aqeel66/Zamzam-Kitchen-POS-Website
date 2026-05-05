@@ -25,12 +25,14 @@ class SettingsView extends StatefulWidget {
     required this.onResetTransactions,
     required this.onTestTwilio,
     required this.onTestSMTP,
+    required this.onTestPaymentGateway,
     this.userPermissions = const [],
     this.initialCategory = 0,
   });
 
   final Function(Map<String, dynamic>) onTestTwilio;
   final Function(Map<String, dynamic>) onTestSMTP;
+  final Function(String, Map<String, dynamic>) onTestPaymentGateway;
 
   @override
   State<SettingsView> createState() => _SettingsViewState();
@@ -716,6 +718,18 @@ class _SettingsViewState extends State<SettingsView> {
               isObscure: f['key']!.contains('secret'),
             ),
           )),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => widget.onTestPaymentGateway(name, data),
+            icon: const Icon(Icons.account_balance_rounded, size: 18),
+            label: Text(LocalizationService().translate('test_connection')),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
         ],
       ),
     );

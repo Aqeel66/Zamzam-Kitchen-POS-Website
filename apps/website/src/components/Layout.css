@@ -179,6 +179,26 @@
   border-top: 1px solid #e5e7eb;
 }
 
+.footer-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.footer-brand-logo .logo-images {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.footer-brand-name {
+  color: #111827;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
 .footer-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -205,6 +225,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+  .footer-brand-logo {
+    justify-content: center;
+  }
+  .footer-brand-logo .logo-images {
+    justify-content: center;
   }
   .social-links {
     justify-content: center;

@@ -220,7 +220,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     decoration: BoxDecoration(
                       color: isDark ? theme.cardColor.withValues(alpha: 0.85) : theme.cardColor,
                       borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: themePrimary.withValues(alpha: 0.2)),
+                      border: Border.all(color: theme.dividerColor.withValues(alpha: 0.15)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.2), 
@@ -428,7 +428,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-        border: Border.all(color: themePrimary.withValues(alpha: 0.3), width: 2),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : theme.dividerColor.withValues(alpha: 0.2), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: themePrimary.withValues(alpha: 0.15),
@@ -461,7 +461,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               },
             )
           : Image.asset(
-              'packages/pos_terminal/assets/images/logo.png',
+              'assets/images/logo.png',
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) => Icon(Icons.restaurant, color: themePrimary, size: 50),
             ),

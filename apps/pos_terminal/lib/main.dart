@@ -3,7 +3,9 @@ import 'package:pos_terminal/auth/login_page.dart';
 import 'package:pos_terminal/theme_service.dart';
 import 'package:pos_terminal/localization_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeService().init();
   runApp(const POSApp());
 }
 

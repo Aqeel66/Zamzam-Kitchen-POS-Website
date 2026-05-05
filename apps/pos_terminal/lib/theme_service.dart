@@ -3,6 +3,8 @@ import 'package:ui_kit/ui_kit.dart';
 import 'package:flutter/foundation.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 enum AppThemeFlavor { light, dark, midnightBlue, emeraldGreen, auraPurple }
 
@@ -19,6 +21,57 @@ class ThemeService extends ChangeNotifier {
   String? _secondaryLogoPath;
   String _restaurantName = 'ZAMZAM KITCHEN';
   String _tagline = '';
+  bool _isInitialized = false;
+
+  Future<void> init() async {
+    if (_isInitialized) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load Theme Flavor
+      final flavorIndex = prefs.getInt('theme_flavor');
+      if (flavorIndex != null) {
+        _currentFlavor = AppThemeFlavor.values[flavorIndex];
+      }
+
+      // Load Custom Accent
+      final accentHex = prefs.getString('theme_accent_hex');
+      if (accentHex != null) {
+        _customAccentColor = _hexToColor(accentHex);
+      }
+
+      // Load Branding
+      _logoPath = prefs.getString('branding_logo');
+      _secondaryLogoPath = prefs.getString('branding_secondary_logo');
+      _restaurantName = prefs.getString('branding_name') ?? 'ZAMZAM KITCHEN';
+      _tagline = prefs.getString('branding_tagline') ?? '';
+      
+      _isInitialized = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('ThemeService: Error during initialization: $e');
+    }
+  }
+
+  Future<void> _saveToCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('theme_flavor', _currentFlavor.index);
+      if (_customAccentColor != null) {
+        await prefs.setString('theme_accent_hex', _colorToHex(_customAccentColor!));
+      }
+      await prefs.setString('branding_logo', _logoPath ?? '');
+      await prefs.setString('branding_secondary_logo', _secondaryLogoPath ?? '');
+      await prefs.setString('branding_name', _restaurantName);
+      await prefs.setString('branding_tagline', _tagline);
+    } catch (e) {
+      debugPrint('ThemeService: Error saving to cache: $e');
+    }
+  }
+
+  String _colorToHex(Color color) {
+    return '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
+  }
 
   ThemeData get currentTheme => themeData;
 
@@ -29,7 +82,7 @@ class ThemeService extends ChangeNotifier {
       if (hostname == 'localhost' || hostname == '127.0.0.1' || 
           hostname.startsWith('192.168.') || 
           hostname.startsWith('10.')) {
-        final protocol = html.window.location.protocol ?? 'http:';
+        final protocol = html.window.location.protocol;
         return '$protocol//$hostname:5000';
       }
       return origin;
@@ -49,6 +102,25 @@ class ThemeService extends ChangeNotifier {
   String? get secondaryLogoUrl {
     if (_secondaryLogoPath == null || _secondaryLogoPath!.isEmpty) return null;
     return resolveImageUrl(_secondaryLogoPath!);
+  }
+
+  static ImageProvider getImage(String? path) {
+    if (path == null || path.isEmpty) {
+      // Use a reliable remote placeholder instead of a local asset that might be missing
+      return const CachedNetworkImageProvider('https://placehold.co/600x400/2c2c2c/white?text=No+Image');
+    }
+    
+    // Handle local asset paths if they are passed as image paths
+    if (path.startsWith('assets/') || path.startsWith('packages/')) {
+      String cleanPath = path;
+      if (cleanPath.startsWith('packages/pos_terminal/')) {
+        cleanPath = cleanPath.substring(22);
+      }
+      return AssetImage(cleanPath);
+    }
+    
+    final url = resolveImageUrl(path);
+    return CachedNetworkImageProvider(url);
   }
   
   String get restaurantName => _restaurantName;
@@ -105,6 +177,7 @@ class ThemeService extends ChangeNotifier {
       changed = true;
     }
     if (changed) {
+      _saveToCache();
       notifyListeners();
     }
   }

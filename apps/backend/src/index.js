@@ -40,7 +40,6 @@ if (!fs.existsSync(webPath)) {
 app.use('/assets', express.static(assetsPath));
 app.use(express.static(webPath));
 
-// Basic Health Check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Zamzam Kitchen API is running', timestamp: new Date() });
 });
@@ -66,6 +65,7 @@ const reportsRoutes = require('./routes/reports');
 const expensesRoutes = require('./routes/expenses');
 const authRoutes = require('./routes/auth');
 const customerRoutes = require('./routes/customers');
+const promotionRoutes = require('./routes/promotions');
 
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/menu', menuRoutes);
@@ -87,6 +87,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 // Handle POS Terminal routing (Sub-folder /pos)
 app.get(/^\/pos/, (req, res, next) => {

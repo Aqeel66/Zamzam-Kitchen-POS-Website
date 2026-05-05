@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useState, useEffect } from 'react';
-import { CreditCard, Banknote, Store, Car, Package, Heart, MapPin } from 'lucide-react';
+import { CreditCard, Banknote, Store, Car, Package, Heart, MapPin, User, Phone, Mail, ShoppingBag, ShieldCheck } from 'lucide-react';
 import { API_BASE_URL, resolveImageUrl } from '../config';
+import './Checkout.css';
 
 export default function Checkout() {
   const { totalPrice, items, clearCart, tableId, tableNumber, clearTableContext } = useCart();
@@ -32,23 +33,82 @@ export default function Checkout() {
       });
   }, [isQrOrder]);
 
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [tipPercentage, setTipPercentage] = useState(0);
   const [guestName, setGuestName] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeGateways, setActiveGateways] = useState<any[]>([]);
 
-  const applyPromo = () => {
-     if (promoCode.trim().toUpperCase() === 'ZAMZAM10') {
-        setDiscount(totalPrice * 0.10);
-     } else {
-        alert('Invalid Promo Code');
+  const applyPromo = async () => {
+    setPromoError(null);
+    if (!promoCode.trim()) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/promotions/validate/${promoCode.trim()}`);
+      if (response.ok) {
+        const data = await response.json();
+        const promo = data.promo;
+        const minSpend = parseFloat(promo.min_spend) || 0;
+        
+        // Validate minimum spend
+        if (totalPrice < minSpend) {
+          setPromoError(`Minimum spend of $${minSpend.toFixed(2)} required for this code.`);
+          setDiscount(0);
+          setAppliedPromo(null);
+          return;
+        }
+
+        let disc = 0;
+        const discountValue = parseFloat(promo.discount_value) || 0;
+        if (promo.discount_type === 'fixed') {
+          disc = discountValue;
+        } else {
+          disc = totalPrice * (discountValue / 100);
+        }
+        
+        setDiscount(disc);
+        setAppliedPromo(promo);
+      } else {
+        const err = await response.json();
+        setPromoError(err.message || 'Invalid Promo Code');
         setDiscount(0);
-     }
+        setAppliedPromo(null);
+      }
+    } catch (err) {
+      console.error("Promo validation error:", err);
+      setPromoError('Error connecting to validation service');
+    }
+  };
+
+  const removePromo = () => {
+    setPromoCode('');
+    setDiscount(0);
+    setAppliedPromo(null);
+    setPromoError(null);
   };
 
   const deliveryFee = orderType === 'delivery' ? 5.00 : 0.00;
   const tipAmount = (totalPrice - discount) * (tipPercentage / 100);
   const finalTotal = totalPrice - discount + deliveryFee + tipAmount;
+
+  useEffect(() => {
+    const fetchGateways = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/payment-gateways/active`);
+        if (response.ok) {
+          const data = await response.json();
+          setActiveGateways(data);
+        }
+      } catch (err) {
+        console.error("Error fetching gateways:", err);
+      }
+    };
+    fetchGateways();
+  }, []);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +133,14 @@ export default function Checkout() {
       origin: isQrOrder ? 'QR-Menu' : 'Website',
     };
 
-    // Attach table info for QR orders
     if (isQrOrder && tableId) {
       orderData.table_id = tableId;
+    }
+
+    if (paymentMethod === 'card') {
+      setIsProcessing(true);
+      // Simulate real Stripe processing time
+      await new Promise(resolve => setTimeout(resolve, 2500));
     }
 
     try {
@@ -86,32 +151,57 @@ export default function Checkout() {
       });
       
       if (response.ok) {
+        const result = await response.json();
+        const finalOrderData = {
+          ...orderData,
+          order_number: result.orderNumber || result.orderId,
+          id: result.orderId
+        };
+        
         clearCart();
         if (isQrOrder) clearTableContext();
-        navigate(`/success?type=order&method=${paymentMethod}`, { state: { orderData } });
+        navigate(`/success?type=order&method=${paymentMethod}`, { state: { orderData: finalOrderData } });
       } else {
         alert("Failed to process order. Please try again.");
       }
     } catch (err) {
       console.error("Order error:", err);
       alert("Could not connect to server.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   if (items.length === 0) {
      return (
-        <div style={{ textAlign: 'center', padding: '5rem' }}>
-           <h3>Your cart is empty</h3>
-           <button className="btn-primary" onClick={() => navigate('/menu')} style={{ marginTop: '1.5rem', padding: '1rem 2rem', border: 'none', background: 'var(--primary-orange)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Back to Menu</button>
+        <div className="empty-cart-container">
+           <ShoppingBag size={80} className="empty-cart-icon" />
+           <h3 className="empty-cart-title">Your cart is empty</h3>
+           <p className="empty-cart-text">Looks like you haven't added anything to your cart yet.</p>
+           <button className="btn-primary" onClick={() => navigate('/menu')} style={{ padding: '1.25rem 3rem', border: 'none', background: 'var(--primary-orange)', color: 'white', borderRadius: '16px', cursor: 'pointer', fontWeight: 700, fontSize: '1.1rem', boxShadow: '0 10px 20px rgba(255,107,53,0.3)' }}>Start Ordering</button>
         </div>
      );
   }
 
   return (
-    <div className="section-padding checkout-container">
-       <h1 className="checkout-title mb-3">Checkout</h1>
+    <div className="checkout-container">
+       <div className="checkout-steps">
+          <div className="step active">
+             <div className="step-circle">1</div>
+             <span className="step-label">Details</span>
+          </div>
+          <div className="step active">
+             <div className="step-circle">2</div>
+             <span className="step-label">Payment</span>
+          </div>
+          <div className="step">
+             <div className="step-circle">3</div>
+             <span className="step-label">Success</span>
+          </div>
+       </div>
 
-       {/* QR Table Banner */}
+       <h1 className="checkout-title">Complete Your Order</h1>
+
        {isQrOrder && tableNumber && (
          <div style={{
            display: 'inline-flex',
@@ -120,151 +210,250 @@ export default function Checkout() {
            background: 'linear-gradient(135deg, #ff6b35 0%, #f5a623 100%)',
            color: 'white',
            borderRadius: '30px',
-           padding: '0.5rem 1.1rem',
-           fontSize: '0.88rem',
+           padding: '0.6rem 1.25rem',
+           fontSize: '0.9rem',
            fontWeight: 700,
-           marginBottom: '1.75rem',
-           boxShadow: '0 4px 12px rgba(255,107,53,0.3)',
+           marginBottom: '2rem',
+           boxShadow: '0 8px 16px rgba(255,107,53,0.25)',
          }}>
-           <MapPin size={14} />
-           Table {tableNumber} · Dine-In Order
+           <MapPin size={16} />
+           Dining at Table {tableNumber}
          </div>
        )}
        
        <form onSubmit={handleCheckout} className="checkout-grid">
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {/* Order Type — hidden for QR dine-in orders */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               {!isQrOrder && (
-                <div className="checkout-type-btns" style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1.25rem' }}>
                    {(branchSettings?.allow_delivery !== 0) && (
                      <button 
                         type="button" 
                         onClick={() => { setOrderType('delivery'); if(paymentMethod === 'counter') setPaymentMethod('card'); }}
-                        style={{ flex: 1, padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: `2px solid ${orderType === 'delivery' ? 'var(--primary-orange)' : '#e5e7eb'}`, background: orderType === 'delivery' ? '#fff6f3' : 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: orderType === 'delivery' ? 'var(--primary-orange)' : '#4b5563' }}
+                        className={`payment-method-btn ${orderType === 'delivery' ? 'active' : ''}`}
+                        style={{ flex: 1, height: 'auto', padding: '1.5rem' }}
                      >
-                        <Car size={20}/> Delivery
+                        <Car size={24}/> 
+                        <span>Delivery</span>
                      </button>
                    )}
                    {(branchSettings?.allow_pickup !== 0) && (
                      <button 
                         type="button" 
                         onClick={() => { setOrderType('pickup'); if(paymentMethod === 'cash') setPaymentMethod('card'); }}
-                        style={{ flex: 1, padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: `2px solid ${orderType === 'pickup' ? 'var(--primary-orange)' : '#e5e7eb'}`, background: orderType === 'pickup' ? '#fff6f3' : 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: orderType === 'pickup' ? 'var(--primary-orange)' : '#4b5563' }}
+                        className={`payment-method-btn ${orderType === 'pickup' ? 'active' : ''}`}
+                        style={{ flex: 1, height: 'auto', padding: '1.5rem' }}
                      >
-                        <Package size={20}/> Pick-Up
+                        <Package size={24}/>
+                        <span>Pick-Up</span>
                      </button>
                    )}
                 </div>
               )}
 
-             {/* Details */}
-             <div className="checkout-details-card" style={{ background: '#f9fafb', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
-                <h3 style={{ fontSize: '1.4rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Your Details</h3>
+             <div className="checkout-card">
+                <h3 className="checkout-section-title"><User size={20} /> Personal Information</h3>
+                
                 <div className="input-group" style={{ marginBottom: '1.5rem' }}>
-                   <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>
-                     {isQrOrder ? 'Your Name (Optional)' : 'Full Name'}
+                   <label className="label-text">
+                     {isQrOrder ? 'Guest Name (Optional)' : 'Full Name'}
                    </label>
                    <input
                      type="text"
+                     className="checkout-input"
                      required={!isQrOrder}
-                     placeholder={isQrOrder ? 'So we can call your name when ready' : 'John Doe'}
+                     placeholder={isQrOrder ? 'How should we address you?' : 'Enter your full name'}
                      value={guestName}
                      onChange={(e) => setGuestName(e.target.value)}
-                     style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}
                    />
                 </div>
+
+                <div className="input-group" style={{ marginBottom: '1.5rem' }}>
+                   <label className="label-text">Phone Number</label>
+                   <div style={{ position: 'relative' }}>
+                      <Phone size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                      <input 
+                        required 
+                        type="tel" 
+                        placeholder="+61 000 000 000" 
+                        className="checkout-input"
+                        style={{ paddingLeft: '3rem' }}
+                      />
+                   </div>
+                   <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldCheck size={14} /> We'll send order updates via WhatsApp
+                   </p>
+                </div>
+
+                <div className="input-group" style={{ marginBottom: orderType === 'delivery' ? '1.5rem' : '0' }}>
+                   <label className="label-text">Email Address</label>
+                   <div style={{ position: 'relative' }}>
+                      <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                      <input 
+                        required 
+                        type="email" 
+                        placeholder="your@email.com" 
+                        className="checkout-input"
+                        style={{ paddingLeft: '3rem' }}
+                      />
+                   </div>
+                </div>
+
                 {orderType === 'delivery' && (
-                   <div className="input-group" style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>Delivery Address</label>
-                      <input required type="text" placeholder="123 Main St, Melbourne" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
+                   <div className="input-group">
+                      <label className="label-text">Delivery Address</label>
+                      <div style={{ position: 'relative' }}>
+                        <MapPin size={18} style={{ position: 'absolute', left: '1rem', top: '1rem', color: '#9ca3af' }} />
+                        <textarea 
+                          required 
+                          placeholder="Complete address including street, suburb, and any special instructions" 
+                          className="checkout-input"
+                          style={{ paddingLeft: '3rem', minHeight: '100px', resize: 'vertical' }}
+                        />
+                      </div>
                    </div>
                 )}
-                <div className="input-group" style={{ marginBottom: '1.5rem' }}>
-                   <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>Phone / WhatsApp Number</label>
-                   <input required type="tel" placeholder="+61 000 000 000" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
-                   <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem', fontStyle: 'italic' }}>We will send your invoice tracker to this WhatsApp number.</p>
+             </div>
+
+             <div className="checkout-card">
+                <h3 className="checkout-section-title"><CreditCard size={20} /> Payment Details</h3>
+                
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                   <button type="button" onClick={() => setPaymentMethod('card')} className={`payment-method-btn ${paymentMethod === 'card' ? 'active' : ''}`}>
+                      <CreditCard size={20}/> <span>Online Card</span>
+                   </button>
+                   
+                   {isQrOrder && (
+                     <button type="button" onClick={() => setPaymentMethod('cash')} className={`payment-method-btn ${paymentMethod === 'cash' ? 'active' : ''}`}>
+                        <Banknote size={20}/> <span>Cash at Table</span>
+                     </button>
+                   )}
+
+                   {!isQrOrder && orderType === 'delivery' && (
+                      <button type="button" onClick={() => setPaymentMethod('cash')} className={`payment-method-btn ${paymentMethod === 'cash' ? 'active' : ''}`}>
+                         <Banknote size={20}/> <span>Cash on Delivery</span>
+                      </button>
+                   )}
+
+                   {!isQrOrder && orderType === 'pickup' && (
+                      <button type="button" onClick={() => setPaymentMethod('counter')} className={`payment-method-btn ${paymentMethod === 'counter' ? 'active' : ''}`}>
+                         <Store size={20}/> <span>Pay at Counter</span>
+                      </button>
+                   )}
                 </div>
-                <div className="input-group">
-                   <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>Email Address</label>
-                   <input required type="email" placeholder="john@example.com" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
-                </div>
+
+                {paymentMethod === 'card' && (
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1.5rem', background: '#f9fafb', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+                      <div className="input-group">
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <label className="label-text" style={{ marginBottom: 0 }}>Card Number</label>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" style={{ height: '12px', opacity: 0.6 }} />
+                         </div>
+                         <input required type="text" placeholder="0000 0000 0000 0000" className="checkout-input" />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                         <div className="input-group">
+                            <label className="label-text">Expiry Date</label>
+                            <input required type="text" placeholder="MM/YY" className="checkout-input" />
+                         </div>
+                         <div className="input-group">
+                            <label className="label-text">CVV</label>
+                            <input required type="text" placeholder="123" className="checkout-input" />
+                         </div>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center', marginTop: '0.5rem' }}>
+                         🔒 Your payment information is encrypted and secure.
+                      </p>
+                   </div>
+                )}
+
+                {(paymentMethod === 'cash' || paymentMethod === 'counter') && (
+                   <div style={{ padding: '2rem', background: '#f0fdf4', borderRadius: '16px', border: '1px solid #dcfce7', textAlign: 'center' }}>
+                      <div style={{ width: '48px', height: '48px', background: '#22c55e', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', color: 'white' }}>
+                         {paymentMethod === 'cash' ? <Banknote size={24} /> : <Store size={24} />}
+                      </div>
+                      <p style={{ color: '#166534', margin: 0, fontWeight: 600 }}>
+                         {paymentMethod === 'cash' 
+                           ? (isQrOrder ? 'A server will collect payment at your table.' : 'Please pay the driver in cash upon arrival.')
+                           : 'Please pay at the register when collecting your order.'}
+                      </p>
+                   </div>
+                )}
              </div>
           </div>
 
-          {/* Payment & Summary */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-             <div className="checkout-summary-card" style={{ background: '#111827', color: 'white', padding: '2.5rem', borderRadius: '16px' }}>
-                <h3 style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1.5rem', fontSize: '1.4rem' }}>Order Summary</h3>
+          <div className="summary-card">
+             <h3 className="checkout-section-title" style={{ color: 'white' }}><ShoppingBag size={20} /> Order Summary</h3>
 
-                {/* Table info row for QR orders */}
-                {isQrOrder && tableNumber && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <span style={{ color: '#f5a623', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <MapPin size={14}/> Table {tableNumber}
-                    </span>
-                    <span style={{ color: '#f5a623', fontWeight: 600 }}>Dine-In</span>
-                  </div>
-                )}
-
-                <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                   {items.map(item => (
-                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e5e7eb', backgroundImage: `url(${resolveImageUrl(item.image)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-                            <div>
-                               <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>{item.name}</p>
-                               <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.8rem' }}>Qty: {item.quantity}</p>
-                            </div>
+             <div style={{ margin: '1.5rem 0', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                {items.map(item => (
+                   <div key={item.id} className="order-item">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                         <div className="item-thumb" style={{ backgroundImage: `url(${resolveImageUrl(item.image)})` }}></div>
+                         <div>
+                            <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>{item.name}</p>
+                            <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.85rem' }}>{item.quantity} × ${item.price.toFixed(2)}</p>
                          </div>
-                         <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>${(item.price * item.quantity).toFixed(2)}</span>
                       </div>
-                   ))}
-                </div>
-                
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                   <span style={{ color: '#9ca3af' }}>Subtotal ({items.length} items)</span>
-                   <span style={{ fontWeight: 600 }}>${totalPrice.toFixed(2)}</span>
-                </div>
+                      <span style={{ fontWeight: 600 }}>${(item.price * item.quantity).toFixed(2)}</span>
+                   </div>
+                ))}
+             </div>
+             
+             <div className="promo-input-group">
+                <input 
+                   type="text" 
+                   placeholder="Promo Code" 
+                   className="promo-input"
+                   value={promoCode}
+                   onChange={(e) => {
+                      setPromoCode(e.target.value);
+                      if (promoError) setPromoError(null);
+                   }}
+                   onKeyPress={(e) => e.key === 'Enter' && applyPromo()}
+                />
+                {appliedPromo ? (
+                   <button type="button" onClick={removePromo} style={{ padding: '0 1.25rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>Clear</button>
+                ) : (
+                   <button type="button" onClick={applyPromo} style={{ padding: '0 1.25rem', background: '#374151', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>Apply</button>
+                )}
+             </div>
+             
+             {promoError && (
+                <div className="promo-error">{promoError}</div>
+             )}
 
-                {/* Promo Code Input */}
-                <div className="checkout-flex-mobile-col" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
-                   <input 
-                      type="text" 
-                      placeholder="Promo Code (Try ZAMZAM10)" 
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value)}
-                      style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', border: 'none', color: 'black' }}
-                   />
-                   <button type="button" onClick={applyPromo} style={{ padding: '0 1.5rem', background: '#374151', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: '0.2s' }}>Apply</button>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className="summary-row">
+                   <span style={{ color: '#9ca3af' }}>Subtotal</span>
+                   <span>${totalPrice.toFixed(2)}</span>
                 </div>
 
                 {discount > 0 && (
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981', fontWeight: 600 }}>
-                      <span>Discount Applied</span>
+                   <div className="summary-row" style={{ color: '#10b981', fontWeight: 600 }}>
+                      <span>Discount ({appliedPromo?.code || 'Promo'})</span>
                       <span>-${discount.toFixed(2)}</span>
                    </div>
                 )}
 
                 {orderType === 'delivery' && (
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', marginTop: '1rem' }}>
-                      <span style={{ color: '#9ca3af' }}>Standard Delivery</span>
-                      <span style={{ fontWeight: 600 }}>$5.00</span>
+                   <div className="summary-row">
+                      <span style={{ color: '#9ca3af' }}>Delivery Fee</span>
+                      <span>$5.00</span>
                    </div>
                 )}
 
-                {/* Tip Option */}
-                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                   <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.8rem', color: '#9ca3af' }}>
-                      <Heart size={16} /> Add a Tip (Optional)
+                <div style={{ margin: '1rem 0', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+                   <p style={{ fontSize: '0.9rem', color: '#9ca3af', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Heart size={16} /> Add a tip for the staff
                    </p>
-                   <div className="checkout-flex-mobile-col" style={{ display: 'flex', gap: '0.5rem' }}>
+                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                       {[0, 10, 15, 20].map(pct => (
                          <button 
                             type="button" 
                             key={pct}
                             onClick={() => setTipPercentage(pct)}
-                            style={{ flex: 1, padding: '0.5rem', background: tipPercentage === pct ? 'var(--primary-orange)' : '#374151', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', transition: '0.2s', fontWeight: 600 }}
+                            className={`tip-btn ${tipPercentage === pct ? 'active' : ''}`}
                          >
                             {pct === 0 ? 'None' : `${pct}%`}
                          </button>
@@ -273,80 +462,47 @@ export default function Checkout() {
                 </div>
 
                 {tipAmount > 0 && (
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
-                      <span style={{ color: '#9ca3af' }}>Tip Amount</span>
-                      <span style={{ fontWeight: 600 }}>${tipAmount.toFixed(2)}</span>
+                   <div className="summary-row">
+                      <span style={{ color: '#9ca3af' }}>Tip</span>
+                      <span>${tipAmount.toFixed(2)}</span>
                    </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 700, paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '1rem' }}>
-                   <span>Total</span>
-                   <span style={{ color: 'var(--primary-orange)' }}>${finalTotal.toFixed(2)}</span>
+                <div className="summary-total">
+                   <div className="summary-row">
+                      <span style={{ fontSize: '1.1rem', color: 'white', fontWeight: 600 }}>Total</span>
+                      <span>${finalTotal.toFixed(2)}</span>
+                   </div>
                 </div>
              </div>
 
-             <div className="checkout-payment-card" style={{ background: '#f9fafb', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
-                 <h3 style={{ marginBottom: '1.5rem', fontSize: '1.4rem' }}>Payment Method</h3>
-                 
-                 <div className="checkout-flex-mobile-col" style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
-                    <button type="button" onClick={() => setPaymentMethod('card')} style={{ flex: 1, padding: '0.8rem 0.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: `2px solid ${paymentMethod === 'card' ? 'var(--primary-orange)' : '#e5e7eb'}`, background: paymentMethod === 'card' ? '#fff6f3' : 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: paymentMethod === 'card' ? 'var(--primary-orange)' : '#4b5563' }}>
-                       <CreditCard size={18}/> Card
-                    </button>
-                    {/* Cash at table option for QR orders */}
-                    {isQrOrder && (
-                      <button type="button" onClick={() => setPaymentMethod('cash')} style={{ flex: 1, padding: '0.8rem 0.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: `2px solid ${paymentMethod === 'cash' ? 'var(--primary-orange)' : '#e5e7eb'}`, background: paymentMethod === 'cash' ? '#fff6f3' : 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: paymentMethod === 'cash' ? 'var(--primary-orange)' : '#4b5563' }}>
-                         <Banknote size={18}/> Cash
-                      </button>
-                    )}
-                    {!isQrOrder && orderType === 'delivery' && (
-                       <button type="button" onClick={() => setPaymentMethod('cash')} style={{ flex: 1, padding: '0.8rem 0.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: `2px solid ${paymentMethod === 'cash' ? 'var(--primary-orange)' : '#e5e7eb'}`, background: paymentMethod === 'cash' ? '#fff6f3' : 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: paymentMethod === 'cash' ? 'var(--primary-orange)' : '#4b5563' }}>
-                          <Banknote size={18}/> Cash
-                       </button>
-                    )}
-                    {!isQrOrder && orderType === 'pickup' && (
-                       <button type="button" onClick={() => setPaymentMethod('counter')} style={{ flex: 1, padding: '0.8rem 0.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: `2px solid ${paymentMethod === 'counter' ? 'var(--primary-orange)' : '#e5e7eb'}`, background: paymentMethod === 'counter' ? '#fff6f3' : 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: paymentMethod === 'counter' ? 'var(--primary-orange)' : '#4b5563' }}>
-                          <Store size={18}/> Counter
-                       </button>
-                    )}
-                 </div>
-
-                 {paymentMethod === 'card' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                       <div className="input-group">
-                          <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>
-                             Card Number
-                             <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 400 }}>Powered by Stripe</span>
-                          </label>
-                          <input required type="text" placeholder="0000 0000 0000 0000" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
-                       </div>
-                       <div className="checkout-grid-mobile-1" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
-                          <input required type="text" placeholder="MM/YY" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
-                          <input required type="text" placeholder="CVC" style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white' }}/>
-                       </div>
-                    </div>
-                 )}
-                 {paymentMethod === 'cash' && isQrOrder && (
-                    <div style={{ padding: '1.5rem', background: '#f3f4f6', borderRadius: '8px', textAlign: 'center' }}>
-                       <p style={{ color: '#4b5563', margin: 0, fontWeight: 500 }}>A server will collect your cash payment at your table. Your order will be placed immediately.</p>
-                    </div>
-                 )}
-                 {paymentMethod === 'cash' && !isQrOrder && (
-                    <div style={{ padding: '1.5rem', background: '#f3f4f6', borderRadius: '8px', textAlign: 'center' }}>
-                       <p style={{ color: '#4b5563', margin: 0, fontWeight: 500 }}>Please have exact change ready. You will pay the driver upon arrival.</p>
-                    </div>
-                 )}
-                 {paymentMethod === 'counter' && (
-                    <div style={{ padding: '1.5rem', background: '#f3f4f6', borderRadius: '8px', textAlign: 'center' }}>
-                       <p style={{ color: '#4b5563', margin: 0, fontWeight: 500 }}>Please proceed to the register to complete your payment when picking up your food.</p>
-                    </div>
-                 )}
-             </div>
-
-             <button type="submit" className="btn-primary" style={{ padding: '1.4rem', fontSize: '1.1rem', marginTop: '1rem', border: 'none', borderRadius: '8px', background: 'var(--primary-orange)', color: 'white', fontWeight: 700, cursor: 'pointer', transition: 'transform 0.2s' }}>
-                {isQrOrder ? `Place Order · Table ${tableNumber} · $${finalTotal.toFixed(2)}` : `Confirm Order for $${finalTotal.toFixed(2)}`}
+             <button type="submit" className="place-order-btn" style={{ marginTop: '2rem' }}>
+                {isQrOrder 
+                  ? `Place Order · $${finalTotal.toFixed(2)}` 
+                  : `Confirm & Pay · $${finalTotal.toFixed(2)}`}
              </button>
+             
+             <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#6b7280', marginTop: '1.5rem' }}>
+                By clicking "Place Order", you agree to our Terms of Service.
+             </p>
           </div>
        </form>
+
+       {isProcessing && (
+         <div className="payment-processing-overlay">
+           <div className="processing-card">
+             <div className="spinner"></div>
+             <svg width="80" height="33" viewBox="0 0 60 25" fill="none" xmlns="http://www.w3.org/2000/svg" className="stripe-logo-loading" style={{ marginBottom: '1.5rem' }}>
+               <path d="M59.642 12.181c0-4.034-2.1-6.19-5.59-6.19-3.468 0-5.748 2.29-5.748 6.305 0 4.544 2.457 6.31 5.918 6.31 1.637 0 2.94-.3 3.968-1.018l-.946-1.92c-.841.511-1.892.83-2.915.83-1.892 0-3.15-.751-3.23-2.603h7.458c.03-.639.085-1.164.085-1.713zm-8.48-1.503c0-1.743.916-2.583 2.656-2.583 1.548 0 2.508.84 2.508 2.583h-5.164zm-8.835 1.503c0-3.155-1.637-6.19-5.02-6.19-1.397 0-2.358.556-2.94 1.157l-.105-.886h-2.569v17.43l2.84-.602v-5.22c.6.511 1.487.886 2.7.886 3.424 0 5.094-3.41 5.094-6.575zm-2.79 0c0 2.373-.87 4.091-2.686 4.091-.945 0-1.666-.36-2.222-1.006v-6.223c.51-.66 1.29-1.035 2.191-1.035 1.77 0 2.717 1.621 2.717 4.173zm-10.742-9.615c0-1.187-.855-2.013-2.115-2.013-1.29 0-2.146.826-2.146 2.013 0 1.202.855 2.028 2.146 2.028 1.26 0 2.115-.826 2.115-2.028zm-2.115 3.424h-2.84v12.212l2.84-.601v-11.611zm-5.748-3.424c0-1.187-.855-2.013-2.115-2.013-1.29 0-2.146.826-2.146 2.013 0 1.202.855 2.028 2.146 2.028 1.26 0 2.115-.826 2.115-2.028zm-2.115 3.424h-2.84v12.212l2.84-.601v-11.611zm-5.064 0h-2.568l-.105.886c-.585-.601-1.547-1.157-2.943-1.157-3.383 0-5.02 3.035-5.02 6.19 0 3.165 1.67 6.575 5.094 6.575 1.213 0 2.1-.375 2.7-.886v5.22l2.84.602V5.99zm-2.79 6.19c0 2.552-.947 4.173-2.717 4.173-.901 0-1.681-.375-2.191-1.035v6.223c.556.646 1.277 1.006 2.222 1.006 1.816 0 2.686-1.718 2.686-4.091 0-2.552-.947-4.275-2.717-4.275-.901 0-1.681.375-2.191-1.035v6.223c.556.646 1.277 1.006 2.222 1.006 1.816 0 2.686-1.718 2.686-4.091zm-7.608-2.618c0-2.2-.841-3.573-3.123-3.573-1.006 0-1.921.375-2.507 1.018V6.14h-2.841v15.228l2.841-.601V12.78c.556-.556 1.352-.855 2.252-.855 1.157 0 1.532.555 1.532 1.636v7.712l2.84-.602v-11.1zm-10.457-3.573c-2.313 0-3.874 1.141-3.874 3.035 0 4.159 5.674 3.514 5.674 5.375 0 .736-.676 1.036-1.637 1.036-1.216 0-2.642-.511-3.664-1.126l-.886 2.146c1.111.66 2.822 1.186 4.545 1.186 2.508 0 4.484-1.171 4.484-3.23 0-4.46-5.67-3.769-5.67-5.361 0-.616.556-1.02 1.516-1.02.946 0 2.29.375 3.197.87l.87-2.115c-1.021-.57-2.433-.826-3.395-.826z" fill="#6366F1"/>
+             </svg>
+             <h3>Securely Processing...</h3>
+             <p>Please do not refresh the page or close your browser.</p>
+             <div className="encryption-badge">
+               <ShieldCheck size={14} /> 256-bit SSL Encryption
+             </div>
+           </div>
+         </div>
+       )}
     </div>
   );
 }

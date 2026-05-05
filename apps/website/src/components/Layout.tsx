@@ -114,8 +114,8 @@ export default function Layout({ children }: LayoutProps) {
       <footer className="site-footer">
         <div className="footer-container">
           <div className="footer-brand">
-            <div className="footer-brand-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div className="logo-images" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div className="footer-brand-logo">
+              <div className="logo-images">
                 <img 
                   src={resolveImageUrl(branding.logo_url, '/logo.png')} 
                   alt={branding.restaurant_name} 
@@ -130,7 +130,7 @@ export default function Layout({ children }: LayoutProps) {
                   />
                 )}
               </div>
-              <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 700, letterSpacing: '1px' }}>{branding.restaurant_name.toUpperCase()}</span>
+              <span className="footer-brand-name">{branding.restaurant_name.toUpperCase()}</span>
             </div>
             <p className="footer-desc">
               The destination for food lovers who value quality, taste, and exceptional service.

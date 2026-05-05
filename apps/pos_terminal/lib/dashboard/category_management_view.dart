@@ -118,13 +118,10 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                                   width: 50, height: 50,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
-                                    image: cat['image'] != null && cat['image'].toString().isNotEmpty
-                                      ? DecorationImage(
-                                          image: NetworkImage(ThemeService.resolveImageUrl(cat['image'])),
-                                          fit: BoxFit.cover,
-                                          onError: (_, _) => const Icon(Icons.broken_image),
-                                        )
-                                      : null,
+                                    image: DecorationImage(
+                                      image: ThemeService.getImage(cat['image']),
+                                      fit: BoxFit.cover,
+                                    ),
                                     color: themePrimary.withValues(alpha: 0.1),
                                   ),
                                   child: cat['image'] == null || cat['image'].toString().isEmpty
@@ -201,7 +198,10 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                           child: _catImageController.text.isNotEmpty 
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.network(ThemeService.resolveImageUrl(_catImageController.text), fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported, size: 20, color: Colors.grey)),
+                                child: Image(
+                                  image: ThemeService.getImage(_catImageController.text),
+                                  fit: BoxFit.cover,
+                                ),
                               )
                             : const Icon(Icons.image_search_rounded, color: Colors.grey),
                         ),

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard } from 'lucide-react';
+import { CreditCard, ShieldCheck } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import './Reservation.css';
 
@@ -195,7 +195,38 @@ export default function Reservation() {
       const data = await response.json();
 
       if (data.success) {
-        navigate('/success?type=reservation');
+        // Create a structured data object for the Professional Invoice
+        const reservationInvoice = {
+          id: data.reservationId,
+          order_number: `RES-${String(data.reservationId).padStart(4, '0')}`,
+          customer_name: formData.name,
+          order_type: 'Reservation',
+          date: new Date().toLocaleDateString('en-GB'),
+          items: [
+            { 
+              name: `Table Reservation (Table ${selectedTable.table_number})`, 
+              quantity: 1, 
+              price: isFeeEnabled ? feeAmount : 0 
+            },
+            { 
+              name: `Guests: ${guests} People`, 
+              quantity: 0, 
+              price: 0 
+            },
+            { 
+              name: `Booking Slot: ${date} @ ${time}`, 
+              quantity: 0, 
+              price: 0 
+            }
+          ],
+          subtotal: isFeeEnabled ? feeAmount : 0,
+          discount: 0,
+          tip: 0,
+          total: isFeeEnabled ? feeAmount : 0,
+          status: isFeeEnabled && paymentMethod === 'card' ? 'PAID' : 'PENDING'
+        };
+
+        navigate('/success?type=reservation', { state: { orderData: reservationInvoice } });
       } else {
         alert(data.message || 'Something went wrong. Please try again.');
       }
@@ -644,6 +675,22 @@ export default function Reservation() {
            </div>
         </div>
       )}
+
+      {isProcessingPayment && (
+         <div className="payment-processing-overlay">
+           <div className="processing-card">
+             <div className="spinner"></div>
+             <svg width="80" height="33" viewBox="0 0 60 25" fill="none" xmlns="http://www.w3.org/2000/svg" className="stripe-logo-loading" style={{ marginBottom: '1.5rem' }}>
+                <path d="M59.642 12.181c0-4.034-2.1-6.19-5.59-6.19-3.468 0-5.748 2.29-5.748 6.305 0 4.544 2.457 6.31 5.918 6.31 1.637 0 2.94-.3 3.968-1.018l-.946-1.92c-.841.511-1.892.83-2.915.83-1.892 0-3.15-.751-3.23-2.603h7.458c.03-.639.085-1.164.085-1.713zm-8.48-1.503c0-1.743.916-2.583 2.656-2.583 1.548 0 2.508.84 2.508 2.583h-5.164zm-8.835 1.503c0-3.155-1.637-6.19-5.02-6.19-1.397 0-2.358.556-2.94 1.157l-.105-.886h-2.569v17.43l2.84-.602v-5.22c.6.511 1.487.886 2.7.886 3.424 0 5.094-3.41 5.094-6.575zm-2.79 0c0 2.373-.87 4.091-2.686 4.091-.945 0-1.666-.36-2.222-1.006v-6.223c.51-.66 1.29-1.035 2.191-1.035 1.77 0 2.717 1.621 2.717 4.173zm-10.742-9.615c0-1.187-.855-2.013-2.115-2.013-1.29 0-2.146.826-2.146 2.013 0 1.202.855 2.028 2.146 2.028 1.26 0 2.115-.826 2.115-2.028zm-2.115 3.424h-2.84v12.212l2.84-.601v-11.611zm-5.748-3.424c0-1.187-.855-2.013-2.115-2.013-1.29 0-2.146.826-2.146 2.013 0 1.202.855 2.028 2.146 2.028 1.26 0 2.115-.826 2.115-2.028zm-2.115 3.424h-2.84v12.212l2.84-.601v-11.611zm-5.064 0h-2.568l-.105.886c-.585-.601-1.547-1.157-2.943-1.157-3.383 0-5.02 3.035-5.02 6.19 0 3.165 1.67 6.575 5.094 6.575 1.213 0 2.1-.375 2.7-.886v5.22l2.84.602V5.99zm-2.79 6.19c0 2.552-.947 4.173-2.717 4.173-.901 0-1.681-.375-2.191-1.035v6.223c.556.646 1.277 1.006 2.222 1.006 1.816 0 2.686-1.718 2.686-4.091 0-2.552-.947-4.275-2.717-4.275-.901 0-1.681.375-2.191-1.035v6.223c.556.646 1.277 1.006 2.222 1.006 1.816 0 2.686-1.718 2.686-4.091zm-7.608-2.618c0-2.2-.841-3.573-3.123-3.573-1.006 0-1.921.375-2.507 1.018V6.14h-2.841v15.228l2.841-.601V12.78c.556-.556 1.352-.855 2.252-.855 1.157 0 1.532.555 1.532 1.636v7.712l2.84-.602v-11.1zm-10.457-3.573c-2.313 0-3.874 1.141-3.874 3.035 0 4.159 5.674 3.514 5.674 5.375 0 .736-.676 1.036-1.637 1.036-1.216 0-2.642-.511-3.664-1.126l-.886 2.146c1.111.66 2.822 1.186 4.545 1.186 2.508 0 4.484-1.171 4.484-3.23 0-4.46-5.67-3.769-5.67-5.361 0-.616.556-1.02 1.516-1.02.946 0 2.29.375 3.197.87l.87-2.115c-1.021-.57-2.433-.826-3.395-.826z" fill="#6366F1"/>
+             </svg>
+             <h3>Securely Processing...</h3>
+             <p>Please do not refresh the page or close your browser.</p>
+             <div className="encryption-badge">
+                <ShieldCheck size={14} /> 256-bit SSL Encryption
+             </div>
+           </div>
+         </div>
+       )}
     </div>
   );
 }

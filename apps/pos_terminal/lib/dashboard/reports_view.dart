@@ -1211,31 +1211,8 @@ class _ReportsViewState extends State<ReportsView> {
 
     return Column(
       children: [
-        // Top KPI Boxes
-        Padding(
-          padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
-                  child: _buildKPI('Total Income', '\$${totalIncome.toStringAsFixed(2)}', Icons.trending_up_rounded, Colors.green, card, text, border, hint),
-                ),
-                const SizedBox(width: 20),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
-                  child: _buildKPI('Total Expenses', '\$${totalExpense.toStringAsFixed(2)}', Icons.trending_down_rounded, Colors.red, card, text, border, hint),
-                ),
-                const SizedBox(width: 20),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
-                  child: _buildKPI('Net Profit', '\$${netProfit.toStringAsFixed(2)}', Icons.account_balance_wallet_rounded, primary, card, text, border, hint),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // 4. Visual Financial Overview (Real-time from Endpoint)
+        _buildFinancialVisuals(text, card, border, primary, hint),
 
         // Filter Bar
         Container(
@@ -1608,6 +1585,163 @@ class _ReportsViewState extends State<ReportsView> {
           ],
         ),
         Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: isBold ? 18 : 14)),
+      ],
+    );
+  }
+
+  Widget _buildFinancialVisuals(Color text, Color card, Color border, Color primary, Color hint) {
+    final financials = widget.financialData;
+    final grossSales = double.tryParse(financials['gross_sales']?.toString() ?? '0') ?? 0.0;
+    final cogs = double.tryParse(financials['cogs']?.toString() ?? '0') ?? 0.0;
+    final expenses = double.tryParse(financials['expenses']?.toString() ?? '0') ?? 0.0;
+    final netProfit = double.tryParse(financials['net_profit']?.toString() ?? '0') ?? 0.0;
+    final grossProfit = grossSales - cogs;
+    
+    final grossMargin = grossSales > 0 ? (grossProfit / grossSales) * 100 : 0.0;
+    final netMargin = grossSales > 0 ? (netProfit / grossSales) * 100 : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildVisualMetricCard(
+                        'Gross Profit',
+                        '\$${grossProfit.toStringAsFixed(2)}',
+                        '${grossMargin.toStringAsFixed(1)}% Margin',
+                        Icons.account_balance_rounded,
+                        Colors.blue,
+                        card, text, border, hint
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: _buildVisualMetricCard(
+                        'Net Profit',
+                        '\$${netProfit.toStringAsFixed(2)}',
+                        '${netMargin.toStringAsFixed(1)}% Margin',
+                        Icons.monetization_on_rounded,
+                        Colors.green,
+                        card, text, border, hint
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 2,
+                child: _buildProfitBreakdownCard(grossSales, cogs, expenses, netProfit, card, text, border, primary, hint),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVisualMetricCard(String label, String value, String subtitle, IconData icon, Color color, Color card, Color text, Color border, Color hint) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: border),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(icon, color: color, size: 32),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(color: hint, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                const SizedBox(height: 4),
+                Text(value, style: TextStyle(color: text, fontSize: 26, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(subtitle, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfitBreakdownCard(double gross, double cogs, double exp, double net, Color card, Color text, Color border, Color primary, Color hint) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Profitability Waterfall', style: TextStyle(color: text, fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          _buildWaterfallBar('Revenue', gross, gross, Colors.blue, text, border),
+          const SizedBox(height: 12),
+          _buildWaterfallBar('COGS', cogs, gross, Colors.orange, text, border),
+          const SizedBox(height: 12),
+          _buildWaterfallBar('Expenses', exp, gross, Colors.red, text, border),
+          const SizedBox(height: 12),
+          _buildWaterfallBar('Net Profit', net, gross, Colors.green, text, border),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWaterfallBar(String label, double value, double max, Color color, Color text, Color border) {
+    final percent = max > 0 ? (value / max) : 0.0;
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.w500)),
+            Text('\$${value.toStringAsFixed(2)}', style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: percent.clamp(0.0, 1.0),
+            backgroundColor: border,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 6,
+          ),
+        ),
       ],
     );
   }

@@ -154,7 +154,7 @@ router.post('/', async (req, res) => {
     }
 
     await connection.commit();
-    res.status(201).json({ message: 'Order processed', orderId });
+    res.status(201).json({ message: 'Order processed', orderId, orderNumber });
   } catch (err) {
     await connection.rollback();
     console.error('API Error:', err.message);
@@ -343,7 +343,7 @@ router.get('/', async (req, res) => {
       const [items] = await db.query(
         `SELECT oi.id, oi.quantity, oi.subtotal, oi.notes, 
                 COALESCE(mi.name, 'Unknown Item') as name, oi.menu_item_id,
-                COALESCE(mi.price, 0) as unit_price
+                COALESCE(mi.price, 0) as unit_price, mi.image
          FROM order_items oi 
          LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id 
          WHERE oi.order_id = ?`,

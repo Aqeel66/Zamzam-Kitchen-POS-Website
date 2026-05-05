@@ -61,3 +61,6 @@ app.*.map.json
 # Production Deployment Artifacts (Tracked for Hostinger auto-update)
 !apps/backend/public/
 !apps/backend/assets/
+
+# Antigravity Scratch
+scratch/

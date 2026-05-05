@@ -27,10 +27,19 @@ export default function Menu() {
     const fetchMenu = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/menu`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        setMenuData(data);
+        if (Array.isArray(data)) {
+          setMenuData(data);
+        } else {
+          console.error('Expected array from /menu, got:', data);
+          setMenuData([]);
+        }
       } catch (error) {
         console.error('Error fetching menu:', error);
+        setMenuData([]);
       } finally {
         setIsLoading(false);
       }
@@ -38,7 +47,7 @@ export default function Menu() {
     fetchMenu();
   }, []);
 
-  const categories = ["All Items", ...menuData.map(cat => cat.name)];
+  const categories = ["All Items", ...(Array.isArray(menuData) ? menuData.map(cat => cat.name) : [])];
 
   const renderSection = (category: string, items: any[], isLarge = false) => (
     <section key={category} className="mb-5">
@@ -161,12 +170,17 @@ export default function Menu() {
             </nav>
 
             <div className="menu-content-area">
-               {activeCategory === 'All Items' ? (
-                 renderSection('All Items', menuData.flatMap(cat => cat.items))
+               {menuData.length === 0 ? (
+                 <div className="text-center py-10">
+                   <h3 className="text-gray-500">No items found in this category.</h3>
+                   <p className="text-gray-400">Please check back later or try another category.</p>
+                 </div>
+               ) : activeCategory === 'All Items' ? (
+                 renderSection('All Items', menuData.flatMap(cat => cat.items || []))
                ) : (
                  menuData
                    .filter(cat => cat.name === activeCategory)
-                   .map(category => renderSection(category.name, category.items, category.name === 'Mandi'))
+                   .map(category => renderSection(category.name, category.items || [], category.name === 'Mandi'))
                )}
             </div>
           </>

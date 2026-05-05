@@ -16,6 +16,8 @@ router.get('/', async (req, res) => {
     const [categories] = await db.query(`SELECT * FROM categories ${hasCatDeleted ? 'WHERE is_deleted = FALSE' : ''}`);
     const [items] = await db.query(`SELECT * FROM menu_items ${hasItemDeleted ? 'WHERE is_deleted = FALSE' : ''}`);
     
+    console.log(`🔍 [Menu API] Found ${categories.length} categories and ${items.length} items`);
+    
     // Fetch phase 3 customizations & recipes
     // Check if tables exist before querying to avoid 500 errors
     let variants = [];
@@ -144,7 +146,7 @@ router.delete('/categories/:id', async (req, res) => {
 // @desc    Create a new menu item
 router.post('/items', async (req, res) => {
   try {
-    const { category_id, name, description, price, is_available, dietary_info, prep_station, image } = req.body;
+    const { category_id, name, description, price, is_available, dietary_info, prep_station, image, is_featured, badge } = req.body;
     
     if (!category_id || !name || price === undefined) {
       return res.status(400).json({ success: false, message: 'Category ID, name, and price are required' });
@@ -152,8 +154,8 @@ router.post('/items', async (req, res) => {
 
     const [result] = await db.query(
       `INSERT INTO menu_items 
-      (category_id, name, description, price, is_available, dietary_info, prep_station, image) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (category_id, name, description, price, is_available, dietary_info, prep_station, image, is_featured, badge) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         category_id, 
         name, 
@@ -162,7 +164,9 @@ router.post('/items', async (req, res) => {
         is_available !== undefined ? is_available : true, 
         dietary_info || null, 
         prep_station || 'General',
-        image || null
+        image || null,
+        is_featured ? 1 : 0,
+        badge || null
       ]
     );
 
@@ -181,11 +185,11 @@ router.post('/items', async (req, res) => {
 router.patch('/items/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { category_id, name, description, price, is_available, dietary_info, prep_station, image } = req.body;
+    const { category_id, name, description, price, is_available, dietary_info, prep_station, image, is_featured, badge } = req.body;
 
     await db.query(
       `UPDATE menu_items 
-       SET category_id = ?, name = ?, description = ?, price = ?, is_available = ?, dietary_info = ?, prep_station = ?, image = ? 
+       SET category_id = ?, name = ?, description = ?, price = ?, is_available = ?, dietary_info = ?, prep_station = ?, image = ?, is_featured = ?, badge = ? 
        WHERE id = ?`,
       [
         category_id, 
@@ -196,6 +200,8 @@ router.patch('/items/:id', async (req, res) => {
         dietary_info, 
         prep_station, 
         image, 
+        is_featured ? 1 : 0,
+        badge || null,
         id
       ]
     );

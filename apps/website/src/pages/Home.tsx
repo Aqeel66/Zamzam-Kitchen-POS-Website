@@ -16,10 +16,19 @@ export default function Home() {
     const fetchMenu = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/menu`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        setMenuData(data);
+        if (Array.isArray(data)) {
+          setMenuData(data);
+        } else {
+          console.error('Expected array from /menu, got:', data);
+          setMenuData([]);
+        }
       } catch (error) {
         console.error('Error fetching menu:', error);
+        setMenuData([]);
       } finally {
         setIsLoading(false);
       }
@@ -27,13 +36,22 @@ export default function Home() {
     fetchMenu();
   }, []);
 
-  const categories = ["All Items", ...menuData.map(cat => cat.name)];
+  const categories = ["All Items", ...(Array.isArray(menuData) ? menuData.map(cat => cat.name) : [])];
   
   // Get items for the grid
-  const displayedItems = menuData
-    .filter(cat => activeCategory === 'All Items' || activeCategory === cat.name)
-    .flatMap(cat => cat.items)
-    .slice(0, 4); // Show only top 4 on home
+  const displayedItems = Array.isArray(menuData) 
+    ? menuData
+        .filter(cat => activeCategory === 'All Items' || activeCategory === cat.name)
+        .flatMap(cat => cat.items || [])
+        .slice(0, 4) // Show only top 4 on home
+    : [];
+
+  // Filter featured items for the carousel
+  const featuredItems = Array.isArray(menuData)
+    ? menuData
+        .flatMap(cat => cat.items || [])
+        .filter(item => item.is_featured)
+    : [];
   
   return (
     <div className="home-page">
@@ -56,6 +74,46 @@ export default function Home() {
             </div>
         </div>
       </section>
+
+      {/* Chef's Specials Carousel */}
+      {featuredItems.length > 0 && (
+        <section className="specials-section section-padding">
+          <div className="section-header text-center mb-5">
+            <span className="overline text-orange">CHEF'S SELECTION</span>
+            <h2 className="section-title">Today's Specials</h2>
+            <p className="section-subtitle">Hand-picked delicacies prepared with passion by our executive chef.</p>
+          </div>
+          
+          <div className="specials-carousel-container">
+            <div className="specials-carousel">
+              {featuredItems.map(item => (
+                <div key={`special-${item.id}`} className="special-card-premium">
+                  <div className="special-card-inner">
+                    <div className="special-img" style={{ 
+                      backgroundImage: `url(${resolveImageUrl(item.image)})`
+                    }}>
+                      <div className="special-badge">{item.badge || 'SPECIAL'}</div>
+                    </div>
+                    <div className="special-info">
+                      <div className="special-header">
+                        <h3>{item.name}</h3>
+                        <span className="special-price">${parseFloat(item.price).toFixed(2)}</span>
+                      </div>
+                      <p>{item.description || 'A masterpiece of flavor and fresh ingredients.'}</p>
+                      <button 
+                        className="btn-special-add"
+                        onClick={() => addToCart({ id: item.id, name: item.name, price: parseFloat(item.price), image: item.image })}
+                      >
+                        Add to Order
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Our Menu Section - Matching Image */}
       <section className="section-padding section-bg-light">

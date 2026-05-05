@@ -260,25 +260,24 @@ class ReceiptService {
                     children: [
                       if (primaryLogo != null)
                         pw.Container(
-                          height: 80,
-                          width: 150,
+                          height: 60,
                           alignment: pw.Alignment.centerLeft,
                           child: pw.Image(primaryLogo, fit: pw.BoxFit.contain),
                         )
                       else
-                        pw.Text(businessName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                        pw.Text(businessName, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
                       
-                      pw.SizedBox(height: 12),
+                      pw.SizedBox(height: 8),
                       pw.Text(businessName.toUpperCase(), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                       if (businessAddress.isNotEmpty) pw.Padding(
                         padding: const pw.EdgeInsets.only(top: 2),
-                        child: pw.Text(businessAddress, style: const pw.TextStyle(fontSize: 9)),
+                        child: pw.Text(businessAddress, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
                       ),
                       if (businessPhone.isNotEmpty || businessEmail.isNotEmpty) pw.Padding(
                         padding: const pw.EdgeInsets.only(top: 2),
                         child: pw.Text(
                           '${businessPhone.isNotEmpty ? "Tel: $businessPhone" : ""} ${businessEmail.isNotEmpty ? " | Email: $businessEmail" : ""}',
-                          style: const pw.TextStyle(fontSize: 9),
+                          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800),
                         ),
                       ),
                     ],
@@ -288,17 +287,20 @@ class ReceiptService {
                     children: [
                       if (secondaryLogo != null)
                         pw.Container(
-                          height: 40,
-                          width: 80,
+                          height: 45,
+                          width: 45,
                           alignment: pw.Alignment.centerRight,
                           child: pw.Image(secondaryLogo, fit: pw.BoxFit.contain),
-                        ),
-                      pw.SizedBox(height: 12),
-                      pw.Text('INVOICE', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
-                      pw.SizedBox(height: 8),
-                      pw.Text('Order No: ${order['order_number'] ?? order['id']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Date: ${DateFormat('dd MMM yyyy HH:mm').format(orderTime)}'),
-                      pw.Text('Status: ${(order['status'] ?? 'Completed').toString().toUpperCase()}', style: pw.TextStyle(fontSize: 10, color: PdfColors.green)),
+                        )
+                      else
+                         pw.Container(height: 45), // Placeholder to maintain alignment
+                      pw.SizedBox(height: 10),
+                      pw.Text('INVOICE', style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                      pw.SizedBox(height: 4),
+                      pw.Text('Order No: ${order['order_number'] ?? order['id']}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Date: ${DateFormat('dd MMM yyyy HH:mm').format(orderTime)}', style: const pw.TextStyle(fontSize: 11)),
+                      pw.Text('Status: ${(order['status'] ?? 'Completed').toString().toUpperCase()}', 
+                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: order['status'] == 'Pending' ? PdfColors.orange : PdfColors.green)),
                     ],
                   ),
                 ],
@@ -365,17 +367,19 @@ class ReceiptService {
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('Subtotal:'),
-                            pw.Text('$currency${(double.tryParse(order['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}'),
+                            pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 12)),
+                            pw.Text('$currency${(double.tryParse(order['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 12)),
                           ],
                         ),
-                        pw.Divider(color: PdfColors.grey300),
+                        pw.SizedBox(height: 10),
+                        pw.Divider(color: PdfColors.grey300, thickness: 1),
+                        pw.SizedBox(height: 10),
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('GRAND TOTAL:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                            pw.Text('GRAND TOTAL:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                             pw.Text('$currency${(double.tryParse(order['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', 
-                              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
                           ],
                         ),
                       ],

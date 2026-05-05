@@ -8,12 +8,12 @@ export default function Cart() {
   const navigate = useNavigate();
 
   return (
-    <div className="cart-page section-padding cart-container">
+    <div className="cart-page section-padding cart-container" style={{ paddingTop: '3rem', paddingBottom: '3rem' }}>
       <button onClick={() => navigate('/menu')} style={{ background: 'none', border: 'none', color: '#ff6b35', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, marginBottom: '2rem', cursor: 'pointer' }}>
          <ArrowLeft size={18}/> Back to Menu
       </button>
 
-      <h1 className="mb-4">Your Cart</h1>
+
 
       {/* Table chip for QR orders */}
       {tableId && tableNumber && (
@@ -44,10 +44,10 @@ export default function Cart() {
       ) : (
          <div className="cart-content">
             <h1 className="mb-8">Your Shopping Cart</h1>
-            <div className="cart-items" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div className="cart-items" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2.5rem' }}>
                {items.map(item => (
                   <div key={item.id} className="cart-item">
-                     <div className="cart-item-image" style={{ width: '80px', height: '80px', borderRadius: '12px', background: '#e5e7eb', backgroundImage: `url(${resolveImageUrl(item.image)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                     <div className="cart-item-image" style={{ width: '65px', height: '65px', borderRadius: '10px', background: '#e5e7eb', backgroundImage: `url(${resolveImageUrl(item.image)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
                      <div style={{ flex: 1 }}>
                         <h4 className="mb-2">{item.name}</h4>
                         <span style={{ color: '#ff6b35', fontWeight: 700 }}>${item.price.toFixed(2)}</span>
@@ -65,16 +65,16 @@ export default function Cart() {
             </div>
 
             <div className="cart-summary">
-               <div>
-                  <p style={{ color: '#9ca3af', marginBottom: '0.25rem' }}>Total Amount</p>
-                  <h2 style={{ fontSize: '2rem', margin: 0 }}>${totalPrice.toFixed(2)}</h2>
-                  {tableId && tableNumber && (
-                    <p style={{ color: '#f5a623', fontSize: '0.8rem', margin: '0.25rem 0 0', fontWeight: 600 }}>
-                      📍 Table {tableNumber} · Dine-In
-                    </p>
-                  )}
-               </div>
-               <button className="btn-primary" onClick={() => navigate('/checkout')} style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>Proceed to Checkout</button>
+                <div>
+                   <p style={{ color: '#9ca3af', marginBottom: '0.25rem', fontSize: '0.85rem' }}>Total Amount</p>
+                   <h2>${totalPrice.toFixed(2)}</h2>
+                   {tableId && tableNumber && (
+                     <p style={{ color: '#f5a623', fontSize: '0.75rem', margin: '0.25rem 0 0', fontWeight: 600 }}>
+                       📍 Table {tableNumber} · Dine-In
+                     </p>
+                   )}
+                </div>
+                <button className="btn-primary" onClick={() => navigate('/checkout')} style={{ padding: '0.8rem 2rem' }}>Proceed to Checkout</button>
             </div>
          </div>
       )}
