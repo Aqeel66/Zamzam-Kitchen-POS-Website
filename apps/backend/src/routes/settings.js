@@ -46,6 +46,9 @@ router.patch('/tenant', async (req, res) => {
     const [columns] = await db.query('DESCRIBE tenant_settings');
     const existingColumns = columns.map(c => c.Field);
     
+    const updates = [];
+    const values = [];
+    
     for (const key of allowedFields) {
       if (fields[key] !== undefined && existingColumns.includes(key)) {
         updates.push(`${key} = ?`);
