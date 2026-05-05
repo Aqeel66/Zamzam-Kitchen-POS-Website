@@ -6741,42 +6741,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Split Bill Button (Compact) - Only show if not Pay First
-                  if (_paymentPolicy != 'Pay First') ...[
-                    SizedBox(
-                      width: 42,
-                      height: 42,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _showSplitBillDialog,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple.withValues(alpha: 0.1),
-                          foregroundColor: Colors.purple,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: const Icon(Icons.call_split_rounded, size: 20),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Merge Bill Button (Compact)
-                    SizedBox(
-                      width: 42,
-                      height: 42,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _showMergeBillDialog,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange.withValues(alpha: 0.1),
-                          foregroundColor: Colors.orange,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: const Icon(Icons.merge_type_rounded, size: 20),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
                   // Primary Action Button(s) (Send to Kitchen AND/OR Pay Now)
                   if (_paymentPolicy == 'Pay All') ...[
                     // Send to Kitchen / Update Order Button
@@ -8169,7 +8133,55 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   onPressed: () => _handlePdfDownload(Map<String, dynamic>.from(order)),
                                 ),
                               ),
-                              // 5. View Details
+                              // 5. Split Bill Button
+                              Tooltip(
+                                message: LocalizationService().translate('split_bill'),
+                                child: IconButton(
+                                  icon: Icon(Icons.call_split_rounded, color: Colors.purple, size: 20),
+                                  onPressed: () {
+                                    setState(() {
+                                      _cartItems = (order['items'] as List).map((item) => {
+                                        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
+                                        'name': item['name'],
+                                        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
+                                                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
+                                        'quantity': item['quantity'],
+                                        'notes': item['notes'],
+                                        'extras': item['extras'],
+                                        'variants': item['variants'],
+                                      }).toList();
+                                      _editingOrderId = order['id'];
+                                      _orderType = order['order_type'] ?? 'Dine-In';
+                                    });
+                                    _showSplitBillDialog();
+                                  },
+                                ),
+                              ),
+                              // 6. Merge Bill Button
+                              Tooltip(
+                                message: LocalizationService().translate('merge_bill'),
+                                child: IconButton(
+                                  icon: Icon(Icons.merge_type_rounded, color: Colors.orange, size: 20),
+                                  onPressed: () {
+                                    setState(() {
+                                      _cartItems = (order['items'] as List).map((item) => {
+                                        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
+                                        'name': item['name'],
+                                        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
+                                                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
+                                        'quantity': item['quantity'],
+                                        'notes': item['notes'],
+                                        'extras': item['extras'],
+                                        'variants': item['variants'],
+                                      }).toList();
+                                      _editingOrderId = order['id'];
+                                      _orderType = order['order_type'] ?? 'Dine-In';
+                                    });
+                                    _showMergeBillDialog();
+                                  },
+                                ),
+                              ),
+                              // 7. View Details
                               Tooltip(
                                 message: LocalizationService().translate('view_details'),
                                 child: IconButton(
