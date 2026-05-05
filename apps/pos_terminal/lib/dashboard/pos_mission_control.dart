@@ -112,6 +112,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   List<ui_kit.RestaurantTable>? _restaurantTables;
   ui_kit.RestaurantTable? _selectedTable;
+  int _partySize = 1;
 
   // User Management State
   List<dynamic> _users = [];
@@ -204,10 +205,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     });
 
     // Background Refresh Logic: Optimized intervals
-    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      // High-priority operational data (every 60s)
-      _fetchReservations();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _fetchOrders();
+      _fetchReservations();
+      _fetchInventory();
       _fetchSummary();
       _fetchTables();
       
@@ -907,10 +908,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchReservations({DateTime? date}) async {
     final targetDate = date ?? _dashboardDate;
-    final dateStr = "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
+    
+    // We fetch a range: from start of current month to end of next month
+    // to ensure we see upcoming bookings in the Reservations tab
+    final now = DateTime.now();
+    final firstDay = DateTime(now.year, now.month, 1);
+    final lastDay = DateTime(now.year, now.month + 2, 0); // End of next month
+    
+    final startStr = "${firstDay.year}-${firstDay.month.toString().padLeft(2, '0')}-${firstDay.day.toString().padLeft(2, '0')}";
+    final endStr = "${lastDay.year}-${lastDay.month.toString().padLeft(2, '0')}-${lastDay.day.toString().padLeft(2, '0')}";
+
     try {
       final response = await http.get(
-        Uri.parse('${ThemeService.apiBaseUrl}/api/reservations?startDate=$dateStr&endDate=$dateStr'),
+        Uri.parse('${ThemeService.apiBaseUrl}/api/reservations?startDate=$startStr&endDate=$endStr'),
       );
       if (response.statusCode == 200) {
         if (mounted) {
@@ -932,16 +942,25 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     for (var res in reservations) {
       final id = res['id'].toString();
       final status = res['status']?.toString().toLowerCase();
-      if (status == 'pending' && !_notifiedReservationIds.contains(id)) {
+      // Notify for both Pending and Confirmed (from website) if not yet notified
+      if ((status == 'pending' || status == 'confirmed') && !_notifiedReservationIds.contains(id)) {
         _notifiedReservationIds.add(id);
+        
+        final String firstName = res['first_name'] ?? '';
+        final String lastName = res['last_name'] ?? '';
+        final String fullName = '$firstName $lastName'.trim();
+        final String customerDisplay = fullName.isNotEmpty ? fullName : (res['customer_name'] ?? 'Guest');
+
         _addNotification({
           'id': 'res_$id',
           'type': 'reservation',
-          'title': LocalizationService().translate('new_reservation'),
-          'subtitle': '${res['customer_name'] ?? 'Guest'} - ${res['reservation_time']}',
+          'title': status == 'confirmed' 
+            ? LocalizationService().translate('confirmed_reservation') 
+            : LocalizationService().translate('new_reservation'),
+          'subtitle': '$customerDisplay - ${res['reservation_time']}',
           'time': DateTime.now().toIso8601String(),
-          'icon': Icons.event_note,
-          'color': Colors.blue,
+          'icon': Icons.event_available,
+          'color': status == 'confirmed' ? Colors.green : Colors.blue,
         });
         hasNew = true;
       }
@@ -2137,6 +2156,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         } : (_orderType == 'Delivery' ? {'address': _customerAddressController.text} : null),
         'shipping_address': _customerAddressController.text,
         'origin': 'In-Store',
+        'party_size': _partySize,
       };
 
       final response = _editingOrderId != null
@@ -2449,61 +2469,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         _buildPaymentMethodOption('Card', Icons.credit_card_rounded, setDialogState),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    // Promo Code Input
-                    Container(
-                      decoration: BoxDecoration(
-                        color: themeBorder.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: themeBorder.withOpacity(0.2)),
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 12),
-                          Icon(Icons.confirmation_number_outlined, color: themeHint, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: _promoCodeController,
-                              decoration: InputDecoration(
-                                hintText: LocalizationService().translate('promo_code_hint') ?? 'Enter Promo Code',
-                                hintStyle: TextStyle(color: themeHint),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              style: TextStyle(color: themeText),
-                              onSubmitted: (_) => _applyPromoCode(setDialogState),
-                            ),
-                          ),
-                          if (_appliedPromo != null) 
-                            IconButton(
-                              icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-                              onPressed: () => _removePromoCode(setDialogState),
-                            )
-                          else
-                            TextButton(
-                              onPressed: () => _applyPromoCode(setDialogState),
-                              child: Text(
-                                LocalizationService().translate('apply') ?? 'Apply', 
-                                style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold)
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (_promoError != null) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            _promoError!,
-                            style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -4473,7 +4438,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       if (n['type'] == 'order' || n['type'] == 'payment') {
                         setState(() => _selectedTabIndex = 3); // Orders tab
                       } else if (n['type'] == 'reservation') {
-                        setState(() => _selectedTabIndex = 5); // Reservations tab
+                        setState(() {
+                          _selectedTabIndex = 5; // Reservations tab
+                          _fetchReservations();
+                        });
                       } else if (n['type'] == 'inventory') {
                         setState(() {
                           _selectedTabIndex = 1;
@@ -4750,6 +4718,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       onTap: () => setState(() {
         _selectedTabIndex = index;
         if (index == 1) _selectedDashboardTab = 0; // Reset to Overview when clicking Dashboard tab
+        if (index == 5) _fetchReservations(); // Refresh when entering Reservations
       }),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -5862,7 +5831,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           ),
                           _StatusRow(
                             label: LocalizationService().translate('today_reservations'),
-                            value: '${_reservations.length}',
+                            value: '${_reservations.where((r) {
+                              try {
+                                DateTime rd = DateTime.parse(r['reservation_date']).toLocal();
+                                return rd.year == _dashboardDate.year && rd.month == _dashboardDate.month && rd.day == _dashboardDate.day;
+                              } catch(_) { return false; }
+                            }).length}',
                             icon: Icons.event_available,
                             color: themePrimary,
                           ),
@@ -7375,7 +7349,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         crossAxisCount: 6,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.82, // Balanced ratio for stability
+        childAspectRatio: 1.15, // Shorter boxes for better scrolling and density
       ),
       itemCount: filteredOrders.length,
       itemBuilder: (context, index) {
@@ -7624,11 +7598,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     // An order is considered paid if status is 'paid' or payment_status is 'paid'
     bool isPaid = status == 'paid' || paymentStatus == 'paid' || (order['payment_method'] != null && order['payment_method'].toString().isNotEmpty);
     
-    if (isPaid) return const SizedBox.shrink(); 
+    if (isPaid) {
+      Color color = Colors.green;
+      String label = LocalizationService().translate('paid').toUpperCase();
+      IconData icon = Icons.check_circle_rounded;
+      return _buildStatusBadge(color, label, icon);
+    }
     
     Color color = Colors.deepOrange;
     String label = LocalizationService().translate('unpaid').toUpperCase();
     IconData icon = Icons.warning_amber_rounded;
+    return _buildStatusBadge(color, label, icon);
+  }
+
+  Widget _buildStatusBadge(Color color, String label, IconData icon) {
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.2, end: 1.0),
@@ -8450,6 +8433,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      onPressed: () => _fetchReservations(),
+                      icon: Icon(Icons.refresh_rounded, color: themePrimary),
+                      tooltip: LocalizationService().translate('refresh'),
+                    ),
                     const Spacer(),
                     _buildReservationFilters(),
                   ],
@@ -8481,7 +8470,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               children: [
                                 Row(
                                   children: [
-                                    Text('${res['first_name']} ${res['last_name'] ?? ''}'.trim(), 
+                                    Text('${res['first_name'] ?? ''} ${res['last_name'] ?? ''}'.trim(), 
                                       style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 12),
                                     _buildReservationStatusChip(res['status'] ?? 'pending'),
@@ -9383,11 +9372,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   }
 
   void _updateTableCoord(ui_kit.RestaurantTable table, double x, double y) async {
+    // Defensive clamping
+    final safeX = x < 0 ? 0.0 : x;
+    final safeY = y < 0 ? 0.0 : y;
+    
     try {
       await http.patch(
         Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'pos_x': x, 'pos_y': y}),
+        body: json.encode({'pos_x': safeX, 'pos_y': safeY}),
       );
     } catch (e) {
       debugPrint('Error updating table: $e');
@@ -9563,6 +9556,46 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   ],
                 ),
               ),
+              
+              if (table.status == ui_kit.TableStatus.available || table.status == ui_kit.TableStatus.occupied)
+                StatefulBuilder(
+                  builder: (context, setDialogState) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: themeBg.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: themeBorder),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Party Size:', style: TextStyle(color: themeText, fontWeight: FontWeight.w600)),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.remove_circle_outline, color: _partySize > 1 ? themePrimary : themeHint),
+                                onPressed: _partySize > 1 ? () {
+                                  setDialogState(() => _partySize--);
+                                  setState(() {});
+                                } : null,
+                              ),
+                              Text('$_partySize', style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
+                              IconButton(
+                                icon: Icon(Icons.add_circle_outline, color: _partySize < available ? themePrimary : themeHint),
+                                onPressed: _partySize < available ? () {
+                                  setDialogState(() => _partySize++);
+                                  setState(() {});
+                                } : null,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                ),
               if (table.status == ui_kit.TableStatus.available || table.status == ui_kit.TableStatus.reserved)
                 ListTile(
                   leading: const Icon(Icons.add_shopping_cart, color: Colors.green),

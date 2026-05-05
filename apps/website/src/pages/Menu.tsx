@@ -86,7 +86,6 @@ export default function Menu() {
                      >
                         <Plus size={18}/> {isAvailable ? 'Add to Cart' : 'Out of Stock'}
                      </button>
-                     <button className="btn-details-icon"><Info size={18}/></button>
                   </div>
                </div>
             </div>

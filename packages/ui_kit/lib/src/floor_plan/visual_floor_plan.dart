@@ -99,13 +99,17 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
 
                 setState(() {
                   final index = tables.indexWhere((t) => t.id == table.id);
-                  tables[index].x = localOffset.dx;
-                  tables[index].y = localOffset.dy;
+                  // Clamp to prevent negative coordinates (off-screen)
+                  final clampedX = localOffset.dx.clamp(0.0, renderBox.size.width - 100);
+                  final clampedY = localOffset.dy.clamp(0.0, renderBox.size.height - 100);
+                  
+                  tables[index].x = clampedX;
+                  tables[index].y = clampedY;
+                  
+                  if (widget.onTableMoved != null) {
+                    widget.onTableMoved!(tables[index], clampedX, clampedY);
+                  }
                 });
-                
-                if (widget.onTableMoved != null) {
-                  widget.onTableMoved!(table, localOffset.dx, localOffset.dy);
-                }
               },
               child: _buildTableWidget(table),
             ),

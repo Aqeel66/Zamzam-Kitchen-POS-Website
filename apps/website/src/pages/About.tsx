@@ -74,7 +74,7 @@ export default function About() {
                <h2 className="white mb-4">Ready to Experience Fine Dining?</h2>
                <p className="white opacity-80 mb-5">Join us for an unforgettable meal or order your favorites online today.</p>
                <div className="hero-actions justify-center">
-                  <button className="btn-primary" onClick={() => window.location.href='/reservation'}>Book Your Table</button>
+                  <button className="book-table-btn" onClick={() => window.location.href='/reservation'}>Book Your Table</button>
                   <button className="btn-outline white" onClick={() => window.location.href='/menu'}>Explore Menu</button>
                </div>
           </div>

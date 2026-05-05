@@ -69,9 +69,13 @@ router.get('/available-tables', async (req, res) => {
     // We assume a reservation lasts for ~2 hours for simplicity
     console.log('Fetching available tables for:', { date, time });
 
-    const [tables] = await db.execute(`
-      SELECT * FROM restaurant_tables 
-      WHERE id NOT IN (
+    const [tables] = await db.execute(`SELECT t.*, 
+        (SELECT COALESCE(SUM(o.party_size), 0) 
+         FROM orders o 
+         WHERE o.table_id = t.id 
+         AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')) as current_occupancy
+      FROM restaurant_tables t
+      WHERE t.id NOT IN (
         SELECT table_id FROM reservations 
         WHERE reservation_date = ? 
         AND table_id IS NOT NULL
@@ -81,7 +85,16 @@ router.get('/available-tables', async (req, res) => {
           OR (reservation_time < ADDTIME(?, '01:59:00') AND reservation_time >= ?)
         )
       )
-    `, [date, time, time, time, time]);
+      AND (
+        -- If the reservation is for TODAY and the time is CLOSE to now (within 2 hours), 
+        -- check if the table is already full from live orders
+        NOT (
+          ? = CURDATE() 
+          AND ? >= SUBTIME(CURTIME(), '02:00:00') 
+          AND ? <= ADDTIME(CURTIME(), '02:00:00')
+          AND (SELECT COALESCE(SUM(o.party_size), 0) FROM orders o WHERE o.table_id = t.id AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')) >= t.capacity
+        )
+      )`, [date, time, time, time, time, date, time, time]);
 
     console.log('Found tables:', tables.length);
     res.json({ success: true, tables });

@@ -5,6 +5,53 @@
   min-height: 100vh;
 }
 
+.top-bar {
+  background-color: #111827;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0.6rem 4rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 201;
+}
+
+.top-bar-left, .top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.top-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.top-bar-item svg {
+  color: var(--primary-orange);
+}
+
+@media (max-width: 1024px) {
+  .top-bar {
+    padding: 0.6rem 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-bar {
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    text-align: center;
+  }
+  .top-bar-left, .top-bar-right {
+    gap: 1rem;
+    justify-content: center;
+  }
+}
+
 .header-container {
   display: flex;
   justify-content: space-between;
@@ -111,6 +158,67 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #4b5563;
+  transition: all 0.3s;
+  border: none;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--primary-orange);
+  color: white;
+}
+
+.cart-btn {
+  background: var(--primary-orange) !important;
+  color: white !important;
+  width: auto !important;
+  padding: 0 1rem !important;
+  border-radius: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  min-width: 50px;
+}
+
+.cart-btn:hover {
+  background: var(--primary-orange-hover) !important;
+}
+
+.cart-btn svg {
+  flex-shrink: 0;
+}
+
+/* Ensure cart badge is clear and not exclamation-like */
+.cart-badge {
+  position: static !important;
+  transform: none !important;
+  background: white !important;
+  color: var(--primary-orange) !important;
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 4px !important;
+}
+
+/* Fix for potential "exclamation sign" artifact */
+.cart-btn::before, .cart-btn::after {
+  display: none !important;
 }
 
 .mobile-menu-btn {

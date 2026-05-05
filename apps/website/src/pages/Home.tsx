@@ -1,4 +1,4 @@
-import { ShoppingCart, MapPin, Clock, Phone } from 'lucide-react';
+import { ShoppingCart, MapPin, Clock, Phone, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
@@ -11,6 +11,26 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [menuData, setMenuData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [branding, setBranding] = useState({
+    email: 'info@zamzamkitchen.com',
+    phone: '+61 3 9939 2479',
+    address: '329 Racecourse Road, VIC, Melbourne, Australia'
+  });
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.tenant) {
+          setBranding({
+            email: data.tenant.email || 'info@zamzamkitchen.com',
+            phone: data.tenant.phone || '+61 3 9939 2479',
+            address: data.tenant.address || '329 Racecourse Road, VIC, Melbourne, Australia'
+          });
+        }
+      })
+      .catch(err => console.error('Error fetching branding:', err));
+  }, []);
 
   useEffect(() => {
     const fetchMenu = async () => {
@@ -78,7 +98,7 @@ export default function Home() {
             </p>
             <div className="hero-actions justify-center">
                 <button className="btn-primary" onClick={() => navigate('/menu')}>Order Online Now</button>
-                <button className="btn-outline white" onClick={() => navigate('/reservation')}>Book Table Now</button>
+                <button className="book-table-btn" onClick={() => navigate('/reservation')}>Book Table Now</button>
             </div>
         </div>
       </section>
@@ -92,33 +112,31 @@ export default function Home() {
             <p className="section-subtitle">Hand-picked delicacies prepared with passion by our executive chef.</p>
           </div>
           
-          <div className="specials-carousel-container">
-            <div className="specials-carousel">
+          <div className="menu-preview-grid">
               {featuredItems.map(item => (
-                <div key={`special-${item.id}`} className="special-card-premium">
-                  <div className="special-card-inner">
-                    <div className="special-img" style={{ 
-                      backgroundImage: `url(${resolveImageUrl(item.image)})`
-                    }}>
-                      {item.badge && <div className="special-badge orange-gold">{item.badge}</div>}
-                    </div>
-                    <div className="special-info">
-                      <div className="special-header">
-                        <h3>{item.name}</h3>
-                        <span className="special-price">${parseFloat(item.price).toFixed(2)}</span>
+                  <div key={`special-${item.id}`} className="menu-card-premium">
+                      <div className="card-img-large" style={{ 
+                        backgroundImage: `url(${resolveImageUrl(item.image)})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}>
+                          {item.badge && <span className="card-badge orange-gold">{item.badge}</span>}
                       </div>
-                      <p>{item.description || 'A masterpiece of flavor and fresh ingredients.'}</p>
-                      <button 
-                        className="btn-special-add"
-                        onClick={() => addToCart({ id: item.id, name: item.name, price: parseFloat(item.price), image: item.image })}
-                      >
-                        Add to Order
-                      </button>
-                    </div>
+                      <div className="card-body">
+                          <div className="title-price-row">
+                              <h4>{item.name}</h4>
+                              <span className="price">${parseFloat(item.price).toFixed(2)}</span>
+                          </div>
+                          <p className="card-text">{item.description || 'A masterpiece of flavor and fresh ingredients.'}</p>
+                          <button 
+                             className="btn-add-cart-outline" 
+                             onClick={() => addToCart({ id: item.id, name: item.name, price: parseFloat(item.price), image: item.image })}
+                          >
+                             <Plus size={18}/> Add to Cart
+                          </button>
+                      </div>
                   </div>
-                </div>
               ))}
-            </div>
           </div>
         </section>
       )}
@@ -167,7 +185,7 @@ export default function Home() {
                              className="btn-add-cart-outline" 
                              onClick={() => addToCart({ id: item.id, name: item.name, price: parseFloat(item.price), image: item.image })}
                           >
-                             <ShoppingCart size={16}/> Add to Cart
+                             <Plus size={18}/> Add to Cart
                           </button>
                       </div>
                   </div>
@@ -217,7 +235,7 @@ export default function Home() {
                       <div className="icon-circle"><MapPin size={22}/></div>
                       <div className="text-col">
                           <strong>Address</strong>
-                          <span>Racecourse Road VIC, Melbourne, Australia</span>
+                          <span>{branding.address}</span>
                       </div>
                   </div>
                   <div className="info-item mb-4">
@@ -231,7 +249,7 @@ export default function Home() {
                       <div className="icon-circle"><Phone size={22}/></div>
                       <div className="text-col">
                           <strong>Contact</strong>
-                          <span>+0 (000) 000-0000 <br/> hello@zamzamkitchen.com</span>
+                          <span>{branding.phone} <br/> {branding.email}</span>
                       </div>
                   </div>
               </div>

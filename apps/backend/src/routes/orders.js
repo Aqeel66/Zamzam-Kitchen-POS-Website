@@ -63,8 +63,8 @@ router.post('/', async (req, res) => {
 
       const orderStatus = status || (payment_method ? 'Paid' : 'Pending');
       const [orderResult] = await connection.execute(
-        'INSERT INTO orders (order_number, branch_id, table_id, customer_id, user_id, order_type, status, total_amount, discount_amount, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [orderNumber, branch_id || 1, table_id || null, finalCustomerId || null, user_id || 1, normalizedOrderType, orderStatus, total, discount_amount || 0, origin || 'In-Store']
+        'INSERT INTO orders (order_number, branch_id, table_id, customer_id, user_id, order_type, status, total_amount, discount_amount, origin, party_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [orderNumber, branch_id || 1, table_id || null, finalCustomerId || null, user_id || 1, normalizedOrderType, orderStatus, total, discount_amount || 0, origin || 'In-Store', req.body.party_size || 1]
       );
     const orderId = orderResult.insertId;
 
@@ -521,8 +521,8 @@ router.put('/:id', async (req, res) => {
 
     // 1. Update order-level details
     await connection.execute(
-      'UPDATE orders SET table_id = ?, user_id = ?, customer_id = ?, order_type = ?, status = ?, total_amount = ?, discount_amount = ?, rejection_reason = ?, origin = ? WHERE id = ?',
-      [table_id || null, user_id || 1, finalCustomerId || null, order_type || 'Dine-In', status || 'Pending', total, discount_amount || 0, req.body.rejection_reason || null, req.body.origin || 'In-Store', id]
+      'UPDATE orders SET table_id = ?, user_id = ?, customer_id = ?, order_type = ?, status = ?, total_amount = ?, discount_amount = ?, rejection_reason = ?, origin = ?, party_size = ? WHERE id = ?',
+      [table_id || null, user_id || 1, finalCustomerId || null, order_type || 'Dine-In', status || 'Pending', total, discount_amount || 0, req.body.rejection_reason || null, req.body.origin || 'In-Store', req.body.party_size || 1, id]
     );
 
     // 1.5 Restore inventory for existing items before deleting them

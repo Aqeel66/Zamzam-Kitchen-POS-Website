@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import './Contact.css';
@@ -6,6 +6,26 @@ import './Contact.css';
 export default function Contact() {
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [branding, setBranding] = useState({
+    email: 'info@zamzamkitchen.com',
+    phone: '+61 3 9939 2479',
+    address: '329 Racecourse Road, VIC, Melbourne, Australia'
+  });
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.tenant) {
+          setBranding({
+            email: data.tenant.email || 'info@zamzamkitchen.com',
+            phone: data.tenant.phone || '+61 3 9939 2479',
+            address: data.tenant.address || '329 Racecourse Road, VIC, Melbourne, Australia'
+          });
+        }
+      })
+      .catch(err => console.error('Error fetching branding:', err));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,17 +63,17 @@ export default function Contact() {
              <div className="info-box-item">
                 <div className="icon-wrap"><MapPin size={28}/></div>
                 <h4 className="font-bold">Visit Us</h4>
-                <p className="text-muted text-sm">329 Racecourse Road. VIC,<br/>Melbourne Australia</p>
+                <p className="text-muted text-sm">{branding.address}</p>
              </div>
              <div className="info-box-item">
                 <div className="icon-wrap"><Phone size={28}/></div>
                 <h4 className="font-bold">Call Us</h4>
-                <p className="text-muted text-sm">Main: +0 (000) 000-0000<br/>Reservations: +0 (000) 000-0000</p>
+                <p className="text-muted text-sm">Main: {branding.phone}<br/>Reservations: +61 460 033 893</p>
              </div>
              <div className="info-box-item">
                 <div className="icon-wrap"><Mail size={28}/></div>
                 <h4 className="font-bold">Email Us</h4>
-                <p className="text-muted text-sm">hello@zamzamkitchen.com<br/>events@zamzamkitchen.com</p>
+                <p className="text-muted text-sm">{branding.email}</p>
              </div>
              <div className="info-box-item">
                 <div className="icon-wrap"><Clock size={28}/></div>

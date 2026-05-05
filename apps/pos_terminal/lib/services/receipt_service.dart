@@ -57,65 +57,66 @@ class ReceiptService {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.roll80,
-        margin: const pw.EdgeInsets.all(10),
+        margin: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         build: (pw.Context context) {
+          final isReservation = order['type'] == 'reservation';
+          
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
+              // Header
               if (logo != null || secondaryLogo != null)
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.center,
                   children: [
                     if (logo != null)
                       pw.Container(
-                        height: 35,
+                        height: 40,
                         child: pw.Image(logo, fit: pw.BoxFit.contain),
                       ),
-                    if (logo != null && secondaryLogo != null) pw.SizedBox(width: 15),
+                    if (logo != null && secondaryLogo != null) pw.SizedBox(width: 10),
                     if (secondaryLogo != null)
                       pw.Container(
                         height: 35,
                         child: pw.Image(secondaryLogo, fit: pw.BoxFit.contain),
                       ),
                   ],
-                )
-              else
-                pw.Text(restaurantName, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                ),
               
-              if (logo != null || secondaryLogo != null) pw.SizedBox(height: 4),
-              if (logo != null || secondaryLogo != null) pw.Text(restaurantName, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-              
-              if (address.isNotEmpty) pw.Text(address, style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.center),
+              pw.SizedBox(height: 6),
+              pw.Text(restaurantName.toUpperCase(), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              if (address.isNotEmpty) pw.Text(address, style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.center),
               if (phone.isNotEmpty || email.isNotEmpty) 
                 pw.Text('${phone.isNotEmpty ? "Tel: $phone" : ""} ${email.isNotEmpty ? " | $email" : ""}', 
                   style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.center),
-              pw.SizedBox(height: 8),
+              
+              pw.SizedBox(height: 10),
+              pw.Text(isReservation ? 'BOOKING RECEIPT' : 'ORDER RECEIPT', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 4),
+              
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Order #${order['order_number'] ?? order['id']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text(DateFormat('dd/MM/yyyy HH:mm').format(orderTime)),
+                  pw.Text('Order: #${order['order_number'] ?? order['id']}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                  pw.Text(DateFormat('dd/MM/yy HH:mm').format(orderTime), style: const pw.TextStyle(fontSize: 9)),
                 ],
               ),
-              if (order['split_info'] != null) ...[
-                pw.SizedBox(height: 2),
-                pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('SPLIT BILL', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Part ${order['split_info']['index']} of ${order['split_info']['total_splits']}', style: pw.TextStyle(fontSize: 10)),
-                    ],
-                  ),
+              if (order['customer_name'] != null)
+                pw.Align(
+                  alignment: pw.Alignment.centerLeft,
+                  child: pw.Text('Cust: ${order['customer_name']}', style: const pw.TextStyle(fontSize: 9)),
                 ),
-              ],
-              pw.Divider(thickness: 1),
-              pw.SizedBox(height: 5),
+              
+              pw.Divider(thickness: 0.5, color: PdfColors.grey),
+              pw.SizedBox(height: 4),
+              
+              // Items
               ...items.map((item) {
                 final extras = item['extras'] as List? ?? [];
                 final variants = item['variants'] as List? ?? [];
+                final double price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+                final int qty = int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
+
                 return pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
@@ -123,58 +124,58 @@ class ReceiptService {
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Expanded(
-                          child: pw.Text('${item['quantity']}x ${item['name']}', style: const pw.TextStyle(fontSize: 12)),
+                          child: pw.Text('$qty x ${item['name']}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                         ),
-                        pw.Text('$currency${(double.tryParse(item['price']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}'),
+                        pw.Text('$currency${(price * qty).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
                       ],
                     ),
                     ...variants.map((v) => pw.Padding(
-                      padding: const pw.EdgeInsets.only(left: 10),
-                      child: pw.Text('- ${v['name']}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                      padding: const pw.EdgeInsets.only(left: 8),
+                      child: pw.Text('- ${v['name']}', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
                     )),
                     ...extras.map((e) => pw.Padding(
-                      padding: const pw.EdgeInsets.only(left: 10),
-                      child: pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('+ ${e['name']}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                          pw.Text('$currency${(double.tryParse(e['price']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
-                        ],
-                      ),
+                      padding: const pw.EdgeInsets.only(left: 8),
+                      child: pw.Text('+ ${e['name']}', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
                     )),
-                    pw.SizedBox(height: 5),
+                    pw.SizedBox(height: 3),
                   ],
                 );
               }),
-              pw.Divider(thickness: 1),
+              
+              pw.Divider(thickness: 0.5, color: PdfColors.grey),
+              
+              // Totals
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text(order['split_info'] != null ? 'SPLIT TOTAL' : 'TOTAL', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('TOTAL', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                   pw.Text('$currency${(double.tryParse(order['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', 
                     style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                 ],
               ),
-              if (order['split_info'] != null) ...[
-                pw.SizedBox(height: 2),
+              
+              if ((double.tryParse(order['discount_amount']?.toString() ?? '0') ?? 0) > 0)
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Full Bill Total:', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                    pw.Text('$currency${(double.tryParse(order['full_total']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', 
-                      style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                    pw.Text('Discount:', style: const pw.TextStyle(fontSize: 9)),
+                    pw.Text('-$currency${(double.tryParse(order['discount_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9)),
                   ],
                 ),
-              ],
-              pw.SizedBox(height: 15),
-              pw.Text('Thank you for your visit!', style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
-              pw.SizedBox(height: 5),
+
+              pw.SizedBox(height: 12),
+              pw.Text('Thank you for your visit!', style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic)),
+              pw.SizedBox(height: 6),
+              
               pw.BarcodeWidget(
                 data: (order['order_number'] ?? order['id']).toString(),
                 barcode: pw.Barcode.code128(),
-                width: 100,
+                width: 120,
                 height: 30,
               ),
+              
+              pw.SizedBox(height: 8),
+              pw.Text('Zamzam Kitchen Unified System v2.5.0', style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
             ],
           );
         },
@@ -199,19 +200,20 @@ class ReceiptService {
     final pdf = pw.Document();
     final items = order['items'] as List? ?? [];
     final tenant = settings['tenant'] ?? {};
+    final branch = settings['branch'] ?? {};
     
-    final businessName = tenant['business_name'] ?? tenant['name'] ?? 'Zamzam Kitchen';
+    final businessName = (tenant['business_name'] ?? tenant['name'] ?? 'Zamzam Kitchen').toString().toUpperCase();
     final businessAddress = tenant['business_address'] ?? tenant['address'] ?? '';
     final businessPhone = tenant['business_phone'] ?? tenant['phone'] ?? '';
     final businessEmail = tenant['business_email'] ?? tenant['email'] ?? '';
     
     final currency = tenant['currency'] ?? '\$';
+    final currencyDisplay = currency == '\$' ? 'AUD' : currency;
     final orderTime = DateTime.tryParse(order['order_time']?.toString() ?? '') ?? DateTime.now();
 
-    final String primaryLogoUrl = ThemeService.resolveImageUrl(tenant['logo_url']);
-    final String secondaryLogoUrl = ThemeService.resolveImageUrl(tenant['secondary_logo_url']);
+    final String primaryLogoUrl = ThemeService.resolveImageUrl(tenant['logo_url'] ?? '');
+    final String secondaryLogoUrl = ThemeService.resolveImageUrl(tenant['secondary_logo_url'] ?? branch['secondary_logo_url'] ?? '');
 
-    // Fetch images with manual HTTP request for better reliability
     pw.ImageProvider? primaryLogo;
     pw.ImageProvider? secondaryLogo;
     
@@ -245,95 +247,116 @@ class ReceiptService {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
+        margin: const pw.EdgeInsets.all(40),
         build: (pw.Context context) {
+          final isReservation = order['type'] == 'reservation';
+          final status = (order['status'] ?? 'PAID').toString().toUpperCase();
+          final accentColor = PdfColor.fromInt(0xFF1A237E); // Deep Blue
+
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header with Logos and Company Info
+              // Header section
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
+                  // Left: Brand
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       if (primaryLogo != null)
                         pw.Container(
-                          height: 60,
+                          height: 70,
                           alignment: pw.Alignment.centerLeft,
                           child: pw.Image(primaryLogo, fit: pw.BoxFit.contain),
                         )
                       else
-                        pw.Text(businessName, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                        pw.Text(businessName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: accentColor)),
                       
-                      pw.SizedBox(height: 8),
-                      pw.Text(businessName.toUpperCase(), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 12),
+                      pw.Text(businessName, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                       if (businessAddress.isNotEmpty) pw.Padding(
                         padding: const pw.EdgeInsets.only(top: 2),
-                        child: pw.Text(businessAddress, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
-                      ),
-                      if (businessPhone.isNotEmpty || businessEmail.isNotEmpty) pw.Padding(
-                        padding: const pw.EdgeInsets.only(top: 2),
-                        child: pw.Text(
-                          '${businessPhone.isNotEmpty ? "Tel: $businessPhone" : ""} ${businessEmail.isNotEmpty ? " | Email: $businessEmail" : ""}',
-                          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800),
+                        child: pw.Container(
+                          width: 200,
+                          child: pw.Text(businessAddress, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
                         ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        '${businessPhone.isNotEmpty ? "Tel: $businessPhone" : ""} ${businessEmail.isNotEmpty ? " | Email: $businessEmail" : ""}',
+                        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
                       ),
                     ],
                   ),
+                  // Right: Invoice Meta
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
                       if (secondaryLogo != null)
                         pw.Container(
-                          height: 45,
-                          width: 45,
-                          alignment: pw.Alignment.centerRight,
+                          height: 50,
                           child: pw.Image(secondaryLogo, fit: pw.BoxFit.contain),
-                        )
-                      else
-                         pw.Container(height: 45), // Placeholder to maintain alignment
+                        ),
                       pw.SizedBox(height: 10),
-                      pw.Text('INVOICE', style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
-                      pw.SizedBox(height: 4),
-                      pw.Text('Order No: ${order['order_number'] ?? order['id']}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Date: ${DateFormat('dd MMM yyyy HH:mm').format(orderTime)}', style: const pw.TextStyle(fontSize: 11)),
-                      pw.Text('Status: ${(order['status'] ?? 'Completed').toString().toUpperCase()}', 
-                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: order['status'] == 'Pending' ? PdfColors.orange : PdfColors.green)),
+                      pw.Text(isReservation ? 'BOOKING RECEIPT' : 'INVOICE', 
+                        style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+                      pw.SizedBox(height: 6),
+                      pw.Row(
+                        mainAxisSize: pw.MainAxisSize.min,
+                        children: [
+                          pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                            child: pw.Text('POS TERMINAL', style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold)),
+                          ),
+                          pw.SizedBox(width: 4),
+                          pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: pw.BoxDecoration(color: status == 'PAID' ? PdfColors.green100 : PdfColors.orange100),
+                            child: pw.Text(status, style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold, color: status == 'PAID' ? PdfColors.green900 : PdfColors.orange900)),
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text('Order No: ${order['order_number'] ?? order['id']}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Date: ${DateFormat('dd MMM yyyy HH:mm').format(orderTime)}', style: const pw.TextStyle(fontSize: 9)),
                     ],
                   ),
                 ],
               ),
               
-              pw.SizedBox(height: 40),
-              pw.Divider(thickness: 2, color: PdfColors.blue900),
+              pw.SizedBox(height: 35),
+              pw.Divider(thickness: 1.5, color: accentColor),
               pw.SizedBox(height: 20),
               
-              // Bill To Section (Simple for now)
+              // Bill To section
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('BILL TO:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                      pw.Text('BILL TO:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                      pw.SizedBox(height: 4),
                       pw.Text(order['customer_name'] ?? 'Counter Customer', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Type: ${order['order_type'] ?? 'Dine-In'}'),
+                      pw.Text('Order Type: ${order['order_type'] ?? 'Dine-In'}', style: const pw.TextStyle(fontSize: 9)),
+                      if (order['table_number'] != null) pw.Text('Table: ${order['table_number']}', style: const pw.TextStyle(fontSize: 9)),
                     ],
                   ),
                 ],
               ),
               
-              pw.SizedBox(height: 30),
+              pw.SizedBox(height: 25),
               
               // Items Table
               pw.TableHelper.fromTextArray(
                 context: context,
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
-                headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
+                headerDecoration: pw.BoxDecoration(color: accentColor),
                 cellStyle: const pw.TextStyle(fontSize: 9),
-                rowDecoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5))),
+                rowDecoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 0.5))),
                 cellAlignment: pw.Alignment.centerLeft,
                 columnWidths: {
                   0: const pw.FlexColumnWidth(3),
@@ -345,18 +368,29 @@ class ReceiptService {
                 data: items.map((item) {
                   final double price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
                   final int qty = int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
+                  final extras = item['extras'] as List? ?? [];
+                  final variants = item['variants'] as List? ?? [];
+                  
+                  String description = item['name'] ?? 'Item';
+                  if (variants.isNotEmpty) {
+                    description += '\n- ' + variants.map((v) => v['name']).join(', ');
+                  }
+                  if (extras.isNotEmpty) {
+                    description += '\n+ ' + extras.map((e) => e['name']).join(', ');
+                  }
+
                   return [
-                    item['name'],
+                    description,
                     qty.toString(),
-                    '$currency${price.toStringAsFixed(2)}',
-                    '$currency${(price * qty).toStringAsFixed(2)}',
+                    '$currencyDisplay${price.toStringAsFixed(2)}',
+                    '$currencyDisplay${(price * qty).toStringAsFixed(2)}',
                   ];
                 }).toList(),
               ),
               
-              pw.SizedBox(height: 30),
+              pw.SizedBox(height: 25),
               
-              // Totals
+              // Totals section
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
@@ -364,24 +398,35 @@ class ReceiptService {
                     width: 200,
                     child: pw.Column(
                       children: [
+                        _buildTotalRow('Subtotal:', '$currencyDisplay${(double.tryParse(order['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', fontSize: 10),
+                        if ((double.tryParse(order['discount_amount']?.toString() ?? '0') ?? 0) > 0)
+                          _buildTotalRow('Discount:', '-$currencyDisplay${(double.tryParse(order['discount_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', fontSize: 10, isDiscount: true),
+                        if ((double.tryParse(order['tip_amount']?.toString() ?? '0') ?? 0) > 0)
+                          _buildTotalRow('Tip:', '$currencyDisplay${(double.tryParse(order['tip_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', fontSize: 10),
+                        
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.symmetric(vertical: 8),
+                          child: pw.Divider(color: PdfColors.grey400, thickness: 1),
+                        ),
+                        
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 12)),
-                            pw.Text('$currency${(double.tryParse(order['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 12)),
+                            pw.Text('GRAND TOTAL:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: accentColor)),
+                            pw.Text('$currencyDisplay${(double.tryParse(order['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', 
+                              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: accentColor)),
                           ],
                         ),
-                        pw.SizedBox(height: 10),
-                        pw.Divider(color: PdfColors.grey300, thickness: 1),
-                        pw.SizedBox(height: 10),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('GRAND TOTAL:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                            pw.Text('$currency${(double.tryParse(order['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', 
-                              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-                          ],
-                        ),
+                        if (order['payment_method'] != null) ...[
+                          pw.SizedBox(height: 4),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Paid via:', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+                              pw.Text('${order['payment_method']}', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -391,12 +436,19 @@ class ReceiptService {
               pw.Spacer(),
               
               // Footer
-              pw.Divider(thickness: 1, color: PdfColors.grey300),
+              pw.Divider(thickness: 1, color: PdfColors.grey200),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Thank you for choosing $businessName!', style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
-                  pw.Text('Generated by POS v2.4.0', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Thank you for choosing $businessName!', style: pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
+                      pw.SizedBox(height: 2),
+                      pw.Text('Please retain this invoice for your records.', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey500)),
+                    ],
+                  ),
+                  pw.Text('Generated by Zamzam Kitchen Unified System v2.5.0', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey500)),
                 ],
               ),
             ],
@@ -406,5 +458,18 @@ class ReceiptService {
     );
 
     return pdf.save();
+  }
+
+  static pw.Widget _buildTotalRow(String label, String value, {double fontSize = 9, bool isDiscount = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(fontSize: fontSize, color: isDiscount ? PdfColors.red900 : PdfColors.black)),
+          pw.Text(value, style: pw.TextStyle(fontSize: fontSize, fontWeight: pw.FontWeight.bold, color: isDiscount ? PdfColors.red900 : PdfColors.black)),
+        ],
+      ),
+    );
   }
 }

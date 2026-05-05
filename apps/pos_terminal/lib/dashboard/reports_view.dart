@@ -965,10 +965,13 @@ class _ReportsViewState extends State<ReportsView> {
                     
                     if (fromDate != null) {
                       // Step 2: Select To Date
+                      DateTime initialEnd = _invDateRange?.end ?? fromDate;
+                      if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
+
                       if (!mounted) return;
                       final toDate = await showDatePicker(
                         context: context,
-                        initialDate: _invDateRange?.end ?? fromDate,
+                        initialDate: initialEnd,
                         firstDate: fromDate,
                         lastDate: now.add(const Duration(days: 365)),
                         helpText: LocalizationService().translate('select_end_date'),
@@ -1239,12 +1242,17 @@ class _ReportsViewState extends State<ReportsView> {
                     builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
                   );
                   if (fromDate != null) {
+                    // Step 2: Select To Date
+                    DateTime initialEnd = _finDateRange?.end ?? fromDate;
+                    if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
+
                     if (!mounted) return;
                     final toDate = await showDatePicker(
                       context: context,
-                      initialDate: _finDateRange?.end ?? fromDate,
+                      initialDate: initialEnd,
                       firstDate: fromDate,
                       lastDate: now.add(const Duration(days: 365)),
+                      helpText: LocalizationService().translate('select_end_date'),
                       builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
                     );
                     if (toDate != null) {

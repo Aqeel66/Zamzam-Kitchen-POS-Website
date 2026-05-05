@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, ShoppingCart, Share2, Heart, Globe, Menu as MenuIcon, X } from 'lucide-react';
+import { User, ShoppingCart, Share2, Heart, Globe, Menu as MenuIcon, X, Mail, Phone, Clock } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { API_BASE_URL, resolveImageUrl } from '../config';
 import './Layout.css';
@@ -18,7 +18,10 @@ export default function Layout({ children }: LayoutProps) {
     logo_url: '',
     secondary_logo_url: '',
     restaurant_name: 'ZAMZAM KITCHEN',
-    tagline: 'AUTHENTIC FLAVORS'
+    tagline: 'AUTHENTIC FLAVORS',
+    email: 'info@zamzamkitchen.com',
+    phone: '+61 3 9939 2479',
+    address: 'Racecourse Road, VIC, Melbourne, Australia'
   });
 
   useEffect(() => {
@@ -35,7 +38,10 @@ export default function Layout({ children }: LayoutProps) {
             logo_url: data.tenant.logo_url || '',
             secondary_logo_url: data.tenant.secondary_logo_url || '',
             restaurant_name: data.tenant.restaurant_name || 'ZAMZAM KITCHEN',
-            tagline: data.tenant.tagline || 'AUTHENTIC FLAVORS'
+            tagline: data.tenant.tagline || 'AUTHENTIC FLAVORS',
+            email: data.tenant.email || 'info@zamzamkitchen.com',
+            phone: data.tenant.phone || '+61 3 9939 2479',
+            address: data.tenant.address || 'Racecourse Road, VIC, Melbourne, Australia'
           });
         }
       })
@@ -47,6 +53,24 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="layout">
+      <div className="top-bar">
+        <div className="top-bar-left">
+          <div className="top-bar-item">
+            <Clock size={14} />
+            <span>Opens Daily: 12:00 PM - 11:00 PM</span>
+          </div>
+        </div>
+        <div className="top-bar-right">
+          <a href={`mailto:${branding.email}`} className="top-bar-item" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <Mail size={14} />
+            <span>{branding.email}</span>
+          </a>
+          <a href={`tel:${branding.phone}`} className="top-bar-item" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <Phone size={14} />
+            <span>{branding.phone}</span>
+          </a>
+        </div>
+      </div>
       <header className="glass-header">
         <div className="header-container">
           <Link to="/" className="brand-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -84,10 +108,11 @@ export default function Layout({ children }: LayoutProps) {
             <Link to="/auth" className="icon-btn" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none'}}>
               <User size={20} />
             </Link>
-            <Link to="/cart" className="icon-btn cart-btn" style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none'}}>
-              <ShoppingCart size={20} />
+            <Link to="/cart" className="icon-btn cart-btn" style={{ textDecoration: 'none' }}>
+              <ShoppingCart size={18} />
+              <span className="cart-text hide-mobile">Cart</span>
               {totalItems > 0 && (
-                <span className="cart-badge" style={{position: 'absolute', top: '-5px', right: '-5px', background: 'var(--primary-orange)', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{totalItems}</span>
+                <span className="cart-badge">{totalItems}</span>
               )}
             </Link>
             <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
@@ -161,10 +186,9 @@ export default function Layout({ children }: LayoutProps) {
 
           <div className="footer-contact">
             <h4>Contact</h4>
-            <p>Racecourse Road</p>
-            <p>VIC, Melbourne, Australia</p>
-            <p>(000) 000-0000</p>
-            <p>hello@Zamzamkitchen.com</p>
+            <p>{branding.address}</p>
+            <p>{branding.phone}</p>
+            <p>{branding.email}</p>
           </div>
         </div>
         <div className="footer-bottom">

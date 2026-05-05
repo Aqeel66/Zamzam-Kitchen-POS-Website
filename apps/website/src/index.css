@@ -101,6 +101,27 @@ button {
   border-color: white;
 }
 
+/* Standardized Book Table Button */
+.book-table-btn {
+  background-color: var(--primary-orange);
+  color: white !important;
+  border: none;
+  padding: 0.8rem 1.8rem;
+  border-radius: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(242, 92, 5, 0.2);
+}
+
+.book-table-btn:hover {
+  background-color: var(--primary-orange-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(242, 92, 5, 0.3);
+}
+
 .section-padding {
   padding: 5rem 2rem;
   max-width: 1200px;

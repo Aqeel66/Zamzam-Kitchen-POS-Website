@@ -218,9 +218,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     width: 480,
                     padding: const EdgeInsets.all(48),
                     decoration: BoxDecoration(
-                      color: isDark ? theme.cardColor.withValues(alpha: 0.85) : theme.cardColor,
+                      color: isDark ? theme.cardColor.withValues(alpha: 0.95) : theme.cardColor,
                       borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: theme.dividerColor.withValues(alpha: 0.15)),
+                      border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.2), 
@@ -261,7 +261,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         Text(
                           (ThemeService().tagline != null && ThemeService().tagline!.isNotEmpty)
                               ? ThemeService().tagline!
-                              : loc.translate('mission_control_pos'),
+                              : 'Restaurant Management System',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: isDark ? Colors.white.withValues(alpha: 0.8) : theme.primaryColor.withValues(alpha: 0.8),
@@ -422,23 +422,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
   
   Widget _buildLogoCircle(String? url, Color themePrimary, bool isDark, ThemeData theme) {
-    return Container(
+    return SizedBox(
       height: 120,
       width: 120,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : theme.dividerColor.withValues(alpha: 0.2), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: themePrimary.withValues(alpha: 0.15),
-            blurRadius: 25,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(60),
+      child: Center(
         child: url != null && url.isNotEmpty
           ? Image.network(
               url,
@@ -457,13 +444,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               },
               errorBuilder: (context, error, stackTrace) {
                 debugPrint('LoginPage: Failed to load logo from $url');
-                return Icon(Icons.restaurant, color: themePrimary, size: 50);
+                return Icon(Icons.restaurant, color: themePrimary, size: 60);
               },
             )
           : Image.asset(
               'assets/images/logo.png',
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Icon(Icons.restaurant, color: themePrimary, size: 50),
+              errorBuilder: (context, error, stackTrace) => Icon(Icons.restaurant, color: themePrimary, size: 60),
             ),
       ),
     );

@@ -140,10 +140,10 @@ export default function Success() {
        </div>
     </div>
 
-    {/* Live Invoice Preview (Always visible for review & capture) */}
+    {/* Live Invoice Preview (Centralized Unified Format) */}
     {orderData && (
        <div className="invoice-preview-wrapper">
-          <div className="invoice-container">
+          <div className="invoice-container" id="professional-invoice">
              <header className="invoice-header">
             <div className="header-top">
               <div className="brand-section">
@@ -174,11 +174,11 @@ export default function Success() {
                 <div className="invoice-meta">
                   <h1 className="invoice-title">{type === 'reservation' ? 'BOOKING RECEIPT' : 'INVOICE'}</h1>
                   <div className="badge-container">
-                    <span className="origin-badge">WEBSITE</span>
+                    <span className="origin-badge">WEBSITE SYSTEM</span>
                     <span className={`status-badge-alt ${(orderData.status || 'PAID').toUpperCase()}`}>{(orderData.status || 'PAID').toUpperCase()}</span>
                   </div>
                   <p className="meta-row"><strong>Order No:</strong> {orderData.order_number?.startsWith('#') ? orderData.order_number : `#${orderData.order_number || orderData.id}`}</p>
-                  <p className="meta-row"><strong>Date:</strong> {new Date(orderData.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="meta-row"><strong>Date:</strong> {new Date(orderData.date || orderData.order_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </div>
             </div>
@@ -189,7 +189,8 @@ export default function Success() {
           <section className="bill-to-section">
             <h3 className="section-title">BILL TO:</h3>
             <p className="customer-name">{orderData.customer_name || 'Valued Customer'}</p>
-            <p className="order-type">Type: {orderData.order_type || 'Takeaway'}</p>
+            <p className="order-type">Order Type: {orderData.order_type || (type === 'reservation' ? 'Reservation' : 'Takeaway')}</p>
+            {orderData.table_number && <p className="order-type">Table: {orderData.table_number}</p>}
           </section>
 
           <table className="invoice-table">
@@ -205,17 +206,20 @@ export default function Success() {
               {orderData.items.map((item: any, i: number) => (
                 <tr key={i}>
                   <td>
-                    <div className="item-name">{item.name}</div>
+                    <div className="item-name" style={{ fontWeight: 700 }}>{item.name}</div>
                     {item.variants && item.variants.map((v: any, vi: number) => (
                       <div key={vi} className="item-modifier">- {v.name}</div>
                     ))}
+                    {item.variant && !item.variants && (
+                       <div className="item-modifier">- {item.variant.name}</div>
+                    )}
                     {item.extras && item.extras.map((e: any, ei: number) => (
                       <div key={ei} className="item-modifier">+ {e.name}</div>
                     ))}
                   </td>
                   <td>{item.quantity}</td>
-                  <td>{currencyDisplay}{item.price.toFixed(2)}</td>
-                  <td>{currencyDisplay}{(item.price * item.quantity).toFixed(2)}</td>
+                  <td>{currencyDisplay}{(item.price || item.unit_price || 0).toFixed(2)}</td>
+                  <td>{currencyDisplay}{((item.price || item.unit_price || 0) * item.quantity).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -225,25 +229,30 @@ export default function Success() {
             <div className="totals-area">
               <div className="total-row">
                 <span>Subtotal:</span>
-                <span>{currencyDisplay}{orderData.subtotal.toFixed(2)}</span>
+                <span>{currencyDisplay}{(orderData.subtotal || orderData.total_amount || 0).toFixed(2)}</span>
               </div>
-              {orderData.discount > 0 && (
+              {(orderData.discount || orderData.discount_amount) > 0 && (
                 <div className="total-row discount">
                   <span>Discount:</span>
-                  <span>-{currencyDisplay}{orderData.discount.toFixed(2)}</span>
+                  <span>-{currencyDisplay}{(orderData.discount || orderData.discount_amount || 0).toFixed(2)}</span>
                 </div>
               )}
-              {orderData.tip > 0 && (
+              {(orderData.tip || orderData.tip_amount) > 0 && (
                 <div className="total-row">
                   <span>Tip:</span>
-                  <span>{currencyDisplay}{orderData.tip.toFixed(2)}</span>
+                  <span>{currencyDisplay}{(orderData.tip || orderData.tip_amount || 0).toFixed(2)}</span>
                 </div>
               )}
               <div className="invoice-divider-sub"></div>
               <div className="total-row grand-total">
                 <span>GRAND TOTAL:</span>
-                <span>{currencyDisplay}{orderData.total.toFixed(2)}</span>
+                <span>{currencyDisplay}{(orderData.total || orderData.total_amount || 0).toFixed(2)}</span>
               </div>
+              {orderData.payment_method && (
+                 <div className="payment-info" style={{ textAlign: 'right', fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                    Paid via: <strong>{orderData.payment_method}</strong>
+                 </div>
+              )}
             </div>
           </div>
 
@@ -251,7 +260,7 @@ export default function Success() {
             <div className="footer-divider"></div>
             <div className="footer-content">
               <p className="thank-you-msg italic">Thank you for choosing {tenant.restaurant_name || 'Zamzam Kitchen'}!</p>
-              <p className="system-tag">Generated by Centralized System v2.4.0</p>
+              <p className="system-tag">Generated by Zamzam Kitchen Unified System v2.5.0</p>
             </div>
           </footer>
        </div>

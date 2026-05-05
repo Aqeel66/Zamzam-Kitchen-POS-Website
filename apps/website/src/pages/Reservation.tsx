@@ -381,7 +381,7 @@ export default function Reservation() {
                       </div>
                    </div>
                    <button 
-                      className="btn-primary w-full mt-6 flex items-center justify-center gap-2" 
+                      className="book-table-btn w-full mt-6 flex items-center justify-center gap-2" 
                       onClick={confirmBooking}
                       disabled={isSubmitting || !selectedTable || !date || !time || !guests || (isFeeEnabled && paymentMethod === 'card' && (!paymentData.cardNumber || !paymentData.expiry || !paymentData.cvc))}
                     >
@@ -513,7 +513,7 @@ export default function Reservation() {
 
                  {currentStep === 2 && (
                     <div className="table-selection-section">
-                       <h4 className="flex items-center gap-2 mb-4 font-bold text-gray-700">Available Tables for {date} @ {time}</h4>
+                       <h4 className="flex items-center gap-2 mb-4 font-bold text-gray-700">Available Tables ({availableTables.length}) for {date} @ {time}</h4>
                        {loadingTables ? (
                           <div className="flex justify-center py-12">
                              <div className="loading-spinner-orange"></div>
@@ -530,8 +530,16 @@ export default function Reservation() {
                                    className={`table-btn ${selectedTable?.id === t.id ? 'active' : ''}`}
                                    onClick={() => setSelectedTable(t)}
                                 >
-                                   <div className="table-number">{t.table_number}</div>
-                                   <div className="table-capacity">Seats {t.capacity}</div>
+                                   <div className="table-number">Table {t.table_number}</div>
+                                    <div className="table-capacity">
+                                       <span className={`status-dot ${t.current_occupancy >= t.capacity ? 'full' : t.current_occupancy > 0 ? 'partial' : 'available'}`}></span>
+                                       {t.capacity - (t.current_occupancy || 0)} / {t.capacity} Avail
+                                    </div>
+                                    <div className="table-icons" style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginTop: '8px' }}>
+                                       {[...Array(Math.min(t.capacity, 6))].map((_, i) => (
+                                          <i key={i} className={`fas fa-chair ${i < (t.current_occupancy || 0) ? 'occupied' : ''}`} style={{ fontSize: '10px', color: i < (t.current_occupancy || 0) ? '#ff6b6b' : '#dee2e6' }}></i>
+                                       ))}
+                                    </div>
                                 </button>
                              ))}
                           </div>

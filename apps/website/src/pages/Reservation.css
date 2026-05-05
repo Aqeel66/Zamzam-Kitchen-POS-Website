@@ -799,6 +799,49 @@
   }
 }
 
+/* Occupancy Status Styles */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.status-dot.available { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+.status-dot.partial { background: #f97316; box-shadow: 0 0 8px rgba(249, 115, 22, 0.4); }
+.status-dot.full { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+
+.table-icons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.table-icons i {
+  font-size: 10px;
+  color: #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.table-icons i.occupied {
+  color: #ff6b6b;
+  transform: scale(1.1);
+}
+
+.table-btn.active .table-icons i {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.table-btn.active .table-icons i.occupied {
+  color: white;
+}
+
+.table-btn.active .status-dot {
+  border: 1px solid white;
+}
+
 /* Payment Processing Overlay */
 .payment-processing-overlay {
   position: fixed;
