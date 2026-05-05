@@ -138,8 +138,41 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
 });
 
-app.listen(PORT, () => {
+// Automatic Schema Correction
+async function ensureSchema() {
+  try {
+    const db = require('./db');
+    console.log('🛠️ Checking database schema for missing columns...');
+    
+    // Check tenant_settings
+    const [tenantCols] = await db.query('DESCRIBE tenant_settings');
+    const tenantFields = tenantCols.map(c => c.Field);
+    if (!tenantFields.includes('tagline')) {
+      console.log('➕ Adding missing tagline column to tenant_settings...');
+      await db.query('ALTER TABLE tenant_settings ADD COLUMN tagline VARCHAR(255) DEFAULT NULL');
+    }
+    
+    // Check menu_items
+    const [itemCols] = await db.query('DESCRIBE menu_items');
+    const itemFields = itemCols.map(c => c.Field);
+    if (!itemFields.includes('is_featured')) {
+      console.log('➕ Adding missing is_featured column to menu_items...');
+      await db.query('ALTER TABLE menu_items ADD COLUMN is_featured TINYINT(1) DEFAULT 0');
+    }
+    if (!itemFields.includes('badge')) {
+      console.log('➕ Adding missing badge column to menu_items...');
+      await db.query('ALTER TABLE menu_items ADD COLUMN badge VARCHAR(50) DEFAULT NULL');
+    }
+    
+    console.log('✅ Schema check complete');
+  } catch (err) {
+    console.error('❌ Schema correction failed:', err.message);
+  }
+}
+
+app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  await ensureSchema();
 });
 
 // Keep the process alive

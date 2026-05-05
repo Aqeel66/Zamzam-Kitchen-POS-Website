@@ -43,18 +43,18 @@ router.patch('/tenant', async (req, res) => {
       'tagline'
     ];
     
-    const updates = [];
-    const values = [];
+    const [columns] = await db.query('DESCRIBE tenant_settings');
+    const existingColumns = columns.map(c => c.Field);
     
     for (const key of allowedFields) {
-      if (fields[key] !== undefined) {
+      if (fields[key] !== undefined && existingColumns.includes(key)) {
         updates.push(`${key} = ?`);
         values.push(fields[key]);
       }
     }
     
     if (updates.length === 0) {
-      return res.status(400).json({ success: false, message: 'No fields provided for update' });
+      return res.status(400).json({ success: false, message: 'No valid fields provided for update' });
     }
     
     values.push(1); // id = 1
