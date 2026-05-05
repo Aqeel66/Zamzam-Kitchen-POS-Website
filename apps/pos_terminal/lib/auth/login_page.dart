@@ -240,9 +240,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             spacing: 32,
                             runSpacing: 20,
                             children: [
-                              _buildLogoCircle(ThemeService().logoUrl, themePrimary, isDark),
+                              _buildLogoCircle(ThemeService().logoUrl, themePrimary, isDark, theme),
                               if (ThemeService().secondaryLogoUrl != null && ThemeService().secondaryLogoUrl!.isNotEmpty)
-                                _buildLogoCircle(ThemeService().secondaryLogoUrl, themePrimary, isDark),
+                                _buildLogoCircle(ThemeService().secondaryLogoUrl, themePrimary, isDark, theme),
                             ],
                           ),
                         ),
@@ -421,7 +421,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     );
   }
   
-  Widget _buildLogoCircle(String? url, Color themePrimary, bool isDark) {
+  Widget _buildLogoCircle(String? url, Color themePrimary, bool isDark, ThemeData theme) {
     return Container(
       height: 120,
       width: 120,

@@ -41,7 +41,6 @@ export default function Checkout() {
   const [tipPercentage, setTipPercentage] = useState(0);
   const [guestName, setGuestName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeGateways, setActiveGateways] = useState<any[]>([]);
 
   const applyPromo = async () => {
     setPromoError(null);
@@ -100,8 +99,8 @@ export default function Checkout() {
       try {
         const response = await fetch(`${API_BASE_URL}/payment-gateways/active`);
         if (response.ok) {
-          const data = await response.json();
-          setActiveGateways(data);
+          // const data = await response.json();
+          // setActiveGateways(data);
         }
       } catch (err) {
         console.error("Error fetching gateways:", err);
