@@ -3411,9 +3411,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     dropdownColor: themeCard,
                     hint: Text(LocalizationService().translate('select_target_table'), style: TextStyle(color: themeHint)),
                     items: _restaurantTables?.where((t) => t.id != _selectedTable?.id).map((t) {
+                      final avail = t.capacity - t.currentOccupancy;
                       return DropdownMenuItem(
                         value: t,
-                        child: Text('${LocalizationService().translate('table')} ${t.label}'),
+                        child: Text('${LocalizationService().translate('table')} ${t.label} (${LocalizationService().translate('avail')}: $avail / ${t.capacity})'),
                       );
                     }).toList(),
                     onChanged: (val) => setDialogState(() => targetTable = val),
@@ -3752,14 +3753,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '${t.capacity}',
+                                          '${t.capacity - t.currentOccupancy} / ${t.capacity}',
                                           style: TextStyle(
-                                            color: isSel ? Colors.white.withValues(alpha: 0.7) : themeHint,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
+                                            color: isSel ? Colors.white : themeText,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ],
+                                    ),
+                                    Text(
+                                      '${LocalizationService().translate('avail').toUpperCase()}',
+                                      style: TextStyle(
+                                        color: isSel ? Colors.white.withValues(alpha: 0.7) : themeHint,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -9228,9 +9237,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   dropdownColor: themeCard,
                   style: TextStyle(color: themeText),
                   items: (_restaurantTables ?? []).map((t) {
+                    final avail = t.capacity - t.currentOccupancy;
                     return DropdownMenuItem<int>(
                       value: int.tryParse(t.id),
-                      child: Text('Table ${t.label} (Cap: ${t.capacity})'),
+                      child: Text('Table ${t.label} (Avail: $avail / ${t.capacity})'),
                     );
                   }).toList(),
                   onChanged: (val) {
@@ -9498,15 +9508,61 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   }
 
   void _showTableActionDialog(ui_kit.RestaurantTable table) {
+    final available = table.capacity - table.currentOccupancy;
     showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
           backgroundColor: themeCard,
-          title: Text('${LocalizationService().translate('table')} ${table.label}', style: TextStyle(color: themeText)),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('${LocalizationService().translate('table')} ${table.label}', style: TextStyle(color: themeText)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: (available > 0 ? Colors.green : Colors.red).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: available > 0 ? Colors.green : Colors.red),
+                ),
+                child: Text(
+                  '$available / ${table.capacity}',
+                  style: TextStyle(color: available > 0 ? Colors.green : Colors.red, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: themePrimary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: themeBorder),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.chair_rounded, color: themePrimary, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(LocalizationService().translate('available_capacity'), style: TextStyle(color: themeHint, fontSize: 11)),
+                          Text(
+                            '$available ${LocalizationService().translate('seats_remaining')}',
+                            style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               if (table.status == ui_kit.TableStatus.available || table.status == ui_kit.TableStatus.reserved)
                 ListTile(
                   leading: const Icon(Icons.add_shopping_cart, color: Colors.green),
