@@ -6669,7 +6669,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               // Promo Code Row
               _buildTappablePriceRow(
                 LocalizationService().translate('promo_code') ?? 'Promo Code',
-                _appliedPromo != null ? _appliedPromo!['code'].toString().toUpperCase() : (LocalizationService().translate('tap_to_enter') ?? 'Tap to enter'),
+                _appliedPromo != null ? _appliedPromo!['code'].toString().toUpperCase() : '',
                 icon: Icons.confirmation_number_outlined,
                 color: _appliedPromo != null ? themePrimary : null,
                 onTap: _appliedPromo != null ? () => _removePromoCode() : _showPromoCodeDialog,
@@ -8104,6 +8104,32 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // 1. Quick Settle Button
+                              if (!((order['status']?.toString() ?? '').toLowerCase() == 'paid' || (order['payment_status']?.toString() ?? '').toLowerCase() == 'paid' || (order['payment_method'] != null && order['payment_method'].toString().isNotEmpty)))
+                                Tooltip(
+                                  message: LocalizationService().translate('settle_payment'),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.payments_rounded, color: Colors.green, size: 24),
+                                    onPressed: () {
+                                      setState(() {
+                                        _cartItems = (order['items'] as List).map((item) => {
+                                          'id': item['menu_item_id'] ?? 'custom-${item['id']}',
+                                          'name': item['name'],
+                                          'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
+                                                   ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
+                                          'quantity': item['quantity'],
+                                          'notes': item['notes'],
+                                          'extras': item['extras'],
+                                          'variants': item['variants'],
+                                        }).toList();
+                                        _editingOrderId = order['id'];
+                                        _orderType = order['order_type'] ?? 'Dine-In';
+                                      });
+                                      _showCheckoutDialog();
+                                    },
+                                  ),
+                                ),
+                              // 2. Edit Button
                               Tooltip(
                                 message: LocalizationService().translate('edit'),
                                 child: IconButton(
@@ -8127,6 +8153,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   },
                                 ),
                               ),
+                              // 3. Print Button
                               Tooltip(
                                 message: LocalizationService().translate('print'),
                                 child: IconButton(
@@ -8134,76 +8161,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   onPressed: () => ReceiptService.printReceipt(order: order, settings: _settings),
                                 ),
                               ),
-                              Tooltip(
-                                message: LocalizationService().translate('split_bill'),
-                                child: IconButton(
-                                  icon: Icon(Icons.call_split_rounded, color: Colors.purple, size: 20),
-                                  onPressed: () {
-                                    setState(() {
-                                      _cartItems = (order['items'] as List).map((item) => {
-                                        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                        'name': item['name'],
-                                        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                        'quantity': item['quantity'],
-                                        'notes': item['notes'],
-                                        'extras': item['extras'],
-                                        'variants': item['variants'],
-                                      }).toList();
-                                      _editingOrderId = order['id'];
-                                      _orderType = order['order_type'] ?? 'Dine-In';
-                                    });
-                                    _showSplitBillDialog();
-                                  },
-                                ),
-                              ),
-                              Tooltip(
-                                message: LocalizationService().translate('merge_bill'),
-                                child: IconButton(
-                                  icon: Icon(Icons.merge_type_rounded, color: Colors.orange, size: 20),
-                                  onPressed: () {
-                                    setState(() {
-                                      _cartItems = (order['items'] as List).map((item) => {
-                                        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                        'name': item['name'],
-                                        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                        'quantity': item['quantity'],
-                                        'notes': item['notes'],
-                                        'extras': item['extras'],
-                                        'variants': item['variants'],
-                                      }).toList();
-                                      _editingOrderId = order['id'];
-                                      _orderType = order['order_type'] ?? 'Dine-In';
-                                    });
-                                    _showMergeBillDialog();
-                                  },
-                                ),
-                              ),
-                              if ((order['payment_status']?.toString() ?? '').toLowerCase() == 'unpaid')
-                                Tooltip(
-                                  message: LocalizationService().translate('settle_payment'),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.payments_rounded, color: Colors.green, size: 22),
-                                    onPressed: () {
-                                      setState(() {
-                                        _cartItems = (order['items'] as List).map((item) => {
-                                          'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                          'name': item['name'],
-                                          'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                   ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                          'quantity': item['quantity'],
-                                          'notes': item['notes'],
-                                          'extras': item['extras'],
-                                          'variants': item['variants'],
-                                        }).toList();
-                                        _editingOrderId = order['id'];
-                                        _orderType = order['order_type'] ?? 'Dine-In';
-                                      });
-                                      _showCheckoutDialog();
-                                    },
-                                  ),
-                                ),
+                              // 4. Download PDF Button
                               Tooltip(
                                 message: LocalizationService().translate('download_pdf'),
                                 child: IconButton(
@@ -8211,6 +8169,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   onPressed: () => _handlePdfDownload(Map<String, dynamic>.from(order)),
                                 ),
                               ),
+                              // 5. View Details
                               Tooltip(
                                 message: LocalizationService().translate('view_details'),
                                 child: IconButton(
