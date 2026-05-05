@@ -46,11 +46,19 @@ export default function Home() {
         .slice(0, 4) // Show only top 4 on home
     : [];
 
-  // Filter featured items for the carousel
+  // Filter featured items for the carousel with de-duplication
   const featuredItems = Array.isArray(menuData)
     ? menuData
         .flatMap(cat => cat.items || [])
         .filter(item => item.is_featured === true || item.is_featured === 1 || item.is_featured === '1')
+        .reduce((acc: any[], current: any) => {
+          const x = acc.find(item => item.id === current.id);
+          if (!x) {
+            return acc.concat([current]);
+          } else {
+            return acc;
+          }
+        }, [])
     : [];
   
   return (
