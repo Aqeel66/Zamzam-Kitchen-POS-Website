@@ -7366,7 +7366,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         crossAxisCount: 6,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.95, // Made cards shorter
+        childAspectRatio: 0.82, // Balanced ratio for stability
       ),
       itemCount: filteredOrders.length,
       itemBuilder: (context, index) {
@@ -7455,55 +7455,48 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   ],
                 ),
               ),
-              // Items - Constrained to 4 items max height
-              SizedBox(
-                height: 160, // Height for approx 4 items
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  itemCount: items.length,
-                  itemBuilder: (context, idx) {
-                    final item = items[idx];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('x${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold, color: themePrimary, fontSize: 13)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(item['name'] ?? 'Item', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                if (item['variant'] != null)
-                                  Text(
-                                    '${item['variant']['name']}',
-                                    style: TextStyle(color: themePrimary, fontSize: 10, fontWeight: FontWeight.bold),
-                                  ),
-                                if (item['extras'] != null && (item['extras'] as List).isNotEmpty)
-                                  Text(
-                                    '${(item['extras'] as List).map((e) => e['name']).join(', ')}',
-                                    style: TextStyle(color: Colors.orange.shade800, fontSize: 10, fontWeight: FontWeight.w600),
-                                  ),
-                                if (item['notes'] != null && item['notes'].toString().isNotEmpty)
-                                   Text('Note: ${item['notes']}', style: TextStyle(color: Colors.red.shade400, fontSize: 10, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500)),
-                              ],
+              // Items - Flexible list with scrolling
+              Expanded(
+                child: Scrollbar(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    itemCount: items.length,
+                    itemBuilder: (context, idx) {
+                      final item = items[idx];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('x${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold, color: themePrimary, fontSize: 13)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item['name'] ?? 'Item', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                  if (item['variant'] != null)
+                                    Text(
+                                      '${item['variant']['name']}',
+                                      style: TextStyle(color: themePrimary, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  if (item['extras'] != null && (item['extras'] as List).isNotEmpty)
+                                    Text(
+                                      '${(item['extras'] as List).map((e) => e['name']).join(', ')}',
+                                      style: TextStyle(color: Colors.orange.shade800, fontSize: 10, fontWeight: FontWeight.w600),
+                                    ),
+                                  if (item['notes'] != null && item['notes'].toString().isNotEmpty)
+                                     Text('Note: ${item['notes']}', style: TextStyle(color: Colors.red.shade400, fontSize: 10, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
                             ),
-                          ),
-                          if (order['status'] == 'Pending')
-                            IconButton(
-                              icon: const Icon(Icons.close, color: Colors.red, size: 16),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              onPressed: () => _removeOrderItem(order['id'], item['id']),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-              const Spacer(), // Push footer to bottom
               if (order['status'] == 'Rejected' && order['rejection_reason'] != null)
                 Container(
                   width: double.infinity,
