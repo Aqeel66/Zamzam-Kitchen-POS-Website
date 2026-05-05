@@ -7366,7 +7366,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         crossAxisCount: 6,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.95, // Made cards shorter
       ),
       itemCount: filteredOrders.length,
       itemBuilder: (context, index) {
@@ -7455,44 +7455,47 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   ],
                 ),
               ),
-              // Items
-              Expanded(
+              // Items - Constrained to 4 items max height
+              SizedBox(
+                height: 160, // Height for approx 4 items
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   itemCount: items.length,
                   itemBuilder: (context, idx) {
                     final item = items[idx];
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('x${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold, color: themePrimary, fontSize: 12)),
-                          const SizedBox(width: 6),
+                          Text('x${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold, color: themePrimary, fontSize: 13)),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item['name'] ?? 'Item', style: TextStyle(color: themeText, fontWeight: FontWeight.w600, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                Text(item['name'] ?? 'Item', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
                                 if (item['variant'] != null)
                                   Text(
-                                    'V: ${item['variant']['name']}',
-                                    style: TextStyle(color: themePrimary, fontSize: 9, fontWeight: FontWeight.bold),
+                                    '${item['variant']['name']}',
+                                    style: TextStyle(color: themePrimary, fontSize: 10, fontWeight: FontWeight.bold),
                                   ),
                                 if (item['extras'] != null && (item['extras'] as List).isNotEmpty)
                                   Text(
-                                    'E: ${(item['extras'] as List).map((e) => e['name']).join(', ')}',
-                                    style: TextStyle(color: themePrimaryAccent, fontSize: 9, fontWeight: FontWeight.w500),
+                                    '${(item['extras'] as List).map((e) => e['name']).join(', ')}',
+                                    style: TextStyle(color: Colors.orange.shade800, fontSize: 10, fontWeight: FontWeight.w600),
                                   ),
                                 if (item['notes'] != null && item['notes'].toString().isNotEmpty)
-                                   Text(item['notes'], style: TextStyle(color: themeHint, fontSize: 9, fontStyle: FontStyle.italic)),
+                                   Text('Note: ${item['notes']}', style: TextStyle(color: Colors.red.shade400, fontSize: 10, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500)),
                               ],
                             ),
                           ),
                           if (order['status'] == 'Pending')
-                            InkWell(
-                              onTap: () => _removeOrderItem(order['id'], item['id']),
-                              child: const Icon(Icons.close, color: Colors.red, size: 14),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.red, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => _removeOrderItem(order['id'], item['id']),
                             ),
                         ],
                       ),
@@ -7500,6 +7503,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   },
                 ),
               ),
+              const Spacer(), // Push footer to bottom
               if (order['status'] == 'Rejected' && order['rejection_reason'] != null)
                 Container(
                   width: double.infinity,
