@@ -1968,11 +1968,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     return true;
   }
 
-  Future<void> _applyPromoCode(StateSetter setDialogState) async {
+  Future<void> _applyPromoCode([StateSetter? setDialogState]) async {
     final code = _promoCodeController.text.trim();
     if (code.isEmpty) return;
 
-    setDialogState(() => _promoError = null);
+    (setDialogState ?? setState)(() => _promoError = null);
 
     try {
       final response = await http.get(
@@ -1985,13 +1985,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         final double minSpend = double.tryParse(promo['min_spend'].toString()) ?? 0;
 
         if (_subtotal < minSpend) {
-          setDialogState(() {
+          (setDialogState ?? setState)(() {
             _promoError = 'Min. spend \$${minSpend.toStringAsFixed(2)} required (Current: \$${_subtotal.toStringAsFixed(2)})';
           });
           return;
         }
 
-        setDialogState(() {
+        (setDialogState ?? setState)(() {
           _appliedPromo = promo;
           _promoError = null;
           final double discVal = double.tryParse(promo['discount_value'].toString()) ?? 0;
@@ -2009,24 +2009,70 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         }
       } else {
         final data = json.decode(response.body);
-        setDialogState(() {
+        (setDialogState ?? setState)(() {
           _promoError = data['message'] ?? 'Invalid promo code';
         });
       }
     } catch (e) {
-      setDialogState(() {
+      (setDialogState ?? setState)(() {
         _promoError = 'Error validating promo code';
       });
     }
   }
 
-  void _removePromoCode(StateSetter setDialogState) {
-    setDialogState(() {
+  void _removePromoCode([StateSetter? setDialogState]) {
+    (setDialogState ?? setState)(() {
       _appliedPromo = null;
       _discount = 0.0;
       _promoError = null;
       _promoCodeController.clear();
     });
+  }
+
+  void _showPromoCodeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: themeCard,
+        title: Text(LocalizationService().translate('apply_promo_code') ?? 'Apply Promo Code', style: TextStyle(color: themeText)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _promoCodeController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: LocalizationService().translate('enter_code_hint') ?? 'Enter Code',
+                hintStyle: TextStyle(color: themeHint),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: themeBorder)),
+              ),
+              style: TextStyle(color: themeText),
+              onSubmitted: (_) {
+                _applyPromoCode();
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _promoCodeController.clear();
+              Navigator.pop(context);
+            },
+            child: Text(LocalizationService().translate('cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _applyPromoCode();
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
+            child: Text(LocalizationService().translate('apply'), style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _placeOrder() async {
@@ -6620,6 +6666,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   ),
                 ],
               ),
+              // Promo Code Row
+              _buildTappablePriceRow(
+                LocalizationService().translate('promo_code') ?? 'Promo Code',
+                _appliedPromo != null ? _appliedPromo!['code'].toString().toUpperCase() : (LocalizationService().translate('tap_to_enter') ?? 'Tap to enter'),
+                icon: Icons.confirmation_number_outlined,
+                color: _appliedPromo != null ? themePrimary : null,
+                onTap: _appliedPromo != null ? () => _removePromoCode() : _showPromoCodeDialog,
+              ),
               if (_isTaxEnabled || _reservationFee > 0)
                 Row(
                   children: [
@@ -6702,6 +6756,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           padding: EdgeInsets.zero,
                         ),
                         child: const Icon(Icons.call_split_rounded, size: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Merge Bill Button (Compact)
+                    SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _showMergeBillDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                          foregroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: const Icon(Icons.merge_type_rounded, size: 20),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -8109,6 +8180,30 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   },
                                 ),
                               ),
+                              if ((order['payment_status']?.toString() ?? '').toLowerCase() == 'unpaid')
+                                Tooltip(
+                                  message: LocalizationService().translate('settle_payment'),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.payments_rounded, color: Colors.green, size: 22),
+                                    onPressed: () {
+                                      setState(() {
+                                        _cartItems = (order['items'] as List).map((item) => {
+                                          'id': item['menu_item_id'] ?? 'custom-${item['id']}',
+                                          'name': item['name'],
+                                          'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
+                                                   ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
+                                          'quantity': item['quantity'],
+                                          'notes': item['notes'],
+                                          'extras': item['extras'],
+                                          'variants': item['variants'],
+                                        }).toList();
+                                        _editingOrderId = order['id'];
+                                        _orderType = order['order_type'] ?? 'Dine-In';
+                                      });
+                                      _showCheckoutDialog();
+                                    },
+                                  ),
+                                ),
                               Tooltip(
                                 message: LocalizationService().translate('download_pdf'),
                                 child: IconButton(
