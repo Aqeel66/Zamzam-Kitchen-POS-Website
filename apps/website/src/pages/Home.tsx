@@ -50,7 +50,7 @@ export default function Home() {
   const featuredItems = Array.isArray(menuData)
     ? menuData
         .flatMap(cat => cat.items || [])
-        .filter(item => item.is_featured)
+        .filter(item => item.is_featured === true || item.is_featured === 1 || item.is_featured === '1')
     : [];
   
   return (

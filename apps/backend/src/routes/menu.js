@@ -56,6 +56,8 @@ router.get('/', async (req, res) => {
           id: i.id.toString(),
           price: parseFloat(i.price),
           is_available: i.is_available, // Direct from DB (1 or 0)
+          is_featured: i.is_featured === 1 || i.is_featured === true || i.is_featured === '1',
+          badge: i.badge,
           variants: variants.filter(v => v.menu_item_id === i.id).map(v => ({...v, price_adjustment: parseFloat(v.price_adjustment)})),
           extras: extras.filter(e => e.menu_item_id === i.id).map(e => ({...e, price_adjustment: parseFloat(e.price_adjustment)})),
           ingredients: ingredients.filter(ing => ing.menu_item_id === i.id).map(ing => ({...ing, quantity_required: parseFloat(ing.quantity_required)}))
