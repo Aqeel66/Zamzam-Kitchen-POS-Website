@@ -144,6 +144,24 @@ async function ensureSchema() {
     const db = require('./db');
     console.log('🛠️ Checking database schema for missing columns...');
     
+    // Check if tables exist
+    const [tablesList] = await db.query('SHOW TABLES');
+    const existingTables = tablesList.map(t => Object.values(t)[0]);
+
+    if (!existingTables.includes('order_item_customizations')) {
+      console.log('➕ Creating missing table: order_item_customizations...');
+      await db.query(`
+        CREATE TABLE order_item_customizations (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          order_item_id INT,
+          type ENUM('Variant', 'Extra') NOT NULL,
+          customization_name VARCHAR(100) NOT NULL,
+          price_adjustment DECIMAL(10,2) DEFAULT 0.00,
+          FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE
+        )
+      `);
+    }
+
     // Check tenant_settings
     const [tenantCols] = await db.query('DESCRIBE tenant_settings');
     const tenantFields = tenantCols.map(c => c.Field);
@@ -232,6 +250,18 @@ async function ensureSchema() {
     if (!resFields.includes('customer_id')) {
       console.log('➕ Adding missing customer_id column to reservations...');
       await db.query("ALTER TABLE reservations ADD COLUMN customer_id INT DEFAULT NULL");
+    }
+
+    // Check orders
+    const [orderCols] = await db.query('DESCRIBE orders');
+    const orderFields = orderCols.map(c => c.Field);
+    if (!orderFields.includes('order_number')) {
+      console.log('➕ Adding missing order_number column to orders...');
+      await db.query("ALTER TABLE orders ADD COLUMN order_number VARCHAR(20) DEFAULT NULL");
+    }
+    if (!orderFields.includes('party_size')) {
+      console.log('➕ Adding missing party_size column to orders...');
+      await db.query("ALTER TABLE orders ADD COLUMN party_size INT DEFAULT 1");
     }
     
     console.log('✅ Schema check complete');
