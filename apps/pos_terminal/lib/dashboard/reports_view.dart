@@ -55,6 +55,8 @@ class _ReportsViewState extends State<ReportsView> {
   String _finItemFilter = 'ALL';
   String _finCategoryFilter = 'ALL';
   String _orderSearchQuery = '';
+  String _finSearchQuery = '';
+  String _invSearchQuery = '';
   String _orderItemFilter = 'ALL';
 
   @override
@@ -167,25 +169,71 @@ class _ReportsViewState extends State<ReportsView> {
             children: [
               // Header & Sub-nav
               Container(
-                padding: const EdgeInsets.fromLTRB(32, 32, 32, 0),
+                padding: const EdgeInsets.fromLTRB(32, 24, 32, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          LocalizationService().translate('business_intelligence'), 
-                          style: TextStyle(color: themeText, fontSize: 28, fontWeight: FontWeight.bold)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    LocalizationService().translate('business_intelligence'), 
+                                    style: TextStyle(color: themeText, fontSize: 28, fontWeight: FontWeight.bold)
+                                  ),
+                                  if (_selectedTab != 0 && _selectedTab != 5) ...[
+                                    const SizedBox(width: 48),
+                                    _buildHeaderMetrics(_selectedTab, themeText, themeCard, themeBorder, themePrimary, themeHint),
+                                  ],
+                                  if (_selectedTab == 5) ...[
+                                    const SizedBox(width: 24),
+                                    Expanded(child: _buildFinancialHeaderSection(themeText, themeCard, themeBorder, themePrimary, themeHint)),
+                                  ],
+                                  if (_selectedTab == 0) ...[
+                                    const SizedBox(width: 24),
+                                    SizedBox(
+                                      width: 280,
+                                      child: _buildCondensedSummaryVisuals(themePrimary, themeHint, themeText, themeBorder, themeCard),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 24),
                         _buildSubNav(themeText, themeCard, themeBorder, themePrimary, themeHint),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     Divider(color: themeBorder),
                   ],
                 ),
               ),
+              // Global Filter Bar (for other tabs)
+              if (_selectedTab == 4)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+                  child: Row(
+                    children: [
+                      _buildInventoryFilters(themeText, themeCard, themeBorder, themePrimary, themeHint),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildSearchBar(
+                          themeText, themeCard, themeBorder, themeHint,
+                          _invSearchQuery,
+                          (val) => setState(() => _invSearchQuery = val)
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               // Content
               Expanded(
                 child: widget.isLoading 
@@ -252,7 +300,12 @@ class _ReportsViewState extends State<ReportsView> {
             );
           }),
           onChanged: (val) {
-            if (val != null) setState(() => _selectedTab = val);
+            if (val != null) {
+              setState(() {
+                _selectedTab = val;
+                if (val == 1 || val == 2) _fetchFilteredReport();
+              });
+            }
           },
         ),
       ),
@@ -274,32 +327,12 @@ class _ReportsViewState extends State<ReportsView> {
 
   Widget _buildSummary(Color text, Color card, Color border, Color primary, Color hint) {
     final today = widget.summaryData['today'] ?? {'total': 0.0, 'count': 0};
-    final financials = widget.financialData;
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(child: _buildKPI(LocalizationService().translate('net_sales'), '\$${(double.tryParse(today['total']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', Icons.payments_outlined, Colors.green, card, text, border, hint)),
-              const SizedBox(width: 20),
-              Expanded(child: _buildKPI(LocalizationService().translate('total_orders'), '${today['count'] ?? 0}', Icons.receipt_long_outlined, primary, card, text, border, hint)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildKPI(
-                  LocalizationService().translate('avg_order'), 
-                  '\$${((double.tryParse(today['count']?.toString() ?? '0') ?? 0) > 0 ? (double.tryParse(today['total']?.toString() ?? '0') ?? 0.0) / (double.tryParse(today['count']?.toString() ?? '1') ?? 1) : 0.0).toStringAsFixed(2)}', 
-                  Icons.calculate_outlined, 
-                  primary, card, text, border, hint
-                )
-              ),
-              const SizedBox(width: 20),
-              Expanded(child: _buildKPI(LocalizationService().translate('est_profit'), '\$${(double.tryParse(financials['net_profit']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', Icons.trending_up_rounded, Colors.purple, card, text, border, hint)),
-            ],
-          ),
-          const SizedBox(height: 12),
           _buildReconciliationCard(text, card, border, primary, hint),
           const SizedBox(height: 16),
           Row(
@@ -347,43 +380,95 @@ class _ReportsViewState extends State<ReportsView> {
   }
 
   Widget _buildSalesLog(Color text, Color card, Color border, Color primary, Color hint) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: _buildCard(
-        LocalizationService().translate('recent_transactions'),
-        SizedBox(
-          width: double.infinity,
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(primary.withValues(alpha: 0.05)),
-            columns: [
-              DataColumn(label: Text(LocalizationService().translate('id_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-              DataColumn(label: Text(LocalizationService().translate('time_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-              DataColumn(label: Text(LocalizationService().translate('type_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-              DataColumn(label: Text(LocalizationService().translate('total_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-              DataColumn(label: Text(LocalizationService().translate('status_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-            ],
-            rows: widget.placedOrders.take(15).map((o) {
-              return DataRow(cells: [
-                DataCell(Text('#${o['id']}', style: TextStyle(color: text))),
-                DataCell(Text(_safeTime(o['order_time']), style: TextStyle(color: hint))),
-                DataCell(Text('${o['order_type']}', style: TextStyle(color: text))),
-                DataCell(Text('\$${(double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', 
-                    style: TextStyle(color: primary, fontWeight: FontWeight.bold))),
-                DataCell(Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: (o['status'] == 'completed' ? Colors.green : primary).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(o['status'].toString().toUpperCase(), 
-                      style: TextStyle(color: o['status'] == 'completed' ? Colors.green : primary, fontSize: 10, fontWeight: FontWeight.bold)),
-                )),
-              ]);
-            }).toList(),
+    return Column(
+      children: [
+        // Filter Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          decoration: BoxDecoration(
+            color: card.withValues(alpha: 0.3),
+            border: Border(bottom: BorderSide(color: border)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildReportDatePicker(text, card, border, primary),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 300,
+                  child: _buildSearchBar(text, card, border, hint, _orderSearchQuery, (val) => setState(() => _orderSearchQuery = val)),
+                ),
+                const SizedBox(width: 32),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _orderSearchQuery = '';
+                      _reportDateRange = null;
+                    });
+                    _fetchFilteredReport();
+                  },
+                  icon: Icon(Icons.refresh_outlined, size: 18, color: hint),
+                  label: Text(LocalizationService().translate('clear_filters'), style: TextStyle(color: hint)),
+                ),
+              ],
+            ),
           ),
         ),
-        card, text, border
-      ),
+        // Results Table
+        Expanded(
+          child: _isReportLoading 
+            ? Center(child: CircularProgressIndicator(color: primary))
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: _buildCard(
+                  LocalizationService().translate('recent_transactions'),
+                  _reportOrders.isEmpty
+                    ? Center(child: Padding(padding: const EdgeInsets.all(40), child: Text(LocalizationService().translate('no_results_found'), style: TextStyle(color: hint))))
+                    : SizedBox(
+                        width: double.infinity,
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(primary.withValues(alpha: 0.05)),
+                          columns: [
+                            DataColumn(label: Text(LocalizationService().translate('id_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text(LocalizationService().translate('time_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text(LocalizationService().translate('type_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text(LocalizationService().translate('total_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text(LocalizationService().translate('status_col'), style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                          ],
+                          rows: _reportOrders.where((o) {
+                            if (_orderSearchQuery.isNotEmpty) {
+                              final query = _orderSearchQuery.toLowerCase().replaceAll('#', '');
+                              final orderNo = (o['order_number'] ?? '').toString().toLowerCase();
+                              final orderId = (o['id'] ?? '').toString().toLowerCase();
+                              if (!orderNo.contains(query) && !orderId.contains(query)) return false;
+                            }
+                            return true;
+                          }).map((o) {
+                            return DataRow(cells: [
+                              DataCell(Text('#${o['order_number'] ?? o['id']}', style: TextStyle(color: text))),
+                              DataCell(Text(_safeTime(o['order_time']), style: TextStyle(color: hint))),
+                              DataCell(Text('${o['order_type']}', style: TextStyle(color: text))),
+                              DataCell(Text('\$${(double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', 
+                                  style: TextStyle(color: primary, fontWeight: FontWeight.bold))),
+                              DataCell(Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: (o['status'] == 'completed' ? Colors.green : primary).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(o['status'].toString().toUpperCase(), 
+                                    style: TextStyle(color: o['status'] == 'completed' ? Colors.green : primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                              )),
+                            ]);
+                          }).toList(),
+                        ),
+                      ),
+                  card, text, border
+                ),
+              ),
+        ),
+      ],
     );
   }
 
@@ -438,55 +523,9 @@ class _ReportsViewState extends State<ReportsView> {
   }
 
   Widget _buildDetailedOrdersReport(Color text, Color card, Color border, Color primary, Color hint) {
-    // Calculate Summary Metrics
-    double totalRevenue = 0;
-    for (var o in _reportOrders) {
-      totalRevenue += double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0;
-    }
-    double avgValue = _reportOrders.isEmpty ? 0 : totalRevenue / _reportOrders.length;
-
     return Column(
       children: [
-        // Top KPI Boxes (Matching Inventory Report style)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
-                  child: _buildKPI(
-                    LocalizationService().translate('total_orders'), 
-                    '${_reportOrders.length}', 
-                    Icons.receipt_long_outlined, 
-                    primary, card, text, border, hint
-                  ),
-                ),
-                const SizedBox(width: 20),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
-                  child: _buildKPI(
-                    'Net Sales', 
-                    '\$${totalRevenue.toStringAsFixed(2)}', 
-                    Icons.attach_money_rounded, 
-                    Colors.green, card, text, border, hint
-                  ),
-                ),
-                const SizedBox(width: 20),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
-                  child: _buildKPI(
-                    'Avg. Order Value', 
-                    '\$${avgValue.toStringAsFixed(2)}', 
-                    Icons.analytics_outlined, 
-                    Colors.blue, card, text, border, hint
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // Top KPIs (Now in Header)
 
         // Filter Bar
         Container(
@@ -499,134 +538,14 @@ class _ReportsViewState extends State<ReportsView> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-              // Date Range Picker (Two-Step Selection)
-              OutlinedButton.icon(
-                onPressed: () async {
-                  try {
-                    // Fallback if not loaded
-                    if (_availableDates.isEmpty) {
-                      await _fetchAvailableDates().timeout(const Duration(seconds: 3));
-                    }
-                    
-                    DateTime now = DateUtils.dateOnly(DateTime.now());
-                    DateTime startBound = DateUtils.dateOnly(_firstDate);
-                    
-                    // CRITICAL: Align startBound with the actual first available date to avoid predicate conflicts
-                    if (_availableDates.isNotEmpty) {
-                      List<String> sorted = _availableDates.toList()..sort();
-                      DateTime firstDataDate = DateTime.parse(sorted.first);
-                      if (firstDataDate.isBefore(startBound)) {
-                        startBound = firstDataDate;
-                      }
-                    }
-                    
-                    DateTime endBound = now.add(const Duration(days: 1));
-                    
-                    // Safety check: ensure firstDate is before lastDate
-                    if (startBound.isAfter(endBound)) {
-                      startBound = endBound.subtract(const Duration(days: 30));
-                    }
-                    
-                    // Step 1: Select From Date
-                    DateTime initialStart = _reportDateRange != null 
-                        ? DateUtils.dateOnly(_reportDateRange!.start) 
-                        : now;
-                        
-                    // Ensure initialStart is selectable if possible
-                    if (_availableDates.isNotEmpty && !_availableDates.contains(initialStart.toIso8601String().split('T')[0])) {
-                      List<String> sorted = _availableDates.toList()..sort();
-                      initialStart = DateTime.parse(sorted.first);
-                    }
-                    
-                    // Ensure initialStart is NOT before startBound
-                    if (initialStart.isBefore(startBound)) initialStart = startBound;
-                    
-                    // Clamp initialStart to a safe absolute range for the picker
-                    DateTime safeMin = DateTime(2025, 1, 1);
-                    if (initialStart.isBefore(safeMin)) initialStart = safeMin;
-                    if (initialStart.isAfter(endBound)) initialStart = endBound;
-
-                    if (!mounted) return;
-                    final fromDate = await showDatePicker(
-                      context: context,
-                      initialDate: initialStart,
-                      firstDate: DateTime(2023),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                      helpText: LocalizationService().translate('select_start_date'),
-                      builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
-                    );
-                    
-                    if (fromDate != null) {
-                      // Step 2: Select To Date
-                      DateTime initialEnd = _reportDateRange != null 
-                          ? DateUtils.dateOnly(_reportDateRange!.end) 
-                          : fromDate;
-                      
-                      if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
-
-                      if (!mounted) return;
-                      final toDate = await showDatePicker(
-                        context: context,
-                        initialDate: initialEnd,
-                        firstDate: fromDate,
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        helpText: LocalizationService().translate('select_end_date'),
-                        builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
-                      );
-                      
-                      if (toDate != null) {
-                        setState(() {
-                          _reportDateRange = DateTimeRange(start: fromDate, end: toDate);
-                        });
-                        _fetchFilteredReport();
-                      }
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Picker Error: $e')),
-                      );
-                    }
-                  }
-                },
-                icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
-                label: Text(
-                  _reportDateRange == null 
-                    ? LocalizationService().translate('select_date_range')
-                    : '${_reportDateRange!.start.toString().split(' ')[0]} to ${_reportDateRange!.end.toString().split(' ')[0]}',
-                  style: TextStyle(color: text, fontWeight: FontWeight.bold),
+                _buildReportDatePicker(text, card, border, primary),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 300,
+                  child: _buildSearchBar(text, card, border, hint, _orderSearchQuery, (val) => setState(() => _orderSearchQuery = val)),
                 ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                  side: BorderSide(color: border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  backgroundColor: card,
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Search Input
-              Container(
-                width: 220,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: card,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: border),
-                ),
-                child: TextField(
-                  onChanged: (val) => setState(() => _orderSearchQuery = val),
-                  style: TextStyle(color: text, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Search Order #, Customer, Table...',
-                    hintStyle: TextStyle(color: hint, fontSize: 12),
-                    prefixIcon: Icon(Icons.search_rounded, size: 20, color: hint),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Item Filter
+                const SizedBox(width: 16),
+                // Item Filter
               _buildFilterDropdown(
                 'Food Item',
                 _orderItemFilter,
@@ -878,17 +797,8 @@ class _ReportsViewState extends State<ReportsView> {
   }
 
   Widget _buildInventoryReport(Color text, Color card, Color border, Color primary, Color hint) {
-    // 1. Calculate KPIs (Global)
-    double totalValue = 0;
-    int lowStockCount = 0;
-    for (var item in _inventoryItems) {
-      double qty = double.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
-      double cost = double.tryParse(item['cost_per_unit']?.toString() ?? '0') ?? 0;
-      double min = double.tryParse(item['min_stock_level']?.toString() ?? '0') ?? 0;
-      totalValue += (qty * cost);
-      if (qty <= min) lowStockCount++;
-    }
-
+    // 1. Calculate KPIs (Now moved to header via _buildCondensedInventoryMetrics)
+    
     // 2. Apply Filters to the list
     List<dynamic> filteredItems = _inventoryItems.where((item) {
       // Item Filter
@@ -908,151 +818,13 @@ class _ReportsViewState extends State<ReportsView> {
 
     return Column(
       children: [
-        // Top KPIs
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 180),
-                  child: _buildKPI('Total Items', '${_inventoryItems.length}', Icons.category_outlined, primary, card, text, border, hint),
-                ),
-                const SizedBox(width: 12),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 220),
-                  child: _buildKPI('Low Stock Alerts', '$lowStockCount', Icons.warning_amber_rounded, Colors.orange, card, text, border, hint),
-                ),
-                const SizedBox(width: 20),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 180),
-                  child: _buildKPI('Inventory Value', '\$${totalValue.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined, Colors.green, card, text, border, hint),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Filter Bar (Replicating Detailed Orders Report pattern)
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: border),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-              // Date Range (Two-Step Selection like Detailed Orders Report)
-              OutlinedButton.icon(
-                onPressed: () async {
-                  try {
-                    DateTime now = DateTime.now();
-                    
-                    // Step 1: Select From Date
-                    final fromDate = await showDatePicker(
-                      context: context,
-                      initialDate: _invDateRange?.start ?? now,
-                      firstDate: DateTime(2023),
-                      lastDate: now.add(const Duration(days: 365)),
-                      helpText: LocalizationService().translate('select_start_date'),
-                      builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
-                    );
-                    
-                    if (fromDate != null) {
-                      // Step 2: Select To Date
-                      DateTime initialEnd = _invDateRange?.end ?? fromDate;
-                      if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
-
-                      if (!mounted) return;
-                      final toDate = await showDatePicker(
-                        context: context,
-                        initialDate: initialEnd,
-                        firstDate: fromDate,
-                        lastDate: now.add(const Duration(days: 365)),
-                        helpText: LocalizationService().translate('select_end_date'),
-                        builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
-                      );
-                      
-                      if (toDate != null) {
-                        setState(() {
-                          _invDateRange = DateTimeRange(start: fromDate, end: toDate);
-                        });
-                      }
-                    }
-                  } catch (e) {
-                    if (kDebugMode) print('Inventory Date Picker Error: $e');
-                  }
-                },
-                icon: Icon(Icons.calendar_month_outlined, size: 18, color: primary),
-                label: Text(
-                  _invDateRange == null 
-                    ? 'Current Snapshot' 
-                    : '${_invDateRange!.start.toString().split(' ')[0]} to ${_invDateRange!.end.toString().split(' ')[0]}',
-                  style: TextStyle(color: text, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  side: BorderSide(color: border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  backgroundColor: card,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Item Filter
-              _buildFilterDropdown(
-                'All Items',
-                _invItemFilter,
-                ['ALL', ..._inventoryItems.map((e) => e['name'].toString()).toSet()],
-                (val) => setState(() => _invItemFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 12),
-              // Supplier Filter
-              _buildFilterDropdown(
-                'All Suppliers',
-                _invSupplierFilter,
-                ['ALL', ..._suppliers.map((e) => e['name'].toString()).toSet()],
-                (val) => setState(() => _invSupplierFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 12),
-              // Status Filter
-              _buildFilterDropdown(
-                'Status',
-                _invStatusFilter,
-                ['ALL', 'LOW STOCK', 'HEALTHY'],
-                (val) => setState(() => _invStatusFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    _invItemFilter = 'ALL';
-                    _invSupplierFilter = 'ALL';
-                    _invStatusFilter = 'ALL';
-                    _invDateRange = null;
-                  });
-                },
-                icon: Icon(Icons.refresh_rounded, color: hint, size: 20),
-                tooltip: 'Reset Filters',
-              ),
-            ],
-          ),
-        ),
-      ),
-
-        // Main Table
+        // Main Content
         Expanded(
-          child: SingleChildScrollView(
+          child: ListView(
             padding: const EdgeInsets.all(32),
-            child: _buildCard(
-              'Inventory Breakdown',
+            children: [
+              _buildCard(
+                'Inventory Breakdown',
               SizedBox(
                 width: double.infinity,
                 child: DataTable(
@@ -1093,12 +865,78 @@ class _ReportsViewState extends State<ReportsView> {
                         child: Text(isLow ? 'LOW STOCK' : 'HEALTHY', 
                             style: TextStyle(color: isLow ? Colors.red : Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
                       )),
-                    ]);
-                  }).toList(),
-                ),
+                          ]);
+                        }).toList(),
+                      ),
+                    ),
+                card, text, border
               ),
-              card, text, border
-            ),
+
+              const SizedBox(height: 32),
+
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Suppliers List
+                  Expanded(
+                    flex: 1,
+                    child: _buildCard(
+                      'Trusted Suppliers',
+                      Column(
+                        children: _suppliers.isEmpty 
+                          ? [Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('No suppliers found', style: TextStyle(color: hint))))]
+                          : _suppliers.map((s) => ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(backgroundColor: primary.withValues(alpha: 0.1), child: Icon(Icons.business_rounded, color: primary, size: 18)),
+                              title: Text(s['name'] ?? 'N/A', style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 13)),
+                              subtitle: Text(s['contact_email'] ?? 'No email', style: TextStyle(color: hint, fontSize: 11)),
+                              trailing: Text('${s['reliability_score'] ?? 100}%', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                            )).toList(),
+                      ),
+                      card, text, border,
+                    ),
+                  ),
+                  const SizedBox(width: 32),
+                  // Recent Purchases
+                  Expanded(
+                    flex: 2,
+                    child: _buildCard(
+                      'Recent Purchase Orders',
+                      SizedBox(
+                        width: double.infinity,
+                        child: DataTable(
+                          horizontalMargin: 0,
+                          columns: [
+                            DataColumn(label: Text('Date', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Invoice', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Supplier', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Amount', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Status', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                          ],
+                          rows: _purchases.take(10).map((p) {
+                            return DataRow(cells: [
+                              DataCell(Text(p['order_date']?.toString().split(' ')[0] ?? '', style: TextStyle(color: text, fontSize: 12))),
+                              DataCell(Text(p['invoice_number'] ?? 'PO-${p['id']}', style: TextStyle(color: text, fontSize: 12))),
+                              DataCell(Text(p['supplier_name'] ?? 'N/A', style: TextStyle(color: text, fontSize: 12))),
+                              DataCell(Text('\$${(double.tryParse(p['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}', style: TextStyle(color: primary, fontWeight: FontWeight.bold))),
+                              DataCell(Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: (p['status'] == 'Received' ? Colors.green : Colors.orange).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(p['status']?.toString().toUpperCase() ?? 'PENDING', style: TextStyle(color: p['status'] == 'Received' ? Colors.green : Colors.orange, fontSize: 9, fontWeight: FontWeight.bold)),
+                              )),
+                            ]);
+                          }).toList(),
+                        ),
+                      ),
+                      card, text, border,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ],
@@ -1124,13 +962,26 @@ class _ReportsViewState extends State<ReportsView> {
         channel = 'TAKEAWAY';
       }
 
+      String payMethod = 'UNPAID';
+      if (o['payment'] != null) {
+        if (o['payment'] is Map) {
+          payMethod = o['payment']['payment_method']?.toString() ?? 'CASH';
+        } else {
+          payMethod = o['payment'].toString();
+        }
+      } else if ((o['status'] ?? '').toString().toUpperCase() == 'PAID') {
+        payMethod = 'CASH';
+      }
+
       ledger.add({
+        'id': o['id'],
+        'originalType': 'ORDER',
         'date': DateTime.tryParse(o['order_time']?.toString() ?? '') ?? DateTime.now(),
         'desc': 'Order #${o['order_number'] ?? o['id']}',
         'type': 'INCOME',
         'category': o['order_type'] ?? 'Sales',
         'amount': double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0.0,
-        'payment': o['payment']?['payment_method'] ?? 'N/A',
+        'payment': payMethod,
         'channel': channel,
         'customer': o['customer_name'] ?? 'Guest',
         'itemNames': itemNames,
@@ -1140,12 +991,14 @@ class _ReportsViewState extends State<ReportsView> {
 
     for (var e in _expenses) {
       ledger.add({
+        'id': e['id'],
+        'originalType': 'EXPENSE',
         'date': DateTime.tryParse(e['date']?.toString() ?? '') ?? DateTime.now(),
         'desc': e['notes'] ?? 'General Expense',
         'type': 'EXPENSE',
         'category': e['category'] ?? 'Operational',
         'amount': double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0,
-        'payment': 'Cash', 
+        'payment': e['payment_method'] ?? 'Cash', 
         'channel': 'N/A',
         'customer': 'N/A',
         'itemNames': [],
@@ -1158,12 +1011,14 @@ class _ReportsViewState extends State<ReportsView> {
       List<String> pItemNames = pItems.map((i) => (i['item_name'] ?? '').toString()).toList();
       
       ledger.add({
+        'id': p['id'],
+        'originalType': 'PURCHASE',
         'date': DateTime.tryParse(p['order_date']?.toString() ?? '') ?? DateTime.now(),
         'desc': 'Purchase: ${p['invoice_number'] != null ? 'Inv #${p['invoice_number']}' : 'PO #${p['id']}'}',
         'type': 'EXPENSE',
         'category': 'Inventory',
         'amount': double.tryParse(p['total_amount']?.toString() ?? '0') ?? 0.0,
-        'payment': 'Cash', 
+        'payment': p['payment_method'] ?? 'Cash', 
         'channel': 'N/A',
         'customer': p['supplier_name'] ?? 'Supplier',
         'itemNames': pItemNames,
@@ -1180,7 +1035,10 @@ class _ReportsViewState extends State<ReportsView> {
       // Type Filter
       if (_finTypeFilter != 'ALL' && item['type'] != _finTypeFilter) return false;
       // Payment Filter
-      if (_finPayFilter != 'ALL' && item['payment']?.toString().toUpperCase() != _finPayFilter) return false;
+      if (_finPayFilter != 'ALL') {
+        final payStr = (item['payment']?.toString() ?? '').toUpperCase().trim();
+        if (payStr != _finPayFilter && !payStr.contains(_finPayFilter)) return false;
+      }
       // Channel Filter
       if (_finChannelFilter != 'ALL' && item['channel'] != _finChannelFilter) return false;
       // Customer Filter
@@ -1201,215 +1059,210 @@ class _ReportsViewState extends State<ReportsView> {
     final allCustomers = ledger.map((l) => l['customer'].toString()).toSet().toList()..sort();
 
     // 3. Calculate KPIs
-    double totalIncome = 0;
-    double totalExpense = 0;
-    for (var item in filteredLedger) {
-      if (item['type'] == 'INCOME') {
-        totalIncome += item['amount'];
-      } else {
-        totalExpense += item['amount'];
-      }
-    }
-    double netProfit = totalIncome - totalExpense;
 
     return Column(
       children: [
-        // 4. Visual Financial Overview (Real-time from Endpoint)
-        _buildFinancialVisuals(text, card, border, primary, hint),
-
-        // Filter Bar
+        // Filter Bar (Secondary filters)
+        // Filter Bar (Restructured: Date/Search on Left, Filters on Right)
         Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
           decoration: BoxDecoration(
             color: card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: border),
+            border: Border(bottom: BorderSide(color: border)),
           ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-              // Date Picker
-              OutlinedButton.icon(
-                onPressed: () async {
-                  DateTime now = DateTime.now();
-                  final fromDate = await showDatePicker(
-                    context: context,
-                    initialDate: _finDateRange?.start ?? now,
-                    firstDate: DateTime(2023),
-                    lastDate: now.add(const Duration(days: 365)),
-                    builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
-                  );
-                  if (fromDate != null) {
-                    // Step 2: Select To Date
-                    DateTime initialEnd = _finDateRange?.end ?? fromDate;
-                    if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
-
-                    if (!mounted) return;
-                    final toDate = await showDatePicker(
-                      context: context,
-                      initialDate: initialEnd,
-                      firstDate: fromDate,
-                      lastDate: now.add(const Duration(days: 365)),
-                      helpText: LocalizationService().translate('select_end_date'),
-                      builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
-                    );
-                    if (toDate != null) {
-                      setState(() => _finDateRange = DateTimeRange(start: fromDate, end: toDate));
-                    }
-                  }
-                },
-                icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
-                label: Text(
-                  _finDateRange == null ? 'All Time' : '${_finDateRange!.start.toString().split(' ')[0]} to ${_finDateRange!.end.toString().split(' ')[0]}',
-                  style: TextStyle(color: text, fontWeight: FontWeight.bold),
+          child: Row(
+            children: [
+              // Left side: Primary Controls
+              _buildFinancialDatePicker(text, card, border, primary),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 180,
+                child: _buildSearchBar(text, card, border, hint, _finSearchQuery, (val) => setState(() => _finSearchQuery = val)),
+              ),
+              
+              const SizedBox(width: 16), // Gap
+              
+              // Right side: Specialized Filters
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterDropdown('Transaction Type', _finTypeFilter, ['ALL', 'INCOME', 'EXPENSE'], (val) => setState(() => _finTypeFilter = val!), text, card, border, primary),
+                      const SizedBox(width: 12),
+                      _buildFilterDropdown('Payment Method', _finPayFilter, ['ALL', 'CASH', 'CARD', 'UNPAID'], (val) => setState(() => _finPayFilter = val!), text, card, border, primary),
+                      const SizedBox(width: 12),
+                      _buildFilterDropdown('Channel', _finChannelFilter, ['ALL', 'DINE-IN', 'TAKEAWAY', 'ONLINE', 'QR-MENU'], (val) => setState(() => _finChannelFilter = val!), text, card, border, primary),
+                      const SizedBox(width: 12),
+                      _buildFilterDropdown('Customer', _finCustomerFilter, ['ALL', ...allCustomers], (val) => setState(() => _finCustomerFilter = val!), text, card, border, primary),
+                      const SizedBox(width: 12),
+                      _buildFilterDropdown('Food Item', _finItemFilter, ['ALL', ...allItems], (val) => setState(() => _finItemFilter = val!), text, card, border, primary),
+                      const SizedBox(width: 12),
+                      _buildFilterDropdown('Category', _finCategoryFilter, ['ALL', ...allCats], (val) => setState(() => _finCategoryFilter = val!), text, card, border, primary),
+                      const SizedBox(width: 24),
+                      IconButton(
+                        onPressed: () => setState(() {
+                          _finDateRange = null; _finTypeFilter = 'ALL'; _finPayFilter = 'ALL'; _finChannelFilter = 'ALL';
+                          _finCustomerFilter = 'ALL'; _finItemFilter = 'ALL'; _finCategoryFilter = 'ALL';
+                          _finSearchQuery = '';
+                        }),
+                        tooltip: LocalizationService().translate('clear_filters'),
+                        icon: Icon(Icons.refresh_rounded, color: hint),
+                      ),
+                    ],
+                  ),
                 ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  side: BorderSide(color: border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Type Filter
-              _buildFilterDropdown(
-                'Transaction Type',
-                _finTypeFilter,
-                ['ALL', 'INCOME', 'EXPENSE'],
-                (val) => setState(() => _finTypeFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 16),
-              // Payment Filter
-              _buildFilterDropdown(
-                'Payment Method',
-                _finPayFilter,
-                ['ALL', 'CASH', 'CARD'],
-                (val) => setState(() => _finPayFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 16),
-              // Channel Filter
-              _buildFilterDropdown(
-                'Channel',
-                _finChannelFilter,
-                ['ALL', 'DINE-IN', 'TAKEAWAY', 'ONLINE', 'QR-MENU'],
-                (val) => setState(() => _finChannelFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 16),
-              // Customer Filter
-              _buildFilterDropdown(
-                'Customer',
-                _finCustomerFilter,
-                ['ALL', ...allCustomers],
-                (val) => setState(() => _finCustomerFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 16),
-              // Item Filter
-              _buildFilterDropdown(
-                'Food Item',
-                _finItemFilter,
-                ['ALL', ...allItems],
-                (val) => setState(() => _finItemFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 16),
-              // Category Filter
-              _buildFilterDropdown(
-                'Category',
-                _finCategoryFilter,
-                ['ALL', ...allCats],
-                (val) => setState(() => _finCategoryFilter = val!),
-                text, card, border, primary
-              ),
-              const SizedBox(width: 32),
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    _finDateRange = null;
-                    _finTypeFilter = 'ALL';
-                    _finPayFilter = 'ALL';
-                    _finChannelFilter = 'ALL';
-                    _finCustomerFilter = 'ALL';
-                    _finItemFilter = 'ALL';
-                    _finCategoryFilter = 'ALL';
-                  });
-                },
-                icon: Icon(Icons.refresh_rounded, color: hint),
               ),
             ],
           ),
         ),
-      ),
 
-        // Ledger Table
+        // Redesigned Ledger Table
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+          child: Row(
+            children: [
+              Text('Financial Ledger', style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Text('${filteredLedger.length} Transactions', style: TextStyle(color: hint, fontSize: 12)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: _buildCard(
-              'Financial Ledger',
-              SizedBox(
-                width: double.infinity,
-                child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(primary.withValues(alpha: 0.05)),
-                  columns: [
-                    DataColumn(label: Text('Date', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Description', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Category', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Type', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Amount', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-                  ],
-                  rows: filteredLedger.map((item) {
-                    bool isIncome = item['type'] == 'INCOME';
-                    return DataRow(cells: [
-                      DataCell(Text(item['date'].toString().split(' ')[0], style: TextStyle(color: hint))),
-                      DataCell(Text(item['desc'], style: TextStyle(color: text, fontWeight: FontWeight.bold))),
-                      DataCell(Text(item['category'], style: TextStyle(color: text))),
-                      DataCell(Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: (isIncome ? Colors.green : Colors.red).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(item['type'], style: TextStyle(color: isIncome ? Colors.green : Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
-                      )),
-                      DataCell(Text('\$${item['amount'].toStringAsFixed(2)}', 
-                          style: TextStyle(color: isIncome ? Colors.green : Colors.red, fontWeight: FontWeight.bold))),
-                    ]);
-                  }).toList(),
-                ),
-              ),
-              card, text, border
-            ),
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+            itemCount: filteredLedger.length,
+            itemBuilder: (context, index) {
+              final item = filteredLedger[index];
+              return _buildLedgerItem(item, text, hint, card, border, primary);
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildKPI(String label, String value, IconData icon, Color color, Color card, Color text, Color border, Color hint) {
+  Widget _buildLedgerItem(Map<String, dynamic> item, Color text, Color hint, Color card, Color border, Color primary) {
+    bool isIncome = item['type'] == 'INCOME';
+    IconData categoryIcon;
+    Color categoryColor;
+    switch (item['category']?.toString().toUpperCase()) {
+      case 'SALES': categoryIcon = Icons.point_of_sale_rounded; categoryColor = Colors.green; break;
+      case 'OPERATIONAL': case 'EXPENSE': categoryIcon = Icons.account_balance_wallet_rounded; categoryColor = Colors.red; break;
+      case 'RENT': categoryIcon = Icons.home_work_rounded; categoryColor = Colors.orange; break;
+      case 'UTILITIES': categoryIcon = Icons.electrical_services_rounded; categoryColor = Colors.amber; break;
+      case 'INVENTORY': categoryIcon = Icons.inventory_2_rounded; categoryColor = Colors.blue; break;
+      case 'TAX': categoryIcon = Icons.receipt_long_rounded; categoryColor = Colors.purple; break;
+      default: categoryIcon = Icons.payment_rounded; categoryColor = primary;
+    }
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: border),
+        color: card, borderRadius: BorderRadius.circular(16), border: Border.all(color: border),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.01), blurRadius: 4, offset: const Offset(0, 2))],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(color: hint, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-          const SizedBox(height: 2),
-          Text(value, style: TextStyle(color: text, fontSize: 20, fontWeight: FontWeight.bold)),
+          Container(
+            padding: const EdgeInsets.all(8), 
+            decoration: BoxDecoration(color: categoryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), 
+            child: Icon(categoryIcon, color: categoryColor, size: 18),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(item['desc'], style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 24),
+                Text(item['date'].toString().split(' ')[0], style: TextStyle(color: hint, fontSize: 12)),
+                const SizedBox(width: 12),
+                Container(width: 3, height: 3, decoration: BoxDecoration(color: border, shape: BoxShape.circle)),
+                const SizedBox(width: 12),
+                Text(item['category'], style: TextStyle(color: hint, fontSize: 12)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
+            decoration: BoxDecoration(color: (isIncome ? Colors.green : Colors.red).withValues(alpha: 0.08), borderRadius: BorderRadius.circular(20)), 
+            child: Text(item['type'], style: TextStyle(color: isIncome ? Colors.green : Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 24),
+          SizedBox(
+            width: 110, 
+            child: Text(
+              '${isIncome ? "+" : "-"}\$${item['amount'].toStringAsFixed(2)}', 
+              textAlign: TextAlign.right, 
+              style: TextStyle(color: isIncome ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(Icons.delete_outline_rounded, color: Colors.red.withValues(alpha: 0.4), size: 18),
+            onPressed: () => _confirmDeleteLedgerItem(item),
+            tooltip: 'Delete Record',
+            splashRadius: 20,
+          ),
         ],
       ),
     );
   }
+
+  void _confirmDeleteLedgerItem(Map<String, dynamic> item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        title: Text('Delete Record?', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+        content: Text('Are you sure you want to delete "${item['desc']}"? This action cannot be undone.', style: TextStyle(color: Theme.of(context).hintColor)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteLedgerRecord(item);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteLedgerRecord(Map<String, dynamic> item) async {
+    final id = item['id'];
+    final type = item['originalType'];
+    String endpoint = '';
+    
+    if (type == 'ORDER') endpoint = '/api/orders/$id';
+    else if (type == 'EXPENSE') endpoint = '/api/expenses/$id';
+    else if (type == 'PURCHASE') endpoint = '/api/purchases/$id';
+    
+    if (endpoint.isEmpty) return;
+
+    try {
+      final res = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}$endpoint'));
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record deleted successfully')));
+        // Refresh data
+        if (type == 'ORDER') _fetchFilteredReport();
+        else if (type == 'EXPENSE') _fetchExpenses();
+        else if (type == 'PURCHASE') _fetchPurchases();
+      } else {
+        throw Exception('Failed to delete: ${res.body}');
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete Error: $e'), backgroundColor: Colors.red));
+    }
+  }
+
+
 
   Widget _buildCard(String title, Widget content, Color card, Color text, Color border) {
     return Container(
@@ -1597,7 +1450,164 @@ class _ReportsViewState extends State<ReportsView> {
     );
   }
 
-  Widget _buildFinancialVisuals(Color text, Color card, Color border, Color primary, Color hint) {
+  Widget _buildHeaderMetrics(int tab, Color text, Color card, Color border, Color primary, Color hint) {
+    switch (tab) {
+      case 0: return _buildCondensedSummaryMetrics(text, card, border, primary, hint);
+      case 1: return _buildCondensedSalesMetrics(text, card, border, primary, hint);
+      case 2: return _buildCondensedDetailedMetrics(text, card, border, primary, hint);
+      case 3: return _buildCondensedSalesMetrics(text, card, border, primary, hint);
+      case 4: return _buildCondensedInventoryMetrics(text, card, border, primary, hint);
+      case 5: return _buildFinancialHeaderSection(text, card, border, primary, hint);
+      case 6: return _buildCondensedStaffMetrics(text, card, border, primary, hint);
+      default: return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildCondensedSummaryMetrics(Color text, Color card, Color border, Color primary, Color hint) {
+    final today = widget.summaryData['today'] ?? {'total': 0.0, 'count': 0};
+    final financials = widget.financialData;
+    final total = double.tryParse(today['total']?.toString() ?? '0') ?? 0.0;
+    final count = (today['count'] as num?)?.toDouble() ?? 0.0;
+    final avg = count > 0 ? total / count : 0.0;
+    final profit = double.tryParse(financials['net_profit']?.toString() ?? '0') ?? 0.0;
+
+    return Row(
+      children: [
+        _buildSmallMetric('Net Sales', '\$${total.toStringAsFixed(2)}', Icons.payments_outlined, Colors.green, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Orders', '${count.toInt()}', Icons.receipt_long_outlined, primary, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Avg Order', '\$${avg.toStringAsFixed(2)}', Icons.calculate_outlined, Colors.blue, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Est Profit', '\$${profit.toStringAsFixed(2)}', Icons.trending_up_rounded, Colors.purple, text, hint),
+      ],
+    );
+  }
+
+  Widget _buildCondensedSalesMetrics(Color text, Color card, Color border, Color primary, Color hint) {
+    final today = widget.summaryData['today'] ?? {'total': 0.0, 'count': 0};
+    final total = double.tryParse(today['total']?.toString() ?? '0') ?? 0.0;
+    final count = (today['count'] as num?)?.toDouble() ?? 0.0;
+
+    return Row(
+      children: [
+        _buildSmallMetric('Today\'s Sales', '\$${total.toStringAsFixed(2)}', Icons.payments_outlined, Colors.green, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Total Orders', '${count.toInt()}', Icons.receipt_long_outlined, primary, text, hint),
+      ],
+    );
+  }
+
+  Widget _buildCondensedDetailedMetrics(Color text, Color card, Color border, Color primary, Color hint) {
+    double totalSales = 0;
+    for (var o in _reportOrders) {
+      totalSales += double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0.0;
+    }
+    double avgValue = _reportOrders.isNotEmpty ? totalSales / _reportOrders.length : 0.0;
+
+    return Row(
+      children: [
+        _buildSmallMetric('Report Sales', '\$${totalSales.toStringAsFixed(2)}', Icons.payments_outlined, Colors.green, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Orders Count', '${_reportOrders.length}', Icons.receipt_long_outlined, primary, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Avg Value', '\$${avgValue.toStringAsFixed(2)}', Icons.analytics_outlined, Colors.blue, text, hint),
+      ],
+    );
+  }
+
+  Widget _buildCondensedInventoryMetrics(Color text, Color card, Color border, Color primary, Color hint) {
+    double totalValue = 0;
+    int lowStockCount = 0;
+    for (var item in _inventoryItems) {
+      double qty = double.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
+      double cost = double.tryParse(item['cost_per_unit']?.toString() ?? '0') ?? 0;
+      double min = double.tryParse(item['min_stock_level']?.toString() ?? '0') ?? 0;
+      totalValue += (qty * cost);
+      if (qty <= min) lowStockCount++;
+    }
+
+    return Row(
+      children: [
+        _buildSmallMetric('Total Items', '${_inventoryItems.length}', Icons.category_outlined, primary, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Low Stock', '$lowStockCount', Icons.warning_amber_rounded, Colors.orange, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Inv. Value', '\$${totalValue.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined, Colors.green, text, hint),
+      ],
+    );
+  }
+
+  Widget _buildCondensedStaffMetrics(Color text, Color card, Color border, Color primary, Color hint) {
+    final activeShifts = widget.shifts.where((s) => s['clock_out'] == null).length;
+    return Row(
+      children: [
+        _buildSmallMetric('Total Shifts', '${widget.shifts.length}', Icons.assignment_ind_outlined, primary, text, hint),
+        _buildMetricDivider(border),
+        _buildSmallMetric('Active Staff', '$activeShifts', Icons.person_pin_circle_outlined, Colors.green, text, hint),
+      ],
+    );
+  }
+
+  Widget _buildSmallMetric(String label, String value, IconData icon, Color color, Color text, Color hint) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: TextStyle(color: hint, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            Text(value, style: TextStyle(color: text, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricDivider(Color border) {
+    return Container(
+      height: 24,
+      width: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      color: border,
+    );
+  }
+
+  Widget _buildCondensedSummaryVisuals(Color primary, Color hint, Color text, Color border, Color card) {
+    final types = (widget.summaryData['types'] as List? ?? []);
+    if (types.isEmpty) return const SizedBox.shrink();
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: types.take(3).map((t) {
+          final type = t['order_type']?.toString() ?? '???';
+          final count = t['count']?.toString() ?? '0';
+          final icon = type == 'Dine-In' ? Icons.restaurant : (type == 'Takeaway' ? Icons.shopping_bag : Icons.delivery_dining);
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: primary, size: 14),
+              const SizedBox(height: 2),
+              Text(count, style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text(type.toUpperCase(), style: TextStyle(color: hint, fontSize: 7, fontWeight: FontWeight.bold)),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildFinancialHeaderSection(Color text, Color card, Color border, Color primary, Color hint) {
     final financials = widget.financialData;
     final grossSales = double.tryParse(financials['gross_sales']?.toString() ?? '0') ?? 0.0;
     final cogs = double.tryParse(financials['cogs']?.toString() ?? '0') ?? 0.0;
@@ -1608,147 +1618,443 @@ class _ReportsViewState extends State<ReportsView> {
     final grossMargin = grossSales > 0 ? (grossProfit / grossSales) * 100 : 0.0;
     final netMargin = grossSales > 0 ? (netProfit / grossSales) * 100 : 0.0;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildVisualMetricCard(
-                        'Gross Profit',
-                        '\$${grossProfit.toStringAsFixed(2)}',
-                        '${grossMargin.toStringAsFixed(1)}% Margin',
-                        Icons.account_balance_rounded,
-                        Colors.blue,
-                        card, text, border, hint
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: _buildVisualMetricCard(
-                        'Net Profit',
-                        '\$${netProfit.toStringAsFixed(2)}',
-                        '${netMargin.toStringAsFixed(1)}% Margin',
-                        Icons.monetization_on_rounded,
-                        Colors.green,
-                        card, text, border, hint
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                flex: 2,
-                child: _buildProfitBreakdownCard(grossSales, cogs, expenses, netProfit, card, text, border, primary, hint),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVisualMetricCard(String label, String value, String subtitle, IconData icon, Color color, Color card, Color text, Color border, Color hint) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      height: 90,
       decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(24),
+        color: card.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: border),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(icon, color: color, size: 32),
-          ),
-          const SizedBox(width: 24),
+          // Left Side: Gross Profit KPI
+          _buildCompactMetricSide('Gross Profit', grossProfit, grossMargin, Colors.blue, Icons.account_balance_rounded, text, hint, border),
+          
+          // Middle: 2x2 Waterfall Grid
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: TextStyle(color: hint, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                const SizedBox(height: 4),
-                Text(value, style: TextStyle(color: text, fontSize: 26, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildWaterfallGridItem('COGS', cogs, grossSales, Colors.orange, text, border)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildWaterfallGridItem('Expenses', expenses, grossSales, Colors.red, text, border)),
+                      ],
+                    ),
                   ),
-                  child: Text(subtitle, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildWaterfallGridItem('Gross Sales', grossSales, grossSales, primary, text, border)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildWaterfallGridItem('Net Profit', netProfit, grossSales, Colors.green, text, border)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+
+          // Right Side: Net Profit KPI
+          _buildCompactMetricSide('Net Profit', netProfit, netMargin, Colors.green, Icons.monetization_on_rounded, text, hint, border, isRight: true),
         ],
       ),
     );
   }
 
-  Widget _buildProfitBreakdownCard(double gross, double cogs, double exp, double net, Color card, Color text, Color border, Color primary, Color hint) {
+  Widget _buildCompactMetricSide(String label, double value, double margin, Color color, IconData icon, Color text, Color hint, Color border, {bool isRight = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: 160,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: border),
+        color: color.withValues(alpha: 0.05),
+        border: Border(
+          left: isRight ? BorderSide(color: border) : BorderSide.none,
+          right: !isRight ? BorderSide(color: border) : BorderSide.none,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: isRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          Text('Profitability Waterfall', style: TextStyle(color: text, fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 20),
-          _buildWaterfallBar('Revenue', gross, gross, Colors.blue, text, border),
-          const SizedBox(height: 12),
-          _buildWaterfallBar('COGS', cogs, gross, Colors.orange, text, border),
-          const SizedBox(height: 12),
-          _buildWaterfallBar('Expenses', exp, gross, Colors.red, text, border),
-          const SizedBox(height: 12),
-          _buildWaterfallBar('Net Profit', net, gross, Colors.green, text, border),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isRight) Icon(icon, color: color, size: 14),
+              if (!isRight) const SizedBox(width: 6),
+              Text(label.toUpperCase(), style: TextStyle(color: hint, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              if (isRight) const SizedBox(width: 6),
+              if (isRight) Icon(icon, color: color, size: 14),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text('\$${value.toStringAsFixed(2)}', style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('${margin.toStringAsFixed(1)}% Margin', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildWaterfallBar(String label, double value, double max, Color color, Color text, Color border) {
-    final percent = max > 0 ? (value / max) : 0.0;
+  Widget _buildWaterfallGridItem(String label, double value, double total, Color color, Color text, Color border) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.w500)),
-            Text('\$${value.toStringAsFixed(2)}', style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(label, style: TextStyle(color: text.withValues(alpha: 0.6), fontSize: 9, fontWeight: FontWeight.bold)),
+            Text('\$${value.toStringAsFixed(0)}', style: TextStyle(color: text, fontSize: 9, fontWeight: FontWeight.bold)),
           ],
         ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: percent.clamp(0.0, 1.0),
-            backgroundColor: border,
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: 6,
-          ),
+        const SizedBox(height: 4),
+        _buildWaterfallProgressBar(value, total, color, border),
+      ],
+    );
+  }
+
+  Widget _buildCondensedFinancialMetrics(Color text, Color card, Color border, Color primary, Color hint) {
+    final financials = widget.financialData;
+    final grossSales = double.tryParse(financials['gross_sales']?.toString() ?? '0') ?? 0.0;
+    final cogs = double.tryParse(financials['cogs']?.toString() ?? '0') ?? 0.0;
+    final netProfit = double.tryParse(financials['net_profit']?.toString() ?? '0') ?? 0.0;
+    final grossProfit = grossSales - cogs;
+    
+    final grossMargin = grossSales > 0 ? (grossProfit / grossSales) * 100 : 0.0;
+    final netMargin = grossSales > 0 ? (netProfit / grossSales) * 100 : 0.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: card.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(child: _buildCompactMetricSide('Gross Profit', grossProfit, grossMargin, Colors.blue, Icons.account_balance_rounded, text, hint, border)),
+          Expanded(child: _buildCompactMetricSide('Net Profit', netProfit, netMargin, Colors.green, Icons.monetization_on_rounded, text, hint, border, isRight: true)),
+        ],
+      ),
+    );
+  }
+
+  // Helper for actual progress bar in waterfall
+  Widget _buildWaterfallProgressBar(double value, double total, Color color, Color border) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final percent = total > 0 ? (value / total).clamp(0.0, 1.0) : 0.0;
+        return Stack(
+          children: [
+            Container(
+              height: 4,
+              width: constraints.maxWidth,
+              decoration: BoxDecoration(color: border.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+            ),
+            Container(
+              height: 4,
+              width: constraints.maxWidth * percent,
+              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+  Widget _buildReportDatePicker(Color text, Color card, Color border, Color primary) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        try {
+          if (_availableDates.isEmpty) {
+            await _fetchAvailableDates().timeout(const Duration(seconds: 3));
+          }
+          
+          DateTime now = DateUtils.dateOnly(DateTime.now());
+          DateTime startBound = DateUtils.dateOnly(_firstDate);
+          
+          if (_availableDates.isNotEmpty) {
+            List<String> sorted = _availableDates.toList()..sort();
+            DateTime firstDataDate = DateTime.parse(sorted.first);
+            if (firstDataDate.isBefore(startBound)) startBound = firstDataDate;
+          }
+          
+          DateTime endBound = now.add(const Duration(days: 1));
+          if (startBound.isAfter(endBound)) startBound = endBound.subtract(const Duration(days: 30));
+          
+          DateTime initialStart = _reportDateRange != null 
+              ? DateUtils.dateOnly(_reportDateRange!.start) 
+              : now;
+              
+          if (_availableDates.isNotEmpty && !_availableDates.contains(initialStart.toIso8601String().split('T')[0])) {
+            List<String> sorted = _availableDates.toList()..sort();
+            initialStart = DateTime.parse(sorted.first);
+          }
+          
+          if (initialStart.isBefore(startBound)) initialStart = startBound;
+          
+          DateTime safeMin = DateTime(2025, 1, 1);
+          if (initialStart.isBefore(safeMin)) initialStart = safeMin;
+          if (initialStart.isAfter(endBound)) initialStart = endBound;
+
+          if (!mounted) return;
+          final fromDate = await showDatePicker(
+            context: context,
+            initialDate: initialStart,
+            firstDate: DateTime(2023),
+            lastDate: DateTime.now().add(const Duration(days: 365)),
+            helpText: LocalizationService().translate('select_start_date'),
+            builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
+          );
+          
+          if (fromDate != null) {
+            DateTime initialEnd = _reportDateRange != null 
+                ? DateUtils.dateOnly(_reportDateRange!.end) 
+                : fromDate;
+            
+            if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
+
+            if (!mounted) return;
+            final toDate = await showDatePicker(
+              context: context,
+              initialDate: initialEnd,
+              firstDate: fromDate,
+              lastDate: DateTime.now().add(const Duration(days: 365)),
+              helpText: LocalizationService().translate('select_end_date'),
+              builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
+            );
+            
+            if (toDate != null) {
+              setState(() {
+                _reportDateRange = DateTimeRange(start: fromDate, end: toDate);
+              });
+              _fetchFilteredReport();
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Picker Error: $e')));
+          }
+        }
+      },
+      icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
+      label: Text(
+        _reportDateRange == null 
+          ? LocalizationService().translate('select_date_range')
+          : '${_reportDateRange!.start.toString().split(' ')[0]} to ${_reportDateRange!.end.toString().split(' ')[0]}',
+        style: TextStyle(color: text, fontWeight: FontWeight.bold),
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        side: BorderSide(color: border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: card,
+      ),
+    );
+  }
+
+  Widget _buildFinancialDatePicker(Color text, Color card, Color border, Color primary) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        try {
+          if (_availableDates.isEmpty) {
+            await _fetchAvailableDates().timeout(const Duration(seconds: 3));
+          }
+          
+          DateTime now = DateUtils.dateOnly(DateTime.now());
+          DateTime startBound = DateUtils.dateOnly(_firstDate);
+          
+          if (_availableDates.isNotEmpty) {
+            List<String> sorted = _availableDates.toList()..sort();
+            DateTime firstDataDate = DateTime.parse(sorted.first);
+            if (firstDataDate.isBefore(startBound)) startBound = firstDataDate;
+          }
+          
+          DateTime endBound = now.add(const Duration(days: 1));
+          if (startBound.isAfter(endBound)) startBound = endBound.subtract(const Duration(days: 30));
+          
+          DateTime initialStart = _finDateRange != null ? DateUtils.dateOnly(_finDateRange!.start) : now;
+          if (_availableDates.isNotEmpty && !_availableDates.contains(initialStart.toIso8601String().split('T')[0])) {
+            List<String> sorted = _availableDates.toList()..sort();
+            initialStart = DateTime.parse(sorted.first);
+          }
+          if (initialStart.isBefore(startBound)) initialStart = startBound;
+          
+          if (!mounted) return;
+          final fromDate = await showDatePicker(
+            context: context,
+            initialDate: initialStart,
+            firstDate: DateTime(2023),
+            lastDate: DateTime.now().add(const Duration(days: 365)),
+            helpText: 'Select Start Date',
+            builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
+          );
+          
+          if (fromDate != null) {
+            DateTime initialEnd = _finDateRange != null ? DateUtils.dateOnly(_finDateRange!.end) : fromDate;
+            if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
+
+            if (!mounted) return;
+            final toDate = await showDatePicker(
+              context: context,
+              initialDate: initialEnd,
+              firstDate: fromDate,
+              lastDate: DateTime.now().add(const Duration(days: 365)),
+              helpText: 'Select End Date',
+              builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
+            );
+            
+            if (toDate != null) {
+              setState(() {
+                _finDateRange = DateTimeRange(start: fromDate, end: toDate);
+                // Also update the global report range so refetch works correctly
+                _reportDateRange = _finDateRange;
+              });
+              _fetchFilteredReport();
+            }
+          }
+        } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Picker Error: $e')));
+        }
+      },
+      icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
+      label: Text(
+        _finDateRange == null ? 'All Time' : '${_finDateRange!.start.toString().split(' ')[0]} to ${_finDateRange!.end.toString().split(' ')[0]}',
+        style: TextStyle(color: text, fontWeight: FontWeight.bold),
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        side: BorderSide(color: border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _buildInventoryDatePicker(Color text, Color card, Color border, Color primary) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        try {
+          DateTime now = DateUtils.dateOnly(DateTime.now());
+          DateTime initialStart = _invDateRange != null ? DateUtils.dateOnly(_invDateRange!.start) : now;
+          
+          if (!mounted) return;
+          final fromDate = await showDatePicker(
+            context: context,
+            initialDate: initialStart,
+            firstDate: DateTime(2023),
+            lastDate: DateTime.now().add(const Duration(days: 365)),
+            helpText: LocalizationService().translate('select_start_date'),
+            builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
+          );
+          
+          if (fromDate != null) {
+            DateTime initialEnd = _invDateRange != null ? DateUtils.dateOnly(_invDateRange!.end) : fromDate;
+            if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
+
+            if (!mounted) return;
+            final toDate = await showDatePicker(
+              context: context,
+              initialDate: initialEnd,
+              firstDate: fromDate,
+              lastDate: DateTime.now().add(const Duration(days: 365)),
+              helpText: LocalizationService().translate('select_end_date'),
+              builder: (context, child) => _buildDatePickerTheme(context, child, primary, card, text),
+            );
+            
+            if (toDate != null) {
+              setState(() {
+                _invDateRange = DateTimeRange(start: fromDate, end: toDate);
+              });
+              _fetchInventory();
+            }
+          }
+        } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Picker Error: $e')));
+        }
+      },
+      icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
+      label: Text(
+        _invDateRange == null ? 'Snapshot' : '${_invDateRange!.start.toString().split(' ')[0]} to ${_invDateRange!.end.toString().split(' ')[0]}',
+        style: TextStyle(color: text, fontWeight: FontWeight.bold),
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        side: BorderSide(color: border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(Color text, Color card, Color border, Color hint, String value, Function(String) onChanged) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: TextField(
+        controller: TextEditingController(text: value)..selection = TextSelection.collapsed(offset: value.length),
+        onChanged: onChanged,
+        style: TextStyle(color: text, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: LocalizationService().translate('search_records'),
+          hintStyle: TextStyle(color: hint, fontSize: 14),
+          prefixIcon: Icon(Icons.search, color: hint, size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInventoryFilters(Color text, Color card, Color border, Color primary, Color hint) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildInventoryDatePicker(text, card, border, primary),
+        const SizedBox(width: 12),
+        _buildFilterDropdown(
+          'All Items',
+          _invItemFilter,
+          ['ALL', ..._inventoryItems.map((e) => e['name'].toString()).toSet()],
+          (val) => setState(() => _invItemFilter = val!),
+          text, card, border, primary
+        ),
+        const SizedBox(width: 12),
+        _buildFilterDropdown(
+          'All Suppliers',
+          _invSupplierFilter,
+          ['ALL', ..._suppliers.map((e) => e['name'].toString()).toSet()],
+          (val) => setState(() => _invSupplierFilter = val!),
+          text, card, border, primary
+        ),
+        const SizedBox(width: 12),
+        _buildFilterDropdown(
+          'Status',
+          _invStatusFilter,
+          ['ALL', 'LOW STOCK', 'HEALTHY'],
+          (val) => setState(() => _invStatusFilter = val!),
+          text, card, border, primary
+        ),
+        const SizedBox(width: 16),
+        TextButton.icon(
+          onPressed: () => setState(() {
+            _invItemFilter = 'ALL';
+            _invSupplierFilter = 'ALL';
+            _invStatusFilter = 'ALL';
+            _invDateRange = null;
+          }),
+          icon: Icon(Icons.refresh_rounded, size: 18, color: hint),
+          label: Text('Reset', style: TextStyle(color: hint, fontSize: 12)),
         ),
       ],
     );

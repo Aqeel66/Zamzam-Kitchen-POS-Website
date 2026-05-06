@@ -127,7 +127,12 @@ router.get('/availability/:date', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    let query = 'SELECT * FROM reservations WHERE 1=1';
+    let query = `
+      SELECT r.*, t.table_number as assigned_table_number 
+      FROM reservations r 
+      LEFT JOIN restaurant_tables t ON r.table_id = t.id 
+      WHERE 1=1
+    `;
     let params = [];
 
     if (startDate) {

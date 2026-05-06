@@ -6,7 +6,17 @@ import 'dart:html' as html;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-enum AppThemeFlavor { light, dark, midnightBlue, emeraldGreen, auraPurple }
+enum AppThemeFlavor { light, dark, midnightBlue, navyBlue, emeraldGreen, auraPurple }
+
+final presets = [
+  {'name': 'Pulse Orange', 'color': const Color(0xFFF15A24), 'hex': '#F15A24'},
+  {'name': 'Navy Blue', 'color': const Color(0xFF1E3A8A), 'hex': '#1E3A8A'},
+  {'name': 'Ocean Blue', 'color': const Color(0xFF0EA5E9), 'hex': '#0EA5E9'},
+  {'name': 'Emerald', 'color': const Color(0xFF10B981), 'hex': '#10B981'},
+  {'name': 'Royal Purple', 'color': const Color(0xFF8B5CF6), 'hex': '#8B5CF6'},
+  {'name': 'Crimson', 'color': const Color(0xFFEF4444), 'hex': '#EF4444'},
+  {'name': 'Amber', 'color': const Color(0xFFF59E0B), 'hex': '#F59E0B'},
+];
 
 class ThemeService extends ChangeNotifier {
   static final ThemeService _instance = ThemeService._internal();
@@ -204,6 +214,11 @@ class ThemeService extends ChangeNotifier {
       case 'midnight':
         setFlavor(AppThemeFlavor.midnightBlue);
         break;
+      case 'navy blue':
+      case 'navy_blue':
+      case 'navy':
+        setFlavor(AppThemeFlavor.navyBlue);
+        break;
       case 'emerald green':
       case 'emerald_green':
       case 'emerald':
@@ -254,6 +269,9 @@ class ThemeService extends ChangeNotifier {
       case AppThemeFlavor.midnightBlue:
         baseTheme = ZamamTheme.midnightBlueTheme;
         break;
+      case AppThemeFlavor.navyBlue:
+        baseTheme = ZamamTheme.navyBlueTheme;
+        break;
       case AppThemeFlavor.emeraldGreen:
         baseTheme = ZamamTheme.emeraldGreenTheme;
         break;
@@ -278,3 +296,4 @@ class ThemeService extends ChangeNotifier {
     return _currentFlavor != AppThemeFlavor.light;
   }
 }
+

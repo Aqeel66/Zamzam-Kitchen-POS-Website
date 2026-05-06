@@ -37,26 +37,31 @@ router.post('/', async (req, res) => {
       }
   
   
-      // 0. Generate Order Number (Monthly Format: YYMM-XXXX)
+      // 0. Generate Order Number (Daily Format: DDMMYYXXXXX)
       // Using local time +05:00 for the prefix
       const now = new Date();
-      // Adjust to local timezone (+5h)
       const localNow = new Date(now.getTime() + (5 * 60 * 60 * 1000));
-      const prefix = `${String(localNow.getUTCFullYear()).substring(2)}${String(localNow.getUTCMonth() + 1).padStart(2, '0')}`;
+      
+      const day = String(localNow.getUTCDate()).padStart(2, '0');
+      const month = String(localNow.getUTCMonth() + 1).padStart(2, '0');
+      const year = String(localNow.getUTCFullYear()).slice(-2);
+      const prefix = `${day}${month}${year}`;
       
       const [lastOrder] = await connection.execute(
-        'SELECT order_number FROM orders WHERE order_number LIKE ? ORDER BY id DESC LIMIT 1',
-        [`${prefix}-%`]
+        'SELECT order_number FROM orders WHERE order_number LIKE ? AND LENGTH(order_number) = 11 ORDER BY id DESC LIMIT 1',
+        [`${prefix}%`]
       );
 
       let nextSequence = 1;
       if (lastOrder.length > 0 && lastOrder[0].order_number) {
-        const parts = lastOrder[0].order_number.split('-');
-        if (parts.length === 2) {
-          nextSequence = parseInt(parts[1]) + 1;
+        const lastOrderNum = lastOrder[0].order_number;
+        // The last 5 digits are the sequence
+        const sequencePart = lastOrderNum.slice(-5);
+        if (!isNaN(parseInt(sequencePart))) {
+          nextSequence = parseInt(sequencePart) + 1;
         }
       }
-      const orderNumber = `${prefix}-${String(nextSequence).padStart(4, '0')}`;
+      const orderNumber = `${prefix}${String(nextSequence).padStart(5, '0')}`;
 
       // Normalize order_type for database ENUM compatibility
       const normalizedOrderType = (order_type === 'Pickup' || order_type === 'pickup') ? 'Takeaway' : (order_type || 'Dine-In');
@@ -296,20 +301,27 @@ router.get('/', async (req, res) => {
     `;
     const params = [];
 
-    if (startDate) {
+    if (startDate && req.query.kds !== 'true') {
       query += ` AND DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) >= ?`;
       params.push(startDate);
-    } else {
-      // Default to current month
+    } else if (!startDate && req.query.kds !== 'true') {
+      // Default to current month only if NOT in KDS mode
       const now = new Date();
       const firstDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
       query += ` AND DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) >= ?`;
       params.push(firstDayOfMonth);
     }
+
     if (req.query.kds === 'true') {
-      // In KDS mode, we want ALL active orders regardless of endDate, 
-      // but still potentially filtered by startDate to avoid ancient orders.
-      query += ` AND (o.status IN ('Pending', 'Ordered', 'Preparing', 'Ready', 'Paid', 'Partially Paid') OR DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) = CURDATE())`;
+      // In KDS mode, we want ALL active orders regardless of date, 
+      // OR any orders from the specific date (if selected) or today.
+      const targetDate = startDate || 'CURDATE()';
+      if (startDate) {
+        query += ` AND (o.status IN ('Pending', 'Ordered', 'Preparing', 'Ready', 'Paid', 'Partially Paid') OR DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) = ?)`;
+        params.push(startDate);
+      } else {
+        query += ` AND (o.status IN ('Pending', 'Ordered', 'Preparing', 'Ready', 'Paid', 'Partially Paid') OR DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) = CURDATE())`;
+      }
     } else {
       if (endDate) {
         query += ` AND DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) <= ?`;
@@ -745,6 +757,25 @@ router.get('/data-range', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch data range' });
+  }
+});
+
+// @route   DELETE api/orders/:id
+// @desc    Delete an entire order record
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Delete related items and payments are handled by ON DELETE CASCADE in DB
+    const [result] = await db.execute('DELETE FROM orders WHERE id = ?', [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    
+    res.json({ success: true, message: 'Order deleted successfully' });
+  } catch (err) {
+    console.error('Delete Order Error:', err);
+    res.status(500).json({ success: false, message: 'Server Error', error: err.message });
   }
 });
 

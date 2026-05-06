@@ -262,6 +262,7 @@ class SettingColorPicker extends StatelessWidget {
 
     final presets = [
       {'name': 'Pulse Orange', 'color': const Color(0xFFF15A24), 'hex': '#F15A24'},
+      {'name': 'Navy Blue', 'color': const Color(0xFF1E3A8A), 'hex': '#1E3A8A'},
       {'name': 'Ocean Blue', 'color': const Color(0xFF0EA5E9), 'hex': '#0EA5E9'},
       {'name': 'Emerald', 'color': const Color(0xFF10B981), 'hex': '#10B981'},
       {'name': 'Royal Purple', 'color': const Color(0xFF8B5CF6), 'hex': '#8B5CF6'},

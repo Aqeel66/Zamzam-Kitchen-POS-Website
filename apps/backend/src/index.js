@@ -163,6 +163,14 @@ async function ensureSchema() {
       console.log('➕ Adding missing badge column to menu_items...');
       await db.query('ALTER TABLE menu_items ADD COLUMN badge VARCHAR(50) DEFAULT NULL');
     }
+
+    // Check branch_settings
+    const [branchCols] = await db.query('DESCRIBE branch_settings');
+    const branchFields = branchCols.map(c => c.Field);
+    if (!branchFields.includes('order_sort_direction')) {
+      console.log('➕ Adding missing order_sort_direction column to branch_settings...');
+      await db.query("ALTER TABLE branch_settings ADD COLUMN order_sort_direction VARCHAR(20) DEFAULT 'Descending'");
+    }
     
     console.log('✅ Schema check complete');
   } catch (err) {
@@ -175,5 +183,6 @@ app.listen(PORT, async () => {
   await ensureSchema();
 });
 
+// Refresh: 2026-05-06 23:56
 // Keep the process alive
 setInterval(() => {}, 1000 * 60 * 60);

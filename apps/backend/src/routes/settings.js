@@ -89,7 +89,8 @@ router.patch('/branch', async (req, res) => {
       'allow_pickup',
       'is_tax_enabled',
       'tax_rate',
-      'payment_policy'
+      'payment_policy',
+      'order_sort_direction'
     ];
     
     const updates = [];

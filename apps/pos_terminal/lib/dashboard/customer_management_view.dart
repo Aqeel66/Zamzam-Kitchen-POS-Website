@@ -3,10 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../theme_service.dart';
+import '../components/pos_widgets.dart';
 
 class CustomerManagementView extends StatefulWidget {
-
-
   const CustomerManagementView({
     super.key,
   });
@@ -82,7 +81,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
         final themePrimary = theme.primaryColor;
         final themeCard = theme.cardColor;
-        final themeBorder = themeText.withValues(alpha: 0.15);
+        final themeBorder = themeText.withValues(alpha: 0.1);
         final themeHint = themeText.withValues(alpha: 0.6);
 
         final filteredCustomers = _customers.where((c) {
@@ -118,7 +117,8 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                       backgroundColor: themePrimary,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
+                      elevation: 4,
+                      shadowColor: themePrimary.withValues(alpha: 0.3),
                     ),
                   ),
                 ],
@@ -127,10 +127,13 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
               
               // Search Bar
               Container(
-                width: 400,
+                width: 450,
                 decoration: BoxDecoration(
                   color: themeCard,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
                   border: Border.all(color: themeBorder),
                 ),
                 child: TextField(
@@ -139,7 +142,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                   decoration: InputDecoration(
                     hintText: 'Search by name, email or phone...',
                     hintStyle: TextStyle(color: themeHint, fontSize: 14),
-                    prefixIcon: Icon(Icons.search_rounded, color: themeHint),
+                    prefixIcon: Icon(Icons.search_rounded, color: themePrimary),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   ),
@@ -170,15 +173,17 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
 
   Widget _buildCustomerCard(dynamic c, ThemeData theme, Color text, Color hint, Color card, Color border, Color primary) {
     final origin = c['origin'] ?? 'In-Store';
-    final originColor = _getOriginColor(origin);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: card,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: border),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
       ),
       child: Row(
         children: [
@@ -199,18 +204,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                   children: [
                     Text('${c['first_name']} ${c['last_name']}', style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: originColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: originColor.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(
-                        origin.toUpperCase(),
-                        style: TextStyle(color: originColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                      ),
-                    ),
+                    OriginBadge(origin: origin, themePrimary: primary),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -229,21 +223,11 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
             ),
           ),
           if (c['dietary_profile'] != null && c['dietary_profile'].toString().isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.restaurant_menu_rounded, size: 12, color: Colors.green),
-                  const SizedBox(width: 6),
-                  Text(c['dietary_profile'], style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
+             BaseBadge(
+                label: c['dietary_profile'],
+                color: Colors.green,
+                icon: Icons.restaurant_menu_rounded,
+             ),
           const SizedBox(width: 40),
           IconButton(
             icon: Icon(Icons.edit_outlined, color: hint),
@@ -251,23 +235,13 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
             tooltip: 'Edit Customer',
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+            icon: Icon(Icons.delete_outline_rounded, color: Colors.redAccent.withValues(alpha: 0.7)),
             onPressed: () => _showDeleteConfirm(c, card, text),
             tooltip: 'Delete Customer',
           ),
         ],
       ),
     );
-  }
-
-  Color _getOriginColor(String origin) {
-    switch (origin.toLowerCase()) {
-      case 'website': return Colors.blueAccent;
-      case 'qr-menu': return Colors.orangeAccent;
-      case 'pos':
-      case 'in-store': return Colors.tealAccent;
-      default: return Colors.grey;
-    }
   }
 
   void _showCustomerDialog(dynamic customer, ThemeData theme) {
@@ -314,15 +288,16 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                 _buildTextField('Dietary Preferences / Notes', dpController, themeText, themeHint, themePrimary, icon: Icons.restaurant_menu_rounded),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
-                  initialValue: selectedOrigin,
+                  value: selectedOrigin,
                   dropdownColor: themeCard,
                   decoration: InputDecoration(
                     labelText: 'Lead Source / Origin',
                     labelStyle: TextStyle(color: themeHint),
                     enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: themeText.withValues(alpha: 0.1))),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: themePrimary)),
                   ),
                   style: TextStyle(color: themeText),
-                  items: ['In-Store', 'Website', 'QR-Menu'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  items: ['In-Store', 'Website', 'QR-Menu'].map((s) => DropdownMenuItem(value: s, child: Text(s == 'In-Store' ? 'Counter' : s))).toList(),
                   onChanged: (val) => setDialogState(() => selectedOrigin = val!),
                 ),
               ],

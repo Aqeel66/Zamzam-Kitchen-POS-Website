@@ -101,11 +101,10 @@ class ReceiptService {
                   pw.Text(DateFormat('dd/MM/yy HH:mm').format(orderTime), style: const pw.TextStyle(fontSize: 9)),
                 ],
               ),
-              if (order['customer_name'] != null)
-                pw.Align(
-                  alignment: pw.Alignment.centerLeft,
-                  child: pw.Text('Cust: ${order['customer_name']}', style: const pw.TextStyle(fontSize: 9)),
-                ),
+              pw.Align(
+                alignment: pw.Alignment.centerLeft,
+                child: pw.Text('Cust: ${order['customer_name'] ?? 'Counter'}', style: const pw.TextStyle(fontSize: 9)),
+              ),
               
               pw.Divider(thickness: 0.5, color: PdfColors.grey),
               pw.SizedBox(height: 4),
@@ -340,7 +339,7 @@ class ReceiptService {
                     children: [
                       pw.Text('BILL TO:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                       pw.SizedBox(height: 4),
-                      pw.Text(order['customer_name'] ?? 'Counter Customer', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(order['customer_name'] ?? 'Counter', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                       pw.Text('Order Type: ${order['order_type'] ?? 'Dine-In'}', style: const pw.TextStyle(fontSize: 9)),
                       if (order['table_number'] != null) pw.Text('Table: ${order['table_number']}', style: const pw.TextStyle(fontSize: 9)),
                     ],

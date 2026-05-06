@@ -304,6 +304,17 @@ class _SettingsViewState extends State<SettingsView> {
                 },
                 onChanged: (val) => widget.onUpdateSetting('branch', {'payment_policy': val}),
               ),
+              SettingDropdown(
+                label: LocalizationService().translate('order_sort_direction'),
+                description: 'Choose how orders and records are listed.',
+                value: branch['order_sort_direction'] ?? 'Descending',
+                items: const ['Ascending', 'Descending'],
+                labels: {
+                  'Ascending': LocalizationService().translate('ascending'),
+                  'Descending': LocalizationService().translate('descending'),
+                },
+                onChanged: (val) => widget.onUpdateSetting('branch', {'order_sort_direction': val}),
+              ),
             ],
           ),
           const SizedBox(height: 24),

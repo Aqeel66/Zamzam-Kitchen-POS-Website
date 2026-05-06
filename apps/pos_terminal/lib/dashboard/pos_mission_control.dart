@@ -24,6 +24,13 @@ import 'package:pos_terminal/dashboard/reports_view.dart';
 import 'settings_view.dart';
 import '../inventory_management/inventory_dashboard.dart';
 import 'customer_management_view.dart';
+import 'components/kds_view.dart';
+import 'components/orders_view.dart';
+import 'components/reservations_view.dart';
+import '../services/order_service.dart';
+import '../services/reservation_service.dart';
+import '../utils/pos_utils.dart';
+import '../components/pos_widgets.dart';
 
  // Dynamic theme colors are accessed via ThemeService().themeData in _AdminDashboardState
 
@@ -112,6 +119,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   List<ui_kit.RestaurantTable>? _restaurantTables;
   ui_kit.RestaurantTable? _selectedTable;
+  String? _selectedTableLabel;
   int _partySize = 1;
 
   // User Management State
@@ -478,16 +486,35 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         }
       }
     } catch (e) {
-      debugPrint('Update Status Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Connection Error: $e'),
+            content: Text(LocalizationService().translate('network_error')),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+  }
+
+  void _setCartFromOrder(Map<String, dynamic> order) {
+    setState(() {
+      _cartItems = (order['items'] as List).map((item) => {
+        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
+        'name': item['name'],
+        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
+                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
+        'quantity': item['quantity'] ?? 1,
+        'notes': item['notes'],
+        'extras': item['extras'],
+        'variants': item['variants'],
+      }).toList();
+      _editingOrderId = order['id'];
+      _orderType = order['order_type'] ?? 'Dine-In';
+      if (order['table_number'] != null) {
+        _selectedTableLabel = order['table_number'].toString();
+      }
+    });
   }
 
   Future<void> _showRejectionDialog(dynamic orderId) async {
@@ -925,6 +952,24 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       if (response.statusCode == 200) {
         if (mounted) {
           final data = json.decode(response.body) as List;
+          
+          // Local fallback: Ensure table numbers are populated from local cache if missing from API
+          for (var res in data) {
+            if (res['assigned_table_number'] == null && res['table_id'] != null) {
+              final String tid = res['table_id'].toString();
+              try {
+                final localTable = _restaurantTables?.firstWhere(
+                  (t) => t.id == tid,
+                );
+                if (localTable != null && localTable.label.isNotEmpty) {
+                  res['assigned_table_number'] = localTable.label;
+                }
+              } catch (_) {
+                // Not found in local cache
+              }
+            }
+          }
+
           setState(() {
             _reservations = data;
           });
@@ -1005,7 +1050,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       
       // Consistency with UI payment badge logic
       final pMethod = (order['payment_method']?.toString() ?? '');
-      bool isPaid = status == 'paid' || paymentStatus == 'paid' || pMethod.isNotEmpty;
+      bool isPaid = status == 'paid' || paymentStatus == 'paid' || order['payment'] != null || pMethod.isNotEmpty;
       bool isUnpaid = !isPaid && status != 'cancelled' && status != 'rejected';
 
       // Notify for new Pending/Active orders - matches KDS 'Pending' tab filters
@@ -3302,7 +3347,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       'full_total': _total,
                       'order_time': DateTime.now().toIso8601String(),
                       'order_type': _orderType,
-                      'customer_name': _isNewGuestMode ? _customerFirstNameController.text.trim() : (_selectedCustomer != null ? '${_selectedCustomer!['first_name']} ${_selectedCustomer!['last_name']}' : 'Counter Customer'),
+                      'customer_name': _isNewGuestMode ? _customerFirstNameController.text.trim() : (_selectedCustomer != null ? '${_selectedCustomer!['first_name']} ${_selectedCustomer!['last_name']}' : 'Counter'),
                       'split_info': {
                         'index': i,
                         'total_splits': splitCount,
@@ -3515,7 +3560,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 'order_type': _orderType,
                 'customer_name': _isNewGuestMode 
                     ? _customerFirstNameController.text.trim()
-                    : (_selectedCustomer != null ? '${_selectedCustomer!['first_name']} ${_selectedCustomer!['last_name']}' : 'Counter Customer'),
+                    : (_selectedCustomer != null ? '${_selectedCustomer!['first_name']} ${_selectedCustomer!['last_name']}' : 'Counter'),
                 'split_info': _isSplitActive ? {
                   'index': 1,
                   'total_splits': (1.0 / _splitMultiplier).toInt(),
@@ -3552,7 +3597,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
 
 
-  void _updateReservationStatus(int id, String status, [int? tableId]) async {
+  void _updateReservationStatus(dynamic id, String status, [dynamic tableId]) async {
     try {
       final body = <String, dynamic>{'status': status};
       if (tableId != null) body['table_id'] = tableId;
@@ -3584,9 +3629,26 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
       _fetchReservations();
       if (_selectedReservationDetails != null && _selectedReservationDetails!['id'] == id) {
+        // Find the table label for immediate UI update
+        String? tableLabel;
+        if (tableId != null) {
+          final table = _restaurantTables?.firstWhere(
+            (t) => t.id == tableId.toString(),
+            orElse: () => ui_kit.RestaurantTable(id: '', label: '', status: ui_kit.TableStatus.available, capacity: 0, x: 0, y: 0),
+          );
+          if (table != null && table.label.isNotEmpty) {
+            tableLabel = table.label;
+          }
+        }
+
         setState(() {
           _selectedReservationDetails!['status'] = status;
-          if (tableId != null) _selectedReservationDetails!['table_id'] = tableId;
+          if (tableId != null) {
+            _selectedReservationDetails!['table_id'] = tableId;
+            if (tableLabel != null) {
+              _selectedReservationDetails!['assigned_table_number'] = tableLabel;
+            }
+          }
         });
       }
     } catch (e) {
@@ -4872,10 +4934,75 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     switch (_selectedTabIndex) {
       case 0: return _buildPOSView();
       case 1: return _buildDashboardView();
-      case 2: return _buildKDSView();
-      case 3: return _buildOrdersView();
+      case 2: return KDSView(
+          placedOrders: _placedOrders,
+          onUpdateStatus: _updateOrderStatus,
+          onReject: _showRejectionDialog,
+          onRefresh: () {
+            _fetchOrders();
+            _fetchSummary();
+          },
+          orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+          themePrimary: themePrimary,
+          themeBg: themeBg,
+          themeText: themeText,
+          themeHint: themeHint,
+          themeCard: themeCard,
+          themeBorder: themeBorder,
+        );
+      case 3: return OrdersView(
+          placedOrders: _placedOrders,
+          statusFilter: _orderStatusFilter,
+          onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
+          onEdit: (order) {
+            _setCartFromOrder(order);
+            setState(() => _selectedTabIndex = 0);
+          },
+          onSettle: (order) {
+            _setCartFromOrder(order);
+            _showCheckoutDialog();
+          },
+          onSplit: (order) {
+            _setCartFromOrder(order);
+            _showSplitBillDialog();
+          },
+          onMerge: (order) {
+            _setCartFromOrder(order);
+            _showMergeBillDialog();
+          },
+          onViewDetails: _showOrderDetailsDialog,
+          onDownloadPdf: _handlePdfDownload,
+          settings: _settings,
+          orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+          themePrimary: themePrimary,
+          themeBg: themeBg,
+          themeText: themeText,
+          themeHint: themeHint,
+          themeCard: themeCard,
+          themeBorder: themeBorder,
+        );
       case 4: return _buildWaitingView();
-      case 5: return _buildReservationsView();
+      case 5: return ReservationsView(
+          reservations: _reservations,
+          statusFilter: _reservationStatusFilter,
+          selectedReservation: _selectedReservationDetails,
+          restaurantTables: _restaurantTables,
+          onFilterChanged: (f) => setState(() {
+            _reservationStatusFilter = f;
+            _selectedReservationDetails = null;
+          }),
+          onSelectReservation: (res) => setState(() => _selectedReservationDetails = res),
+          onAddReservation: _showNewReservationDialog,
+          onRefresh: _fetchReservations,
+          onUpdateStatus: _updateReservationStatus,
+          orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+          themePrimary: themePrimary,
+          themeBg: themeBg,
+          themeText: themeText,
+          themeHint: themeHint,
+          themeCard: themeCard,
+          themeBorder: themeBorder,
+        );
       case 6: return _buildTablesView();
       default: return _buildPOSView();
     }
@@ -4898,9 +5025,58 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     try {
       switch (_selectedDashboardTab) {
         case 0: return _buildDashboardContent();
-        case 1: return _buildOrdersView();
+        case 1: return OrdersView(
+            placedOrders: _placedOrders,
+            statusFilter: _orderStatusFilter,
+            onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
+            onEdit: (order) {
+              _setCartFromOrder(order);
+              setState(() => _selectedTabIndex = 0);
+            },
+            onSettle: (order) {
+              _setCartFromOrder(order);
+              _showCheckoutDialog();
+            },
+            onSplit: (order) {
+              _setCartFromOrder(order);
+              _showSplitBillDialog();
+            },
+            onMerge: (order) {
+              _setCartFromOrder(order);
+              _showMergeBillDialog();
+            },
+            onViewDetails: _showOrderDetailsDialog,
+            onDownloadPdf: _handlePdfDownload,
+            settings: _settings,
+            orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+            themePrimary: themePrimary,
+            themeBg: themeBg,
+            themeText: themeText,
+            themeHint: themeHint,
+            themeCard: themeCard,
+            themeBorder: themeBorder,
+          );
         case 2: return PurchaseManagementView(isDarkMode: _isDarkMode);
-        case 3: return _buildReservationsView();
+        case 3: return ReservationsView(
+            reservations: _reservations,
+            statusFilter: _reservationStatusFilter,
+            selectedReservation: _selectedReservationDetails,
+            restaurantTables: _restaurantTables,
+            onFilterChanged: (f) => setState(() {
+              _reservationStatusFilter = f;
+              _selectedReservationDetails = null;
+            }),
+            onSelectReservation: (res) => setState(() => _selectedReservationDetails = res),
+            onAddReservation: _showNewReservationDialog,
+            onRefresh: _fetchReservations,
+            onUpdateStatus: _updateReservationStatus,
+            themePrimary: themePrimary,
+            themeBg: themeBg,
+            themeText: themeText,
+            themeHint: themeHint,
+            themeCard: themeCard,
+            themeBorder: themeBorder,
+          );
         case 4: 
         case 13: return CategoryManagementView(
             isDarkMode: _isDarkMode,
@@ -4909,7 +5085,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onUpdateCategory: _updateCategory,
             onDeleteCategory: _deleteCategory,
             onPickImage: _pickImage,
-
           );
         case 14: return FoodItemManagementView(
             isDarkMode: _isDarkMode,
@@ -4920,9 +5095,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onDeleteMenuItem: _deleteMenuItem,
             onPickImage: _pickImage,
             onRefreshMenu: _fetchMenu,
-
           );
-        case 5: return _buildKDSView();
+        case 5: return KDSView(
+            placedOrders: _placedOrders,
+            onUpdateStatus: _updateOrderStatus,
+            onReject: _showRejectionDialog,
+            onRefresh: () {
+              _fetchOrders();
+              _fetchSummary();
+            },
+            themePrimary: themePrimary,
+            themeBg: themeBg,
+            themeText: themeText,
+            themeHint: themeHint,
+            themeCard: themeCard,
+            themeBorder: themeBorder,
+          );
          case 6: return HumanResourceView(
             shifts: _shifts,
             users: _users,
@@ -4990,7 +5178,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           );
         case 18: return InventoryDashboard(isDarkMode: _isDarkMode);
         case 19: return const CustomerManagementView();
-        case 20: return PromotionsView(isDarkMode: _isDarkMode);
+        case 20: return PromotionsView(isDarkMode: _isDarkMode, themePrimary: themePrimary);
         default: return _buildDashboardContent();
       }
     } catch (e, stack) {
@@ -7183,499 +7371,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildKDSView() {
-    final kdsOrders = _placedOrders.where((o) {
-      final status = (o['status']?.toString() ?? '').toLowerCase();
-      return ['pending', 'preparing', 'ready', 'rejected', 'paid', 'partially paid', 'ordered'].contains(status);
-    }).toList();
-
-    if (kdsOrders.isEmpty) {
-      return Container(
-        color: themeBg,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.kitchen_rounded, size: 80, color: themeHint.withValues(alpha: 0.2)),
-              const SizedBox(height: 16),
-              Text(LocalizationService().translate('no_kds_orders'), style: TextStyle(color: themeHint, fontSize: 18, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    int pendingCount = _placedOrders.where((o) {
-      final s = (o['status']?.toString() ?? '').toLowerCase();
-      return s == 'pending' || s == 'ordered' || s == 'paid' || s == 'partially paid';
-    }).length;
-    int preparingCount = _placedOrders.where((o) => (o['status']?.toString() ?? '').toLowerCase() == 'preparing').length;
-    int readyCount = _placedOrders.where((o) => (o['status']?.toString() ?? '').toLowerCase() == 'ready').length;
-    int rejectedCount = _placedOrders.where((o) => (o['status']?.toString() ?? '').toLowerCase() == 'rejected').length;
-
-    return DefaultTabController(
-      length: 4,
-      child: Container(
-        color: themeBg,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(LocalizationService().translate('kitchen_production'), style: TextStyle(color: themeText, fontSize: 22, fontWeight: FontWeight.bold)),
-                      Text('${kdsOrders.length} ${LocalizationService().translate('active_tickets')}', style: TextStyle(color: themeHint, fontSize: 13)),
-                    ],
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(Icons.refresh_rounded, color: themePrimary),
-                    onPressed: () {
-                      _fetchOrders();
-                      _fetchSummary();
-                    },
-                  ),
-                  const SizedBox(width: 16),
-                  Container(
-                    width: 550,
-                    decoration: BoxDecoration(
-                      color: themeCard,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: themeBorder),
-                    ),
-                    child: TabBar(
-                      indicatorSize: TabBarIndicatorSize.tab,
-                      indicator: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: themePrimary,
-                      ),
-                      labelColor: Colors.white,
-                      unselectedLabelColor: themeHint,
-                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                      tabs: [
-                        _buildKDSMainTab(LocalizationService().translate('pending'), pendingCount),
-                        _buildKDSMainTab(LocalizationService().translate('preparing'), preparingCount),
-                        _buildKDSMainTab(LocalizationService().translate('ready'), readyCount),
-                        _buildKDSMainTab(LocalizationService().translate('rejected'), rejectedCount),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                   _buildKDSTab('Pending'),
-                   _buildKDSTab('Preparing'),
-                   _buildKDSTab('Ready'),
-                   _buildKDSTab('Rejected'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildKDSMainTab(String label, int count) {
-    return Tab(
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(label.toUpperCase()),
-          ),
-          if (count > 0)
-            Positioned(
-              right: -12,
-              top: -12,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: themePrimary, width: 1.5),
-                ),
-                child: Center(
-                  child: Text(
-                    '$count',
-                    style: TextStyle(color: themePrimary, fontSize: 9, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-  Widget _buildKDSTab(String status) {
-    final filteredOrders = _placedOrders.where((o) {
-      final oStatus = (o['status']?.toString() ?? '').toLowerCase();
-      final matchesStatus = (status == 'Pending') 
-        ? (oStatus == 'pending' || oStatus == 'ordered' || oStatus == 'paid' || oStatus == 'partially paid') 
-        : (oStatus == status.toLowerCase());
-      return matchesStatus;
-    }).toList()
-      ..sort((a, b) {
-        final aPay = (a['payment_status']?.toString() ?? '').toLowerCase();
-        final bPay = (b['payment_status']?.toString() ?? '').toLowerCase();
-        final aStatus = (a['status']?.toString() ?? '').toLowerCase();
-        final bStatus = (b['status']?.toString() ?? '').toLowerCase();
-        if (aPay == 'unpaid' && bPay != 'unpaid') return -1;
-        if (aPay != 'unpaid' && bPay == 'unpaid') return 1;
-        if (aStatus == 'pending' && bStatus != 'pending') return -1;
-        if (aStatus != 'pending' && bStatus == 'pending') return 1;
-        return (int.tryParse(b['id'].toString()) ?? 0).compareTo(int.tryParse(a['id'].toString()) ?? 0);
-      });
-
-    if (filteredOrders.isEmpty) {
-      return Center(
-        child: Text('${LocalizationService().translate('no_orders_in')} ${LocalizationService().translate(status.toLowerCase())}', style: TextStyle(color: themeHint, fontSize: 14)),
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 6,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1.15, // Shorter boxes for better scrolling and density
-      ),
-      itemCount: filteredOrders.length,
-      itemBuilder: (context, index) {
-        final order = filteredOrders[index];
-        final items = order['items'] as List? ?? [];
-        return Container(
-          decoration: BoxDecoration(
-            color: themeCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: themeBorder),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: order['status'] == 'Ready' 
-                    ? Colors.green.withValues(alpha: 0.08) 
-                    : themePrimary.withValues(alpha: 0.08),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '#${order['order_number'] ?? order['id']}', 
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: themeText)
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(Icons.access_time_rounded, size: 14, color: themeHint),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _getLapseTime(order['order_time']),
-                                  style: TextStyle(color: themeHint, fontSize: 12, fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        _buildOrderStatusChip(order['status'] ?? 'Unknown'),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (order['table_number'] != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${LocalizationService().translate('table')} ${order['table_number']}', 
-                              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11)
-                            ),
-                          )
-                        else
-                          Text(order['order_type'] ?? 'Dine-In', style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 11)),
-                        
-                        if (order['origin'] != null && order['origin'] != 'In-Store')
-                          _buildOriginBadge(order['origin']),
-                        _buildPaymentStatusBadge(order),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Items - Flexible list with scrolling
-              Expanded(
-                child: Scrollbar(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    itemCount: items.length,
-                    itemBuilder: (context, idx) {
-                      final item = items[idx];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('x${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold, color: themePrimary, fontSize: 13)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(item['name'] ?? 'Item', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                  if (item['variant'] != null)
-                                    Text(
-                                      '${item['variant']['name']}',
-                                      style: TextStyle(color: themePrimary, fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
-                                  if (item['extras'] != null && (item['extras'] as List).isNotEmpty)
-                                    Text(
-                                      '${(item['extras'] as List).map((e) => e['name']).join(', ')}',
-                                      style: TextStyle(color: Colors.orange.shade800, fontSize: 10, fontWeight: FontWeight.w600),
-                                    ),
-                                  if (item['notes'] != null && item['notes'].toString().isNotEmpty)
-                                     Text('Note: ${item['notes']}', style: TextStyle(color: Colors.red.shade400, fontSize: 10, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              if (order['status'] == 'Rejected' && order['rejection_reason'] != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  margin: const EdgeInsets.only(bottom: 4),
-                  color: Colors.red.withValues(alpha: 0.1),
-                  child: Text(
-                    'REASON: ${order['rejection_reason']}',
-                    style: const TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              // Footer / Action
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Row(
-                  children: [
-                    if (order['status'] == 'Pending' || order['status'] == 'Ordered' || order['status'] == 'Paid' || order['status'] == 'Partially Paid') ...[
-                      Expanded(
-                        flex: 1,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                            elevation: 0,
-                          ),
-                          onPressed: () => _showRejectionDialog(order['id']),
-                          child: const Text('REJECT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    if (order['status'] != 'Rejected')
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: (order['status'] == 'Pending' || order['status'] == 'Ordered' || order['status'] == 'Paid') ? Colors.green : (order['status'] == 'Preparing' ? themePrimary : themePrimary),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                            elevation: 0,
-                          ),
-                          onPressed: () {
-                            String nextStatus = 'Preparing';
-                            if (order['status'] == 'Preparing') nextStatus = 'Ready';
-                            if (order['status'] == 'Ready') nextStatus = 'Served';
-                            _updateOrderStatus(order['id'], nextStatus);
-                          },
-                          child: Text(
-                            (order['status'] == 'Pending' || order['status'] == 'Ordered' || order['status'] == 'Paid') ? 'ACCEPT' : (order['status'] == 'Preparing' ? 'READY' : 'SERVE'),
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildOrderStatusChip(String status) {
-    Color getStatusColor(String s) {
-      switch (s) {
-        case 'Pending': return Colors.red;
-        case 'Ordered': return Colors.orange;
-        case 'Preparing': return themePrimary;
-        case 'Ready': return Colors.greenAccent[700]!;
-        case 'Served': return Colors.teal;
-        case 'Paid': return Colors.green;
-        case 'Cancelled': return Colors.grey;
-        default: return Colors.grey;
-      }
-    }
-    Color c = getStatusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: c),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(color: c, fontSize: 10, fontWeight: FontWeight.bold),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-
-
-  String _getLapseTime(String? orderTimeStr) {
-    if (orderTimeStr == null) return '--:--';
-    try {
-      DateTime orderTime = DateTime.parse(orderTimeStr).toLocal();
-      Duration diff = DateTime.now().toLocal().difference(orderTime);
-      if (diff.isNegative) return "00:00";
-      int minutes = diff.inMinutes;
-      int seconds = diff.inSeconds % 60;
-      return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return '--:--';
-    }
-  }
-
-  Widget _buildPaymentStatusBadge(Map<String, dynamic> order) {
-    final status = (order['status']?.toString() ?? '').toLowerCase();
-    final paymentStatus = (order['payment_status']?.toString() ?? '').toLowerCase();
-    
-    // An order is considered paid if status is 'paid' or payment_status is 'paid'
-    bool isPaid = status == 'paid' || paymentStatus == 'paid' || (order['payment_method'] != null && order['payment_method'].toString().isNotEmpty);
-    
-    if (isPaid) {
-      Color color = Colors.green;
-      String label = LocalizationService().translate('paid').toUpperCase();
-      IconData icon = Icons.check_circle_rounded;
-      return _buildStatusBadge(color, label, icon);
-    }
-    
-    Color color = Colors.deepOrange;
-    String label = LocalizationService().translate('unpaid').toUpperCase();
-    IconData icon = Icons.warning_amber_rounded;
-    return _buildStatusBadge(color, label, icon);
-  }
-
-  Widget _buildStatusBadge(Color color, String label, IconData icon) {
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0.2, end: 1.0),
-      duration: const Duration(milliseconds: 1000),
-      builder: (context, opacity, child) {
-        return Opacity(
-          opacity: opacity,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: color, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.2),
-                      blurRadius: 4 * opacity,
-                      spreadRadius: 2 * opacity,
-                    )
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, size: 12, color: color),
-                    const SizedBox(width: 4),
-                    Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildOriginBadge(String? origin) {
-    if (origin == null || origin == 'In-Store' || origin.isEmpty) return const SizedBox.shrink();
-    
-    Color badgeColor = origin == 'Website' ? themePrimary : Colors.purple;
-    IconData badgeIcon = origin == 'Website' ? Icons.language : Icons.qr_code_scanner;
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: badgeColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: badgeColor),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(badgeIcon, size: 12, color: badgeColor),
-          const SizedBox(width: 4),
-          Text(origin.toUpperCase(), style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
+  // Redundant UI badge helper methods removed.
 
   Future<void> _handlePdfDownload(Map<String, dynamic> order) async {
     try {
@@ -7722,7 +7418,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${order['order_number'] ?? order['id']}', 
+                          '#${order['order_number'] ?? order['id']}', 
                           style: TextStyle(color: themeText, fontSize: 24, fontWeight: FontWeight.bold)
                         ),
                       ],
@@ -7954,643 +7650,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildOrdersView() {
-    final now = DateTime.now();
-    final filteredOrders = _placedOrders.where((o) {
-      // 1. Status Filter
-      if (_orderStatusFilter != 'ALL') {
-        final oStatus = o['status'].toString().toLowerCase();
-        final f = _orderStatusFilter.toLowerCase();
-        bool matches = false;
-        if (f == 'pending') {
-          matches = (oStatus == 'pending' || oStatus == 'ordered' || oStatus == 'preparing' || oStatus == 'paid' || oStatus == 'partially paid');
-        } else {
-          matches = (oStatus == f);
-        }
-        if (!matches) return false;
-      }
-      
-      // 2. Current Month Filter
-      try {
-        final date = DateTime.parse(o['order_time']).toLocal();
-        if (date.month != now.month || date.year != now.year) return false;
-      } catch (_) { return false; }
-      
-      return true;
-    }).toList()
-      ..sort((a, b) {
-        final aPay = (a['payment_status']?.toString() ?? '').toLowerCase();
-        final bPay = (b['payment_status']?.toString() ?? '').toLowerCase();
-        final aStatus = (a['status']?.toString() ?? '').toLowerCase();
-        final bStatus = (b['status']?.toString() ?? '').toLowerCase();
-        if (aPay == 'unpaid' && bPay != 'unpaid') return -1;
-        if (aPay != 'unpaid' && bPay == 'unpaid') return 1;
-        if (aStatus == 'pending' && bStatus != 'pending') return -1;
-        if (aStatus != 'pending' && bStatus == 'pending') return 1;
-        return (int.tryParse(b['id'].toString()) ?? 0).compareTo(int.tryParse(a['id'].toString()) ?? 0);
-      });
 
-    return Container(
-      color: themeBg,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header & Filters
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(LocalizationService().translate('live_order_feed'), style: TextStyle(color: themeText, fontSize: 28, fontWeight: FontWeight.bold)),
-                    Text(LocalizationService().translate('monthly_operational_history'), style: TextStyle(color: themeHint, fontSize: 13)),
-                  ],
-                ),
-                const Spacer(),
-                _buildOrderFilters(),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Orders List in Tabular Format
-          Expanded(
-            child: filteredOrders.isEmpty 
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long_outlined, size: 80, color: themeHint.withValues(alpha: 0.3)),
-                      const SizedBox(height: 16),
-                      Text(LocalizationService().translate('no_orders_found'), style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(24),
-                  itemCount: filteredOrders.length,
-                  itemBuilder: (context, index) {
-                    final order = filteredOrders[index];
-                    final String timeStr = _formatDateTime(order['order_time']?.toString());
-                    final double total = double.tryParse(order['total_amount'].toString()) ?? 0.0;
-                    
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: themeCard,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: themeBorder),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          )
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          // Actions
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // 1. Quick Settle Button
-                              if (!((order['status']?.toString() ?? '').toLowerCase() == 'paid' || (order['payment_status']?.toString() ?? '').toLowerCase() == 'paid' || (order['payment_method'] != null && order['payment_method'].toString().isNotEmpty)))
-                                Tooltip(
-                                  message: LocalizationService().translate('settle_payment'),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.payments_rounded, color: Colors.green, size: 24),
-                                    onPressed: () {
-                                      setState(() {
-                                        _cartItems = (order['items'] as List).map((item) => {
-                                          'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                          'name': item['name'],
-                                          'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                   ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                          'quantity': item['quantity'],
-                                          'notes': item['notes'],
-                                          'extras': item['extras'],
-                                          'variants': item['variants'],
-                                        }).toList();
-                                        _editingOrderId = order['id'];
-                                        _orderType = order['order_type'] ?? 'Dine-In';
-                                      });
-                                      _showCheckoutDialog();
-                                    },
-                                  ),
-                                ),
-                              // 2. Edit Button
-                              Tooltip(
-                                message: LocalizationService().translate('edit'),
-                                child: IconButton(
-                                  icon: Icon(Icons.edit_note_rounded, color: themePrimary, size: 22),
-                                  onPressed: () {
-                                    setState(() {
-                                      _cartItems = (order['items'] as List).map((item) => {
-                                        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                        'name': item['name'],
-                                        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                        'quantity': item['quantity'],
-                                        'notes': item['notes'],
-                                        'extras': item['extras'],
-                                        'variants': item['variants'],
-                                      }).toList();
-                                      _editingOrderId = order['id'];
-                                      _selectedTabIndex = 0;
-                                      _orderType = order['order_type'] ?? 'Dine-In';
-                                    });
-                                  },
-                                ),
-                              ),
-                              // 3. Print Button
-                              Tooltip(
-                                message: LocalizationService().translate('print'),
-                                child: IconButton(
-                                  icon: const Icon(Icons.print_rounded, color: Colors.blue, size: 20),
-                                  onPressed: () => ReceiptService.printReceipt(order: order, settings: _settings),
-                                ),
-                              ),
-                              // 4. Download PDF Button
-                              Tooltip(
-                                message: LocalizationService().translate('download_pdf'),
-                                child: IconButton(
-                                  icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 20),
-                                  onPressed: () => _handlePdfDownload(Map<String, dynamic>.from(order)),
-                                ),
-                              ),
-                              // 5. Split Bill Button
-                              Tooltip(
-                                message: LocalizationService().translate('split_bill'),
-                                child: IconButton(
-                                  icon: Icon(Icons.call_split_rounded, color: Colors.purple, size: 20),
-                                  onPressed: () {
-                                    setState(() {
-                                      _cartItems = (order['items'] as List).map((item) => {
-                                        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                        'name': item['name'],
-                                        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                        'quantity': item['quantity'],
-                                        'notes': item['notes'],
-                                        'extras': item['extras'],
-                                        'variants': item['variants'],
-                                      }).toList();
-                                      _editingOrderId = order['id'];
-                                      _orderType = order['order_type'] ?? 'Dine-In';
-                                    });
-                                    _showSplitBillDialog();
-                                  },
-                                ),
-                              ),
-                              // 6. Merge Bill Button
-                              Tooltip(
-                                message: LocalizationService().translate('merge_bill'),
-                                child: IconButton(
-                                  icon: Icon(Icons.merge_type_rounded, color: Colors.orange, size: 20),
-                                  onPressed: () {
-                                    setState(() {
-                                      _cartItems = (order['items'] as List).map((item) => {
-                                        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                        'name': item['name'],
-                                        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                        'quantity': item['quantity'],
-                                        'notes': item['notes'],
-                                        'extras': item['extras'],
-                                        'variants': item['variants'],
-                                      }).toList();
-                                      _editingOrderId = order['id'];
-                                      _orderType = order['order_type'] ?? 'Dine-In';
-                                    });
-                                    _showMergeBillDialog();
-                                  },
-                                ),
-                              ),
-                              // 7. View Details
-                              Tooltip(
-                                message: LocalizationService().translate('view_details'),
-                                child: IconButton(
-                                  icon: Icon(Icons.visibility_rounded, color: themePrimary, size: 20),
-                                  onPressed: () => _showOrderDetailsDialog(order),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 24),
-
-                          // ID Badge
-                          Tooltip(
-                            message: LocalizationService().translate('order_serial'),
-                            child: Container(
-                              width: 55, height: 40,
-                              decoration: BoxDecoration(color: themePrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('SN', style: TextStyle(color: themePrimary, fontSize: 9, fontWeight: FontWeight.bold)),
-                                  Text(
-                                    order['order_number']?.toString().split('-').last ?? order['id'].toString(), 
-                                    style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 13)
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-
-                          // Order Details
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      order['order_number'] ?? 'Order ${order['id']}', 
-                                      style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 15)
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _buildOriginBadge(order['origin']),
-                                    _buildPaymentStatusBadge(order),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.access_time_rounded, size: 12, color: themeHint),
-                                    const SizedBox(width: 4),
-                                    Text(timeStr, style: TextStyle(color: themeHint, fontSize: 11)),
-                                    const SizedBox(width: 8),
-                                    Icon(Icons.table_bar_outlined, size: 12, color: themeHint),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      order['table_number'] != null ? '${LocalizationService().translate('table')} ${order['table_number']}' : (order['order_type'] ?? 'Dine-In'),
-                                      style: TextStyle(color: themeHint, fontSize: 11)
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(Icons.restaurant_menu_rounded, size: 12, color: themeHint),
-                                    const SizedBox(width: 4),
-                                    Text('${(order['items'] as List?)?.length ?? 0} Items', style: TextStyle(color: themeHint, fontSize: 11)),
-                                  ],
-                                ),
-                                if (order['status'] == 'Rejected' || order['status'] == 'Cancelled')
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.error_outline, size: 14, color: Colors.red),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${LocalizationService().translate('rejection_reason')}: ${order['cancel_reason'] ?? 'No Reason'}',
-                                          style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-
-                          // Amount
-                          Expanded(
-                            flex: 1,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text('\$${total.toStringAsFixed(2)}', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16)),
-                                Text(LocalizationService().translate('total_amount'), style: TextStyle(color: themeHint, fontSize: 11)),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(width: 24),
-
-                          // Status
-                          _buildOrderStatusChip(order['status'] ?? 'Unknown'),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderFilters() {
-    final filters = ['all', 'pending', 'preparing', 'ready', 'paid', 'rejected', 'cancelled'];
-    return Row(
-      children: filters.map((f) {
-        final bool sel = _orderStatusFilter.toLowerCase() == f;
-        int count = 0;
-        if (f == 'all') {
-          count = _placedOrders.length;
-        } else if (f == 'pending') {
-          count = _placedOrders.where((o) {
-            final s = o['status'].toString().toLowerCase();
-            return s == 'pending' || s == 'ordered' || s == 'preparing' || s == 'paid' || s == 'partially paid';
-          }).length;
-        } else {
-          count = _placedOrders.where((o) => o['status'].toString().toLowerCase() == f).length;
-        }
-
-        return GestureDetector(
-          onTap: () => setState(() {
-            _orderStatusFilter = f.toUpperCase();
-            _selectedOrderDetails = null; // Clear selection when filtering
-          }),
-          child: Container(
-            margin: const EdgeInsets.only(left: 12, top: 8),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: sel ? themePrimary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: sel ? themePrimary : themeBorder),
-                  ),
-                  child: Text(
-                    LocalizationService().translate(f).toUpperCase(),
-                    style: TextStyle(color: sel ? Colors.white : themeHint, fontWeight: sel ? FontWeight.bold : FontWeight.w500, fontSize: 11)
-                  ),
-                ),
-                if (count > 0)
-                  Positioned(
-                    right: -6,
-                    top: -6,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                      decoration: BoxDecoration(
-                        color: sel ? Colors.white : themePrimary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: sel ? themePrimary : themeBg, width: 1.5),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$count',
-                          style: TextStyle(
-                            color: sel ? themePrimary : Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-
-
-  Widget _buildReservationStatusChip(String status) {
-    Color getStatusColor(String s) {
-      switch (s.toLowerCase()) {
-        case 'pending': return themePrimary;
-        case 'confirmed': return themePrimary;
-        case 'seated': return Colors.greenAccent[700]!;
-        case 'completed': return Colors.teal;
-        case 'cancelled':
-        case 'no-show': return Colors.red;
-        default: return Colors.grey;
-      }
+  String _getLapseTime(String? orderTimeStr) {
+    if (orderTimeStr == null) return '--:--';
+    try {
+      DateTime orderTime = DateTime.parse(orderTimeStr).toLocal();
+      Duration diff = DateTime.now().toLocal().difference(orderTime);
+      if (diff.isNegative) return "00:00";
+      int minutes = diff.inMinutes;
+      int seconds = diff.inSeconds % 60;
+      return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '--:--';
     }
-    Color c = getStatusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: c),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.bold),
-      ),
-    );
   }
 
-  Widget _buildReservationsView() {
-    DateTime now = DateTime.now();
 
-    final filteredRes = _reservations.where((r) {
-      if (r['reservation_date'] != null) {
-        try {
-          DateTime resDate = DateTime.parse(r['reservation_date']).toLocal();
-          // Filter for current month only
-          if (resDate.month != now.month || resDate.year != now.year) return false;
-          // Also hide past days of the same month if needed? 
-          // User said "current month", so we show everything in the month.
-        } catch (_) {}
-      }
-
-      if (_reservationStatusFilter != 'ALL' && _reservationStatusFilter != 'Upcoming') {
-        if (r['status'].toString().toLowerCase() != _reservationStatusFilter.toLowerCase()) return false;
-      }
-
-      if (_reservationStatusFilter == 'Upcoming') {
-         String st = r['status'].toString().toLowerCase();
-         if (st == 'cancelled' || st == 'completed' || st == 'no-show') return false;
-      }
-
-      return true;
-    }).toList()
-      ..sort((a, b) => (int.tryParse(b['id'].toString()) ?? 0).compareTo(int.tryParse(a['id'].toString()) ?? 0));
-
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(LocalizationService().translate('live_bookings'), style: TextStyle(color: themeText, fontSize: 24, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 24),
-                    ElevatedButton.icon(
-                      onPressed: _showNewReservationDialog,
-                      icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                      label: Text(LocalizationService().translate('add_new_booking'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: themePrimary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      onPressed: () => _fetchReservations(),
-                      icon: Icon(Icons.refresh_rounded, color: themePrimary),
-                      tooltip: LocalizationService().translate('refresh'),
-                    ),
-                    const Spacer(),
-                    _buildReservationFilters(),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: filteredRes.length,
-                  itemBuilder: (context, index) {
-                    final res = filteredRes[index];
-                    final bool isSelected = _selectedReservationDetails != null && _selectedReservationDetails!['id'] == res['id'];
-                    
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedReservationDetails = res),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isSelected ? themePrimary.withValues(alpha: 0.1) : themeCard,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: isSelected ? themePrimary : themeBorder),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text('${res['first_name'] ?? ''} ${res['last_name'] ?? ''}'.trim(), 
-                                      style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 12),
-                                    _buildReservationStatusChip(res['status'] ?? 'pending'),
-                                    if (res['origin'] != null && res['origin'] != 'In-Store') ...[
-                                      const SizedBox(width: 8),
-                                      _buildOriginBadge(res['origin']),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(Icons.people, size: 14, color: themeHint),
-                                    const SizedBox(width: 4),
-                                    Text('${res['party_size']} ${LocalizationService().translate('guests')}', style: TextStyle(color: themeHint, fontSize: 13, fontWeight: FontWeight.w600)),
-                                    const SizedBox(width: 12),
-                                    Icon(Icons.access_time_filled, size: 14, color: themePrimary),
-                                    const SizedBox(width: 4),
-                                    Text('${res['reservation_time']?.toString().substring(0,5)}', style: TextStyle(color: themePrimary, fontSize: 13, fontWeight: FontWeight.bold)),
-                                    if (res['table_id'] != null) ...[
-                                      const SizedBox(width: 12),
-                                      Icon(Icons.table_restaurant, size: 14, color: Colors.green),
-                                      const SizedBox(width: 4),
-                                      Text('${LocalizationService().translate('table')} ${res['table_id']}', style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.bold)),
-                                    ]
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          flex: 1,
-          child: Container(
-            decoration: BoxDecoration(
-              color: themeCard,
-              border: Border(left: BorderSide(color: themeBorder)),
-            ),
-            child: _selectedReservationDetails == null
-                ? Center(child: Text(LocalizationService().translate('select_booking_details'), style: TextStyle(color: themeHint)))
-                : _buildReservationDetailsPane(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReservationFilters() {
-    final filters = ['Upcoming', 'Pending', 'Confirmed', 'Seated', 'ALL'];
-    return Row(
-      children: filters.map((f) {
-        final bool sel = _reservationStatusFilter == f;
-        int count = 0;
-        if (f == 'ALL') {
-          count = _reservations.length;
-        } else {
-          count = _reservations.where((r) => r['status'] == f).length;
-        }
-
-        return GestureDetector(
-          onTap: () => setState(() {
-            _reservationStatusFilter = f;
-            _selectedReservationDetails = null; // Clear selection
-          }),
-          child: Container(
-            margin: const EdgeInsets.only(left: 12, top: 8),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: sel ? themePrimary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: sel ? themePrimary : themeBorder),
-                  ),
-                  child: Text(
-                    LocalizationService().translate(f == 'ALL' ? 'all_caps' : f.toLowerCase()).toUpperCase(),
-                    style: TextStyle(color: sel ? Colors.white : themeHint, fontWeight: sel ? FontWeight.bold : FontWeight.w500, fontSize: 11)
-                  ),
-                ),
-                if (count > 0)
-                  Positioned(
-                    right: -6,
-                    top: -6,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                      decoration: BoxDecoration(
-                        color: sel ? Colors.white : themePrimary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: sel ? themePrimary : themeBg, width: 1.5),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$count',
-                          style: TextStyle(
-                            color: sel ? themePrimary : Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      );
-    }
 
   Widget _buildWaitingView() {
     // Filter logic based on the selected tab
@@ -8602,7 +7677,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         return s == 'ready';
       }
       return false;
-    }).toList();
+    }).toList()
+      ..sort((a, b) {
+        final aId = int.tryParse(a['id'].toString()) ?? 0;
+        final bId = int.tryParse(b['id'].toString()) ?? 0;
+        final dir = _settings['branch']?['order_sort_direction'] ?? 'Descending';
+        return dir == 'Ascending' ? aId.compareTo(bId) : bId.compareTo(aId);
+      });
 
     // Tab Counts for Badges
     int activeCount = _placedOrders.where((o) {
@@ -8665,6 +7746,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   Icons.receipt_long, 
                   themePrimary
                 ),
+                const SizedBox(width: 24),
+                _buildWaitingTab('Active', activeCount, Icons.fireplace_rounded),
+                const SizedBox(width: 12),
+                _buildWaitingTab('Ready', readyCount, Icons.check_circle_outline),
                 const Spacer(),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -8677,17 +7762,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             ),
           ),
 
-          // Sub-Tab Navigation
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Row(
-              children: [
-                _buildWaitingTab('Active', activeCount, Icons.fireplace_rounded),
-                const SizedBox(width: 12),
-                _buildWaitingTab('Ready', readyCount, Icons.check_circle_outline),
-              ],
-            ),
-          ),
 
           // Table Header
           Expanded(
@@ -8739,251 +7813,276 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: themeCard,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isWarning ? Colors.red.withValues(alpha: 0.3) : themeBorder),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          )
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          // Actions (Left Most)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Tooltip(
-                                message: LocalizationService().translate('edit'),
-                                child: IconButton(
-                                  icon: Icon(Icons.edit_note_rounded, color: themePrimary, size: 22),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onPressed: () {
-                                    setState(() {
-                                      _cartItems = (order['items'] as List).map((item) => {
-                                        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                        'name': item['name'],
-                                        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                        'quantity': item['quantity'],
-                                        'notes': item['notes'],
-                                        'extras': item['extras'],
-                                        'variants': item['variants'],
-                                      }).toList();
-                                      _editingOrderId = order['id'];
-                                      _selectedTabIndex = 0;
-                                      _orderType = order['order_type'] ?? 'Dine-In';
-                                    });
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Tooltip(
-                                message: LocalizationService().translate('print'),
-                                child: IconButton(
-                                  icon: const Icon(Icons.print_rounded, color: Colors.blue, size: 20),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onPressed: () => ReceiptService.printReceipt(order: order, settings: _settings),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Tooltip(
-                                message: LocalizationService().translate('download_pdf'),
-                                child: IconButton(
-                                  icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 20),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onPressed: () => _handlePdfDownload(Map<String, dynamic>.from(order)),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Tooltip(
-                                message: LocalizationService().translate('view_details'),
-                                child: IconButton(
-                                  icon: Icon(Icons.visibility_rounded, color: themePrimary, size: 20),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onPressed: () => _showOrderDetailsDialog(order),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 24),
-
-                          // ID & Badge
-                          Tooltip(
-                            message: LocalizationService().translate('order_serial'),
-                            child: Container(
-                              width: 55, height: 40,
-                              decoration: BoxDecoration(color: themePrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                          color: themeCard,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isWarning ? Colors.red.withValues(alpha: 0.3) : themeBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                          // 1. Fixed Actions Column (approx 280px)
+                          SizedBox(
+                            width: 280,
+                              child: Row(
                                 children: [
-                                  Text('SN', style: TextStyle(color: themePrimary, fontSize: 9, fontWeight: FontWeight.bold)),
-                                  Text(
-                                    order['order_number']?.toString().split('-').last ?? order['id'].toString(), 
-                                    style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 13)
+                                  Tooltip(
+                                    message: LocalizationService().translate('edit'),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      visualDensity: VisualDensity.compact,
+                                      icon: Icon(Icons.edit_note_rounded, color: themePrimary, size: 22),
+                                      onPressed: () {
+                                        setState(() {
+                                          _cartItems = (order['items'] as List).map((item) => {
+                                            'id': item['menu_item_id'] ?? 'custom-${item['id']}',
+                                            'name': item['name'],
+                                            'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
+                                                     ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
+                                            'quantity': item['quantity'],
+                                            'notes': item['notes'],
+                                            'extras': item['extras'],
+                                            'variants': item['variants'],
+                                          }).toList();
+                                          _editingOrderId = order['id'];
+                                          _selectedTabIndex = 0;
+                                          _orderType = order['order_type'] ?? 'Dine-In';
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  Tooltip(
+                                    message: LocalizationService().translate('print'),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(Icons.print_rounded, color: Colors.blue, size: 20),
+                                      onPressed: () => ReceiptService.printReceipt(order: order, settings: _settings),
+                                    ),
+                                  ),
+                                  Tooltip(
+                                    message: LocalizationService().translate('download_pdf'),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 20),
+                                      onPressed: () => _handlePdfDownload(Map<String, dynamic>.from(order)),
+                                    ),
+                                  ),
+                                  Tooltip(
+                                    message: LocalizationService().translate('view_details'),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      visualDensity: VisualDensity.compact,
+                                      icon: Icon(Icons.visibility_rounded, color: themePrimary, size: 20),
+                                      onPressed: () => _showOrderDetailsDialog(order),
+                                    ),
+                                  ),
+                                  // Status Update Buttons
+                                  SizedBox(
+                                    width: 40,
+                                    child: Visibility(
+                                      visible: order['status'] == 'Pending' || order['status'] == 'Ordered' || order['status'] == 'Paid',
+                                      maintainSize: true,
+                                      maintainAnimation: true,
+                                      maintainState: true,
+                                      child: Tooltip(
+                                        message: 'Next: Preparing',
+                                        child: IconButton(
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                          visualDensity: VisualDensity.compact,
+                                          icon: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
+                                          onPressed: () => _updateOrderStatus(order['id'], 'Preparing'),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 40,
+                                    child: Visibility(
+                                      visible: order['status'] == 'Preparing',
+                                      maintainSize: true,
+                                      maintainAnimation: true,
+                                      maintainState: true,
+                                      child: Tooltip(
+                                        message: 'Next: Ready',
+                                        child: IconButton(
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                          visualDensity: VisualDensity.compact,
+                                          icon: const Icon(Icons.restaurant_rounded, color: Colors.orange, size: 22),
+                                          onPressed: () => _updateOrderStatus(order['id'], 'Ready'),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 40,
+                                    child: Visibility(
+                                      visible: order['status'] == 'Ready',
+                                      maintainSize: true,
+                                      maintainAnimation: true,
+                                      maintainState: true,
+                                      child: Tooltip(
+                                        message: 'Next: Paid/Complete',
+                                        child: IconButton(
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                          visualDensity: VisualDensity.compact,
+                                          icon: const Icon(Icons.done_all_rounded, color: Colors.blue, size: 22),
+                                          onPressed: () {
+                                            setState(() {
+                                              _cartItems = (order['items'] as List).map((item) => {
+                                                'id': item['menu_item_id'] ?? 'custom-${item['id']}',
+                                                'name': item['name'],
+                                                'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
+                                                         ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
+                                                'quantity': item['quantity'],
+                                                'notes': item['notes'],
+                                                'extras': item['extras'],
+                                                'variants': item['variants'],
+                                              }).toList();
+                                              _editingOrderId = order['id'];
+                                              _selectedTabIndex = 0;
+                                            });
+                                            Future.delayed(const Duration(milliseconds: 100), () {
+                                              _showCheckoutDialog();
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 20),
-                          
-                          // Order Details
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      order['order_number'] ?? 'Order ${order['id']}', 
-                                      style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 15)
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _buildOriginBadge(order['origin']),
-                                    _buildPaymentStatusBadge(order),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.access_time_rounded, size: 12, color: themeHint),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _formatDateTime(order['order_time']),
-                                      style: TextStyle(color: themeHint, fontSize: 11, fontWeight: FontWeight.w500)
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(Icons.table_bar_outlined, size: 12, color: themeHint),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      order['table_number'] != null ? '${LocalizationService().translate('table')} ${order['table_number']}' : (order['order_type'] ?? 'Dine-In'),
-                                      style: TextStyle(color: themeHint, fontSize: 11, fontWeight: FontWeight.w500)
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(Icons.restaurant_menu_rounded, size: 12, color: themeHint),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${(order['items'] as List?)?.length ?? 0} Items', 
-                                      style: TextStyle(color: themeHint, fontSize: 11, fontWeight: FontWeight.w500)
-                                    ),
-                                  ],
-                                ),
-                                if (order['status'] == 'Rejected' || order['status'] == 'Cancelled')
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
+                            const SizedBox(width: 10),
+                            // 2. Fixed Order Info Column (approx 140px)
+                            SizedBox(
+                              width: 140,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '#${order['order_number'] ?? order['id']}', 
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.bold)
+                                  ),
+                                  const SizedBox(height: 2),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.error_outline, size: 14, color: Colors.red),
+                                        Icon(Icons.access_time_rounded, size: 10, color: themeHint),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          '${LocalizationService().translate('rejection_reason')}: ${order['cancel_reason'] ?? 'No Reason'}',
-                                          style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)
-                                        ),
+                                        Text(_formatDateTime(order['order_time']), style: TextStyle(color: themeHint, fontSize: 10)),
+                                        const SizedBox(width: 10),
+                                        Icon(Icons.restaurant_menu_rounded, size: 10, color: themeHint),
+                                        const SizedBox(width: 4),
+                                        Text('${(order['items'] as List?)?.length ?? 0} Items', style: TextStyle(color: themeHint, fontSize: 10)),
                                       ],
                                     ),
                                   ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          
-                          // Progress & Lapse
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(lapse, style: TextStyle(color: isWarning ? Colors.red : themeText, fontWeight: FontWeight.bold, fontSize: 13)),
-                                    Text('${(progress * 100).toInt()}%', style: TextStyle(color: progressColor, fontSize: 11, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: progress,
-                                    backgroundColor: themeBg,
-                                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                                    minHeight: 4,
-                                  ),
-                                ),
-                              ],
+
+                            const SizedBox(width: 25),
+                            // 4. Status Badges in Fixed Columns
+                            SizedBox(
+                              width: 85,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: OrderStatusChip(status: order['status'] ?? 'Pending', themePrimary: themePrimary),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 32),
-                          
-                          // Status & Action Update
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              _buildOrderStatusChip(order['status'] ?? 'Pending'),
-                              const SizedBox(height: 8),
-                              if (order['status'] == 'Pending' || order['status'] == 'Ordered' || order['status'] == 'Paid')
-                                Tooltip(
-                                  message: 'Current: ${order['status']} | Next: Preparing',
-                                  child: IconButton(
-                                    icon: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () => _updateOrderStatus(order['id'], 'Preparing'),
-                                  ),
+                            SizedBox(
+                              width: 85,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: OriginBadge(origin: order['origin'], themePrimary: themePrimary),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 85,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Visibility(
+                                  visible: order['order_type'] != null && order['order_type'] != 'In-Store',
+                                  maintainSize: true,
+                                  maintainAnimation: true,
+                                  maintainState: true,
+                                  child: OrderTypeBadge(type: order['order_type'], themePrimary: themePrimary),
                                 ),
-                              if (order['status'] == 'Preparing')
-                                Tooltip(
-                                  message: 'Current: Preparing | Next: Ready',
-                                  child: IconButton(
-                                    icon: const Icon(Icons.restaurant_rounded, color: Colors.orange, size: 22),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () => _updateOrderStatus(order['id'], 'Ready'),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 90,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: PaymentStatusBadge(order: order),
+                              ),
+                            ),
+                            const Spacer(),
+                            // 3. Fixed Progress Column (approx 100px)
+                            SizedBox(
+                              width: 100,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: SizedBox(
+                                      width: 100,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(lapse, style: TextStyle(color: isWarning ? Colors.red : themeText, fontWeight: FontWeight.bold, fontSize: 12)),
+                                          Text('${(progress * 100).toInt()}%', style: TextStyle(color: progressColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              if (order['status'] == 'Ready')
-                                Tooltip(
-                                  message: 'Current: Ready | Next: Paid/Complete',
-                                  child: IconButton(
-                                    icon: const Icon(Icons.done_all_rounded, color: Colors.blue, size: 22),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () {
-                                      // Load order into cart and switch to checkout
-                                      setState(() {
-                                        _cartItems = (order['items'] as List).map((item) => {
-                                          'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                          'name': item['name'],
-                                          'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                   ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                          'quantity': item['quantity'],
-                                          'notes': item['notes'],
-                                          'extras': item['extras'],
-                                          'variants': item['variant'],
-                                        }).toList();
-                                        _editingOrderId = order['id'];
-                                        _selectedTabIndex = 0; // Go to POS
-                                      });
-                                      // Delay slightly to ensure state is set before showing dialog
-                                      Future.delayed(const Duration(milliseconds: 100), () {
-                                        _showCheckoutDialog();
-                                      });
-                                    },
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: progress,
+                                      backgroundColor: themeBg,
+                                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                                      minHeight: 4,
+                                    ),
                                   ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            // 5. Fixed Total Column
+                            SizedBox(
+                              width: 90,
+                              child: Text(
+                                '${_settings['tenant']?['currency'] ?? '\$'}${(double.tryParse(order['total_amount'].toString()) ?? 0.0).toStringAsFixed(2)}',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                 ),
           ),
         ],
@@ -9095,209 +8194,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildReservationDetailsPane() {
-    final res = _selectedReservationDetails!;
-    int? currentTableId = res['table_id'] != null ? int.tryParse(res['table_id'].toString()) : null;
-    
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text('${res['first_name']} ${res['last_name'] ?? ''}', 
-                    style: TextStyle(color: themeText, fontSize: 26, fontWeight: FontWeight.bold)),
-              ),
-              IconButton(
-                icon: Icon(Icons.close, color: themeHint),
-                onPressed: () => setState(() => _selectedReservationDetails = null),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  _buildReservationStatusChip(res['status'] ?? 'pending'),
-                  if (res['origin'] != null && res['origin'] != 'In-Store') ...[
-                    const SizedBox(width: 8),
-                    _buildOriginBadge(res['origin']),
-                  ],
-                ],
-              ),
-              Text('ID: #${res['id']}', style: TextStyle(color: themeHint, fontSize: 12)),
-            ],
-          ),
-          const Divider(height: 32),
-          
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('CONTACT INFO', style: TextStyle(color: themeHint, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.phone, color: themeText, size: 18),
-                      const SizedBox(width: 8),
-                      Text(res['phone'] ?? 'No phone provided', style: TextStyle(color: themeText, fontSize: 15)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.email, color: themeText, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(res['email'] ?? 'No email provided', style: TextStyle(color: themeText, fontSize: 15))),
-                    ],
-                  ),
-                  
-                  const Divider(height: 32),
-                  Text('BOOKING DETAILS', style: TextStyle(color: themeHint, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-                  const SizedBox(height: 16),
-                  _buildInfoRow('Date', res['reservation_date']?.toString().substring(0, 10) ?? ''),
-                  const SizedBox(height: 12),
-                  _buildInfoRow('Time', res['reservation_time']?.toString().substring(0, 5) ?? '', valueColor: themePrimary),
-                  const SizedBox(height: 12),
-                  _buildInfoRow('Party Size', '${res['party_size']} Guests'),
-                  
-                  if (res['notes'] != null && res['notes'].toString().isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: themePrimary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: themePrimary.withValues(alpha: 0.3)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.note_alt_outlined, color: themePrimary, size: 16),
-                              const SizedBox(width: 8),
-                              Text('GUEST NOTES', style: TextStyle(color: themePrimary, fontSize: 11, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(res['notes'], style: TextStyle(color: themeText, fontSize: 14, height: 1.4)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-          
-          const Divider(height: 16),
-          const SizedBox(height: 8),
-          
-          if (res['status'] == 'Pending') ...[
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _updateReservationStatus(res['id'], 'Confirmed'),
-                style: ElevatedButton.styleFrom(backgroundColor: themePrimary, padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('Confirm Booking', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ] else if (res['status'] == 'Confirmed') ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: themeBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: themeBorder),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  value: currentTableId,
-                  hint: Text('Assign a Table', style: TextStyle(color: themeHint)),
-                  isExpanded: true,
-                  dropdownColor: themeCard,
-                  style: TextStyle(color: themeText),
-                  items: (_restaurantTables ?? []).map((t) {
-                    final avail = t.capacity - t.currentOccupancy;
-                    return DropdownMenuItem<int>(
-                      value: int.tryParse(t.id),
-                      child: Text('Table ${t.label} (Avail: $avail / ${t.capacity})'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) _updateReservationStatus(res['id'], res['status'], val);
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: currentTableId == null ? null : () => _updateReservationStatus(res['id'], 'Seated', currentTableId),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, 
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  disabledBackgroundColor: Colors.grey[800],
-                ),
-                child: const Text('Seat Guest', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => _updateReservationStatus(res['id'], 'No-Show'),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.orange),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text('Mark No-Show', style: TextStyle(color: Colors.orange)),
-              ),
-            ),
-          ] else if (res['status'] == 'Seated') ...[
-             SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _updateReservationStatus(res['id'], 'Completed'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('Complete Booking', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-          
-          if (res['status'] != 'Cancelled' && res['status'] != 'Completed' && res['status'] != 'No-Show') ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => _updateReservationStatus(res['id'], 'Cancelled'),
-                child: const Text('Cancel Booking', style: TextStyle(color: Colors.red)),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(color: themeHint, fontSize: 14)),
-        Text(value, style: TextStyle(color: valueColor ?? themeText, fontSize: 15, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
+  // Redundant Reservation UI methods removed.
   int _calculateOccupancy(String tableLabel) {
     int total = 0;
     for (var order in _placedOrders) {

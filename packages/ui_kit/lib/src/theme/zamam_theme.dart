@@ -170,4 +170,35 @@ class ZamamTheme {
       ),
     );
   }
+
+  static ThemeData get navyBlueTheme {
+    return ThemeData(
+      brightness: Brightness.dark,
+      primaryColor: const Color(0xFF1E3A8A),
+      scaffoldBackgroundColor: const Color(0xFF0F172A),
+      cardColor: const Color(0xFF1E293B),
+      colorScheme: const ColorScheme.dark(
+        primary: Color(0xFF1E3A8A),
+        secondary: Color(0xFF3B82F6),
+        surface: Color(0xFF1E293B),
+        onSurface: Colors.white,
+      ),
+      textTheme: getTextTheme(isDark: true),
+      tabBarTheme: const TabBarThemeData(
+        labelColor: Color(0xFF3B82F6),
+        unselectedLabelColor: Colors.white60,
+        indicatorColor: Color(0xFF3B82F6),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF1E293B),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+        color: const Color(0xFF1E293B),
+      ),
+    );
+  }
 }
