@@ -172,6 +172,13 @@ async function ensureSchema() {
       await db.query("ALTER TABLE branch_settings ADD COLUMN order_sort_direction VARCHAR(20) DEFAULT 'Descending'");
     }
 
+    // Ensure at least one branch exists
+    const [branches] = await db.query('SELECT id FROM branches LIMIT 1');
+    if (branches.length === 0) {
+      console.log('➕ Creating default branch...');
+      await db.query("INSERT INTO branches (name, location, contact_number, status) VALUES ('Main Branch', 'Default Location', '000-000-0000', 'Active')");
+    }
+
     // Check customers
     const [customerCols] = await db.query('DESCRIBE customers');
     const customerFields = customerCols.map(c => c.Field);
