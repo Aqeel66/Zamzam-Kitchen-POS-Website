@@ -174,9 +174,32 @@ async function ensureSchema() {
 
     // Ensure at least one branch exists
     const [branches] = await db.query('SELECT id FROM branches LIMIT 1');
+    let branchId = 1;
     if (branches.length === 0) {
       console.log('➕ Creating default branch...');
-      await db.query("INSERT INTO branches (name, location, contact_number, status) VALUES ('Main Branch', 'Default Location', '000-000-0000', 'Active')");
+      const [result] = await db.query("INSERT INTO branches (name, location, contact_number, status) VALUES ('Main Branch', 'Default Location', '000-000-0000', 'Active')");
+      branchId = result.insertId;
+    } else {
+      branchId = branches[0].id;
+    }
+
+    // Ensure some tables exist
+    const [tables] = await db.query('SELECT id FROM restaurant_tables LIMIT 1');
+    if (tables.length === 0) {
+      console.log('➕ Creating default tables...');
+      const defaultTables = [
+        { num: '1', cap: 2, x: 100, y: 100 },
+        { num: '2', cap: 2, x: 250, y: 100 },
+        { num: '3', cap: 4, x: 100, y: 250 },
+        { num: '4', cap: 4, x: 250, y: 250 },
+        { num: '5', cap: 6, x: 100, y: 400 },
+      ];
+      for (const t of defaultTables) {
+        await db.query(
+          "INSERT INTO restaurant_tables (branch_id, table_number, capacity, status, pos_x, pos_y) VALUES (?, ?, ?, 'Available', ?, ?)",
+          [branchId, t.num, t.cap, t.x, t.y]
+        );
+      }
     }
 
     // Check customers

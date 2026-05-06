@@ -2851,9 +2851,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     availableTables = data['tables'] ?? [];
                                     loadingTables = false;
                                   });
+                                } else {
+                                  setDialogState(() => loadingTables = false);
+                                  _showWarningDialog('Failed to fetch available tables: ${resp.reasonPhrase}');
                                 }
                               } catch (e) {
                                 setDialogState(() => loadingTables = false);
+                                _showWarningDialog('Network error while fetching tables: $e');
                               }
                             } else if (currentStep == 2) {
                               if (selectedTable == null) {
