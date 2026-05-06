@@ -171,6 +171,38 @@ async function ensureSchema() {
       console.log('➕ Adding missing order_sort_direction column to branch_settings...');
       await db.query("ALTER TABLE branch_settings ADD COLUMN order_sort_direction VARCHAR(20) DEFAULT 'Descending'");
     }
+
+    // Check customers
+    const [customerCols] = await db.query('DESCRIBE customers');
+    const customerFields = customerCols.map(c => c.Field);
+    if (!customerFields.includes('origin')) {
+      console.log('➕ Adding missing origin column to customers...');
+      await db.query("ALTER TABLE customers ADD COLUMN origin VARCHAR(50) DEFAULT 'In-Store'");
+    }
+
+    // Check reservations
+    const [resCols] = await db.query('DESCRIBE reservations');
+    const resFields = resCols.map(c => c.Field);
+    if (!resFields.includes('origin')) {
+      console.log('➕ Adding missing origin column to reservations...');
+      await db.query("ALTER TABLE reservations ADD COLUMN origin VARCHAR(50) DEFAULT 'In-Store'");
+    }
+    if (!resFields.includes('booking_fee')) {
+      console.log('➕ Adding missing booking_fee column to reservations...');
+      await db.query("ALTER TABLE reservations ADD COLUMN booking_fee DECIMAL(10,2) DEFAULT 0.00");
+    }
+    if (!resFields.includes('payment_status')) {
+      console.log('➕ Adding missing payment_status column to reservations...');
+      await db.query("ALTER TABLE reservations ADD COLUMN payment_status VARCHAR(20) DEFAULT 'Pending'");
+    }
+    if (!resFields.includes('payment_method')) {
+      console.log('➕ Adding missing payment_method column to reservations...');
+      await db.query("ALTER TABLE reservations ADD COLUMN payment_method VARCHAR(50) DEFAULT 'Counter'");
+    }
+    if (!resFields.includes('customer_id')) {
+      console.log('➕ Adding missing customer_id column to reservations...');
+      await db.query("ALTER TABLE reservations ADD COLUMN customer_id INT DEFAULT NULL");
+    }
     
     console.log('✅ Schema check complete');
   } catch (err) {
