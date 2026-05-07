@@ -45,7 +45,10 @@ if (!foundEnv) {
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-const assetsPath = path.join(__dirname, '../assets');
+
+// PERSISTENT STORAGE: We use a folder outside the normal Git-tracked structure if possible,
+// or at least one that we explicitly protect.
+const assetsPath = path.join(process.cwd(), 'persistent_assets');
 const webPath = path.join(__dirname, '../public');
 
 const imagesPath = path.join(assetsPath, 'images');
@@ -56,7 +59,7 @@ const menuItemsPath = path.join(imagesPath, 'menu_items');
   try {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`📁 Created directory: ${dir}`);
+      console.log(`📁 Created persistent directory: ${dir}`);
     }
   } catch (err) {
     console.error(`⚠️ Could not create directory ${dir}:`, err.message);

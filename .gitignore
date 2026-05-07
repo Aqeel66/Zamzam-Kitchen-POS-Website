@@ -119,14 +119,13 @@ app.*.map.json
 
 # Production Deployment Artifacts (Tracked for Hostinger auto-update)
 !apps/backend/public/
-# Ignore user-uploaded assets to prevent overwriting on push
-apps/backend/assets/images/menu_items/*
-apps/backend/assets/images/logo_custom.*
-apps/backend/assets/images/logo_secondary_custom.*
-apps/backend/assets/images/login_bg_custom.*
-apps/backend/assets/images/hero_bg_custom.*
-!apps/backend/assets/images/menu_items/.gitkeep
+
+# User-uploaded assets (Persistent - NOT tracked by Git)
+persistent_assets/
+apps/backend/persistent_assets/
+
 # Antigravity Scratch
 scratch/
 production.env
 config.env
+

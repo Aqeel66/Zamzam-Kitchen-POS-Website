@@ -5,10 +5,13 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../db');
 
+// Base persistent storage path
+const persistentAssetsPath = path.join(process.cwd(), 'persistent_assets');
+
 // ─── Menu Item Image Storage ────────────────────────────────────────────────
 const menuStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../assets/images/menu_items');
+    const uploadDir = path.join(persistentAssetsPath, 'images/menu_items');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -37,7 +40,7 @@ router.post('/', uploadMenu.single('image'), (req, res) => {
       success: true,
       message: 'Image uploaded successfully',
       path: relativePath,
-      url: `http://zamzamkitchen.net/assets/${relativePath}`
+      url: `/assets/${relativePath}`
     });
   } catch (error) {
     console.error('Upload Error:', error);
@@ -48,12 +51,11 @@ router.post('/', uploadMenu.single('image'), (req, res) => {
 // ─── Logo Upload Storage ─────────────────────────────────────────────────────
 const logoStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../assets/images');
+    const uploadDir = path.join(persistentAssetsPath, 'images');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Always save as logo_custom.<ext> so it's easy to reference
     cb(null, 'logo_custom' + path.extname(file.originalname));
   }
 });
@@ -67,8 +69,6 @@ const uploadLogo = multer({
   }
 });
 
-// @route   POST /api/upload/logo
-// @desc    Upload restaurant logo and update tenant_settings
 router.post('/logo', uploadLogo.single('logo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
@@ -76,14 +76,13 @@ router.post('/logo', uploadLogo.single('logo'), async (req, res) => {
     const relativePath = `images/${req.file.filename}`;
     const logoUrl = `images/${req.file.filename}`;
 
-    // Persist to DB so POS & website pick it up instantly
     await db.query('UPDATE tenant_settings SET logo_url = ? WHERE id = 1', [logoUrl]);
 
     res.json({
       success: true,
       message: 'Logo uploaded and saved successfully',
       path: relativePath,
-      url: `http://zamzamkitchen.net/assets/${relativePath}`
+      url: `/assets/${relativePath}`
     });
   } catch (error) {
     console.error('Logo Upload Error:', error);
@@ -94,7 +93,7 @@ router.post('/logo', uploadLogo.single('logo'), async (req, res) => {
 // ─── Secondary Logo Upload Storage ──────────────────────────────────────────
 const secondaryLogoStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../assets/images');
+    const uploadDir = path.join(persistentAssetsPath, 'images');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -112,8 +111,6 @@ const uploadSecondaryLogo = multer({
   }
 });
 
-// @route   POST /api/upload/secondary-logo
-// @desc    Upload restaurant secondary logo and update tenant_settings
 router.post('/secondary-logo', uploadSecondaryLogo.single('logo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
@@ -127,7 +124,7 @@ router.post('/secondary-logo', uploadSecondaryLogo.single('logo'), async (req, r
       success: true,
       message: 'Secondary logo uploaded successfully',
       path: relativePath,
-      url: `http://zamzamkitchen.net/assets/${relativePath}`
+      url: `/assets/${relativePath}`
     });
   } catch (error) {
     console.error('Secondary Logo Upload Error:', error);
@@ -138,7 +135,7 @@ router.post('/secondary-logo', uploadSecondaryLogo.single('logo'), async (req, r
 // ─── Login Background Upload Storage ──────────────────────────────────────────
 const loginBgStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../assets/images');
+    const uploadDir = path.join(persistentAssetsPath, 'images');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -149,7 +146,7 @@ const loginBgStorage = multer.diskStorage({
 
 const uploadLoginBg = multer({
   storage: loginBgStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB for high-res backgrounds
+  limits: { fileSize: 10 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files are allowed'));
@@ -165,7 +162,7 @@ router.post('/login-bg', uploadLoginBg.single('image'), async (req, res) => {
       success: true,
       message: 'Login background uploaded successfully',
       path: relativePath,
-      url: `http://zamzamkitchen.net/assets/${relativePath}`
+      url: `/assets/${relativePath}`
     });
   } catch (error) {
     console.error('Login BG Upload Error:', error);
@@ -176,7 +173,7 @@ router.post('/login-bg', uploadLoginBg.single('image'), async (req, res) => {
 // ─── Hero Background Upload Storage ──────────────────────────────────────────
 const heroBgStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../assets/images');
+    const uploadDir = path.join(persistentAssetsPath, 'images');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -203,7 +200,7 @@ router.post('/hero-bg', uploadHeroBg.single('image'), async (req, res) => {
       success: true,
       message: 'Hero background uploaded successfully',
       path: relativePath,
-      url: `http://zamzamkitchen.net/assets/${relativePath}`
+      url: `/assets/${relativePath}`
     });
   } catch (error) {
     console.error('Hero BG Upload Error:', error);
