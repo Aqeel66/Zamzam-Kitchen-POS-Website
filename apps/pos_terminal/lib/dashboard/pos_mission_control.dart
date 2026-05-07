@@ -215,6 +215,7 @@ class _POSMissionControlState extends State<POSMissionControl>
 
     // Background Refresh Logic: Optimized intervals
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      // Background fetches - these should NOT trigger a full UI reload
       _fetchOrders();
       _fetchReservations();
       _fetchInventory();
@@ -223,14 +224,13 @@ class _POSMissionControlState extends State<POSMissionControl>
 
       // Secondary data (only if we've reached a 5-min interval)
       final tickCount = (_refreshTimer?.tick ?? 0);
-      if (tickCount % 5 == 0) {
+      if (tickCount % 10 == 0) { // 5 minutes (10 * 30s)
         _fetchUsers();
         _fetchRoles();
         _fetchPermissions();
         _fetchShifts();
         _fetchHRStats();
         _fetchSettings();
-        _fetchTables();
         _fetchGlobalCustomers();
       }
     });
@@ -1432,7 +1432,7 @@ class _POSMissionControlState extends State<POSMissionControl>
           setState(() {
             _menuItems = flatMenu.isEmpty ? _getSampleMenu() : flatMenu;
             _categories = categories;
-            _isLoading = false;
+            _isLoading = false; // Only clears the initial heavy load
           });
         }
       } else {
@@ -6561,7 +6561,8 @@ class _POSMissionControlState extends State<POSMissionControl>
   }
 
   Widget _buildMainContent() {
-    if (_isLoading) {
+    // ONLY show the global loading screen if we have ABSOLUTELY NO data
+    if (_isLoading && _menuItems.isEmpty) {
       return Container(
         color: themeBg,
         child: Center(
@@ -7123,6 +7124,31 @@ class _POSMissionControlState extends State<POSMissionControl>
                 _fetchSettings();
               },
             ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'v1.0.8-stable',
+                  style: TextStyle(
+                    color: themeText.withValues(alpha: 0.3),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'User: ${ThemeService.instance.userName}',
+                  style: TextStyle(
+                    color: themeText.withValues(alpha: 0.3),
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

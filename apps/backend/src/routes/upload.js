@@ -5,8 +5,14 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../db');
 
-// Base persistent storage path (Relative to this file)
-const persistentAssetsPath = path.join(__dirname, '../../persistent_assets');
+const os = require('os');
+// Base permanent storage path (Home directory for total isolation)
+const persistentAssetsPath = path.join(os.homedir(), '.zamzam_rms_storage', 'assets');
+
+// Ensure base path exists for uploads
+if (!fs.existsSync(persistentAssetsPath)) {
+  fs.mkdirSync(persistentAssetsPath, { recursive: true });
+}
 
 // ─── Menu Item Image Storage ────────────────────────────────────────────────
 const menuStorage = multer.diskStorage({

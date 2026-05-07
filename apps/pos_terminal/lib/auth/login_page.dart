@@ -94,9 +94,21 @@ class _LoginPageState extends State<LoginPage>
         final data = jsonDecode(response.body);
         final user = data['user'];
         if (user != null) {
+          final String firstName = user['first_name'] ?? '';
+          final String lastName = user['last_name'] ?? '';
+          final String displayName =
+              (firstName.isEmpty && lastName.isEmpty)
+                  ? (user['username'] ?? 'User')
+                  : '$firstName $lastName'.trim();
+
           ThemeService.instance.setUser(
-            user['name'] ?? user['username'] ?? 'User',
-            user['role'] ?? 'Staff',
+            name: displayName,
+            roles: (user['roles'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList(),
+            permissions: (user['permissions'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList(),
           );
         }
 
@@ -104,6 +116,7 @@ class _LoginPageState extends State<LoginPage>
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => POSMissionControl(
+                user: user,
                 onLogout: (ctx) {
                   Navigator.of(ctx).pushReplacement(
                     MaterialPageRoute(builder: (context) => const LoginPage()),

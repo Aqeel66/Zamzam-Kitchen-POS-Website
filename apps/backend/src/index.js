@@ -46,54 +46,59 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// PERSISTENT STORAGE: Consolidated to backend directory for stability
-const assetsPath = path.join(__dirname, '../persistent_assets');
-const legacyAssetsPath = path.join(__dirname, '../assets');
-const webPath = path.join(__dirname, '../public');
+const os = require('os');
 
-const imagesPath = path.join(assetsPath, 'images');
-const menuItemsPath = path.join(imagesPath, 'menu_items');
+// PERMANENT STORAGE: Use a directory in the user's home folder to ensure survival across deployments
+const STORAGE_ROOT = path.join(os.homedir(), '.zamzam_rms_storage');
+const ASSETS_STORAGE = path.join(STORAGE_ROOT, 'assets');
+const MENU_ITEMS_STORAGE = path.join(ASSETS_STORAGE, 'menu_items');
 
-// Ensure upload directories exist
-console.log('📂 Initializing Persistent Storage...');
-[assetsPath, imagesPath, menuItemsPath].forEach(dir => {
-  try {
-    if (!fs.existsSync(dir)) {
+// Initialize permanent storage structure
+console.log('📂 Initializing Permanent Asset Storage...');
+[STORAGE_ROOT, ASSETS_STORAGE, MENU_ITEMS_STORAGE].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    try {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`✅ Created directory: ${dir}`);
-    } else {
-      console.log(`ℹ️ Directory exists: ${dir}`);
+      console.log(`✅ Created Permanent Storage: ${dir}`);
+    } catch (e) {
+      console.error(`❌ Failed to create storage ${dir}:`, e.message);
     }
-  } catch (err) {
-    console.error(`❌ Failed to create directory ${dir}:`, err.message);
   }
 });
 
-// Static headers for assets - Optimized for performance
-const assetOptions = {
-  setHeaders: (res, filePath) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    // For images, use aggressive caching because we have a cache-buster (?t=...)
-    if (filePath.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)) {
+const legacyAssetsPath = path.join(__dirname, '../assets');
+const legacyPersistentPath = path.join(__dirname, '../persistent_assets');
+const webPath = path.join(__dirname, '../public');
+
+// Optimized serving with prioritized lookups and aggressive caching
+const serveAsset = (req, res, next) => {
+  const assetUrl = req.path;
+  
+  // Potential locations in priority order
+  const locations = [
+    path.join(ASSETS_STORAGE, assetUrl),
+    path.join(legacyAssetsPath, assetUrl),
+    path.join(legacyPersistentPath, assetUrl)
+  ];
+
+  for (const loc of locations) {
+    if (fs.existsSync(loc) && fs.lstatSync(loc).isFile()) {
+      res.set('Access-Control-Allow-Origin', '*');
       res.set('Cache-Control', 'public, max-age=31536000, immutable');
-    } else {
-      res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+      return res.sendFile(loc);
     }
   }
+  next();
 };
 
-// Mount static asset folders
-app.use('/assets', express.static(assetsPath, assetOptions));
-app.use('/assets', express.static(legacyAssetsPath, assetOptions));
+app.use('/assets', serveAsset);
+app.use(express.static(webPath));
 
-// Log 404s for assets specifically to help debugging
+// Fallback for 404 assets with diagnostic info
 app.use('/assets', (req, res) => {
-  const originalUrl = req.originalUrl;
-  console.warn(`❌ 404 Not Found (Asset): ${originalUrl}`);
-  
-  // Debug check: does it exist on disk?
-  const relativePath = req.url;
-  const fullPath = path.join(assetsPath, relativePath);
+  console.warn(`⚠️ Asset Not Found: ${req.originalUrl}`);
+  res.status(404).send('Asset not found');
+});
   if (fs.existsSync(fullPath)) {
     console.log(`🔍 DEBUG: File PHYSICALLY EXISTS but was NOT SERVED: ${fullPath}`);
   }

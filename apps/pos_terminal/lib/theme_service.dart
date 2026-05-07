@@ -171,14 +171,21 @@ class ThemeService extends ChangeNotifier {
 
   // Session state
   String _userName = 'User';
-  String _userRole = 'Staff';
+  List<String> _userRoles = [];
+  List<String> _userPermissions = [];
 
   String get userName => _userName;
-  String get userRole => _userRole;
+  List<String> get userRoles => _userRoles;
+  String get userRole => _userRoles.isNotEmpty ? _userRoles[0] : 'Staff';
 
-  void setUser(String name, String role) {
+  void setUser({
+    required String name,
+    List<String>? roles,
+    List<String>? permissions,
+  }) {
     _userName = name;
-    _userRole = role;
+    _userRoles = roles ?? [];
+    _userPermissions = permissions ?? [];
     notifyListeners();
   }
 
