@@ -91,6 +91,15 @@ class _LoginPageState extends State<LoginPage>
       );
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = data['user'];
+        if (user != null) {
+          ThemeService.instance.setUser(
+            user['name'] ?? user['username'] ?? 'User',
+            user['role'] ?? 'Staff',
+          );
+        }
+
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -140,8 +149,8 @@ class _LoginPageState extends State<LoginPage>
             child: ThemeService.instance.loginBackgroundUrl != null
                 ? Image.network(
                     ThemeService.instance.loginBackgroundUrl!.startsWith('http')
-                        ? '${ThemeService.instance.loginBackgroundUrl!}?t=${DateTime.now().millisecondsSinceEpoch}'
-                        : '${ThemeService.apiBaseUrl}/assets/${ThemeService.instance.loginBackgroundUrl!}?t=${DateTime.now().millisecondsSinceEpoch}',
+                        ? '${ThemeService.instance.loginBackgroundUrl!}?t=${ThemeService.cacheBuster}'
+                        : '${ThemeService.apiBaseUrl}/assets/${ThemeService.instance.loginBackgroundUrl!}?t=${ThemeService.cacheBuster}',
                     fit: BoxFit.cover,
                     color: Colors.black.withValues(alpha: 0.6),
                     colorBlendMode: BlendMode.darken,

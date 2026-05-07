@@ -5479,9 +5479,11 @@ class _POSMissionControlState extends State<POSMissionControl>
             CircleAvatar(
               radius: 40,
               backgroundColor: themePrimary,
-              child: const Text(
-                'A',
-                style: TextStyle(
+              child: Text(
+                ThemeService.instance.userName.isNotEmpty 
+                    ? ThemeService.instance.userName[0].toUpperCase() 
+                    : 'U',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -5490,7 +5492,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             ),
             const SizedBox(height: 16),
             Text(
-              'Aqeel Admin',
+              ThemeService.instance.userName,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -5507,7 +5509,9 @@ class _POSMissionControlState extends State<POSMissionControl>
             ),
             const SizedBox(height: 8),
             Text(
-              LocalizationService().translate('role_admin'),
+              ThemeService.instance.userRole == 'admin' 
+                ? LocalizationService().translate('role_admin')
+                : ThemeService.instance.userRole,
               style: TextStyle(color: Colors.grey[600]),
             ),
           ],
@@ -6382,11 +6386,13 @@ class _POSMissionControlState extends State<POSMissionControl>
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 20,
+                      radius: 16,
                       backgroundColor: themePrimary,
-                      child: const Text(
-                        'A',
-                        style: TextStyle(
+                      child: Text(
+                        ThemeService.instance.userName.isNotEmpty 
+                            ? ThemeService.instance.userName[0].toUpperCase() 
+                            : 'U',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -6398,7 +6404,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Aqeel Admin',
+                          ThemeService.instance.userName,
                           style: TextStyle(
                             color: themeText,
                             fontWeight: FontWeight.bold,
@@ -6406,7 +6412,9 @@ class _POSMissionControlState extends State<POSMissionControl>
                           ),
                         ),
                         Text(
-                          'Terminal #01',
+                          ThemeService.instance.userRole == 'admin'
+                            ? LocalizationService().translate('role_admin')
+                            : ThemeService.instance.userRole,
                           style: TextStyle(
                             color: Colors.green,
                             fontSize: 10,

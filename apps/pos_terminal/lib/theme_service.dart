@@ -165,11 +165,26 @@ class ThemeService extends ChangeNotifier {
   String get restaurantName => _restaurantName;
   String get tagline => _tagline;
 
+  // Cache buster should be stable to avoid unnecessary re-downloads
   static String _cacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
+  static String get cacheBuster => _cacheBuster;
+
+  // Session state
+  String _userName = 'User';
+  String _userRole = 'Staff';
+
+  String get userName => _userName;
+  String get userRole => _userRole;
+
+  void setUser(String name, String role) {
+    _userName = name;
+    _userRole = role;
+    notifyListeners();
+  }
 
   static String resolveImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
+    if (path.startsWith('http')) return '$path?t=$_cacheBuster';
 
     // Remove any leading slashes or "assets/" to avoid double path segments
     String cleanPath = path;
