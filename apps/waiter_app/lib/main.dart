@@ -19,12 +19,7 @@ class WaiterApp extends StatelessWidget {
         return MaterialApp(
           title: 'Zamzam Waiter',
           debugShowCheckedModeBanner: false,
-          theme: ZamzamTheme.light(
-            primaryColor: ThemeService.instance.primaryColor,
-          ),
-          darkTheme: ZamzamTheme.dark(
-            primaryColor: ThemeService.instance.primaryColor,
-          ),
+          theme: ThemeService.instance.themeData,
           themeMode: ThemeService.instance.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           home: const LoginPage(),
         );

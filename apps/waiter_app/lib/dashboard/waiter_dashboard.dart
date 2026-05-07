@@ -3,6 +3,7 @@ import '../theme_service.dart';
 import 'table_map_view.dart';
 import 'order_entry_view.dart';
 import 'my_orders_view.dart';
+import 'profile_view.dart';
 import '../services/order_service.dart';
 import 'package:ui_kit/ui_kit.dart' as ui_kit;
 
@@ -104,6 +105,12 @@ class _WaiterDashboardState extends State<WaiterDashboard> {
         break;
       case 1:
         body = MyOrdersView(userData: widget.userData);
+        break;
+      case 2:
+        body = ProfileView(
+          userData: widget.userData,
+          onLogout: widget.onLogout ?? (_) {},
+        );
         break;
       default:
         body = const Center(child: Text('View coming soon...'));

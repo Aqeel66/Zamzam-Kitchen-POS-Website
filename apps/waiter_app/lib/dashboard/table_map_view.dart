@@ -72,7 +72,7 @@ class _TableMapViewState extends State<TableMapView> {
       case 'Reserved':
         return ui_kit.TableStatus.reserved;
       case 'Needs Clearing':
-        return ui_kit.TableStatus.needsCleaning;
+        return ui_kit.TableStatus.needsClearing;
       default:
         return ui_kit.TableStatus.available;
     }
