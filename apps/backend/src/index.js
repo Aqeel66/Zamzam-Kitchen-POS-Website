@@ -121,12 +121,6 @@ app.use('/assets', (req, res) => {
   console.warn(`⚠️ Asset Not Found: ${req.originalUrl}`);
   res.status(404).send('Asset not found');
 });
-  if (fs.existsSync(fullPath)) {
-    console.log(`🔍 DEBUG: File PHYSICALLY EXISTS but was NOT SERVED: ${fullPath}`);
-  }
-  
-  res.status(404).send('Asset not found');
-});
 
 // Serve web frontend
 app.use(express.static(webPath));
