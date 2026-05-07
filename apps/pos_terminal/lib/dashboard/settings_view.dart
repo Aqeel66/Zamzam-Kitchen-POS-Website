@@ -376,6 +376,8 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               _buildImagePickerSetting('Primary Logo', 'Appears on login and headers', tenant['logo_url'] ?? '', 'logo_url', primary, card, border),
               _buildImagePickerSetting('Secondary Logo', 'Used for dark themes/footers', tenant['secondary_logo_url'] ?? '', 'secondary_logo_url', primary, card, border),
+              _buildImagePickerSetting('Login Screen Background', 'High-quality image for POS & Website login', tenant['login_background_url'] ?? '', 'login_background_url', primary, card, border),
+              _buildImagePickerSetting('Website Hero Background', 'Large banner image for Website Home Page', tenant['hero_background_url'] ?? '', 'hero_background_url', primary, card, border),
               SettingInput(
                 label: 'Restaurant Tagline',
                 description: 'A catchy slogan for your business (shown on login screen)',
@@ -462,6 +464,8 @@ class _SettingsViewState extends State<SettingsView> {
                     ThemeService().updateBranding(logoUrl: newPath); 
                   } else if (key == 'secondary_logo_url') {
                     ThemeService().updateBranding(secondaryLogoUrl: newPath);
+                  } else if (key == 'login_background_url') {
+                    ThemeService().updateBranding(loginBackgroundUrl: newPath);
                   }
                 }
               },

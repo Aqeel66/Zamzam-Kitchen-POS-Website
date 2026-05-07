@@ -502,6 +502,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       _cartItems = (order['items'] as List).map((item) => {
         'id': item['menu_item_id'] ?? 'custom-${item['id']}',
         'name': item['name'],
+        'description': item['description'] ?? '',
         'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
                  ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
         'quantity': item['quantity'] ?? 1,
@@ -7487,7 +7488,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                         style: TextStyle(color: themePrimary, fontSize: 12, fontWeight: FontWeight.w600),
                                       ),
                                     ),
-                                  if (item['extras'] != null && (item['extras'] as List).isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Wrap(
@@ -7497,6 +7497,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                           decoration: BoxDecoration(color: themePrimary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(4)),
                                           child: Text('+ ${e['name']}', style: TextStyle(color: themePrimaryAccent, fontSize: 11)),
                                         )).toList(),
+                                      ),
+                                    ),
+                                  if ((item['variant'] == null && (item['extras'] == null || (item['extras'] as List).isEmpty)) && 
+                                      item['description'] != null && item['description'].toString().isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        item['description'],
+                                        style: TextStyle(color: themeHint, fontSize: 12, fontStyle: FontStyle.italic),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   if (item['notes'] != null && item['notes'].toString().isNotEmpty)
@@ -7847,6 +7858,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                           _cartItems = (order['items'] as List).map((item) => {
                                             'id': item['menu_item_id'] ?? 'custom-${item['id']}',
                                             'name': item['name'],
+                                            'description': item['description'] ?? '',
                                             'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
                                                      ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
                                             'quantity': item['quantity'],
@@ -7949,6 +7961,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                               _cartItems = (order['items'] as List).map((item) => {
                                                 'id': item['menu_item_id'] ?? 'custom-${item['id']}',
                                                 'name': item['name'],
+                                                'description': item['description'] ?? '',
                                                 'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
                                                          ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
                                                 'quantity': item['quantity'],

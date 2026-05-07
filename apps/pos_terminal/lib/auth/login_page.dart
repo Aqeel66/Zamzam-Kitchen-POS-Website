@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:pos_terminal/dashboard/pos_mission_control.dart';
 import 'package:pos_terminal/theme_service.dart';
-import 'package:pos_terminal/localization_service.dart';
-import '../dashboard/pos_mission_control.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,12 +16,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
-  String? _syncError;
-  bool _isSyncing = false;
   
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-
 
   @override
   void initState() {
@@ -36,55 +32,36 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Give the app a moment to settle before fetching branding
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) _fetchBranding();
-    });
+    // Fetch branding on startup
+    _fetchBranding();
   }
 
-
   Future<void> _fetchBranding() async {
-    setState(() {
-      _isSyncing = true;
-      _syncError = null;
-    });
     try {
-      final cacheBuster = DateTime.now().millisecondsSinceEpoch;
-      final url = '${ThemeService.apiBaseUrl}/api/settings?t=$cacheBuster';
-      debugPrint('LoginPage: Fetching branding from $url');
-      
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final response = await http.get(
-        Uri.parse(url),
-        headers: {'Accept': 'application/json'},
+        Uri.parse('${ThemeService.apiBaseUrl}/api/settings?t=$timestamp'),
       ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final tenant = data['tenant'];
-        
         if (tenant != null) {
-          ThemeService().setFlavorFromString(
+          ThemeService.instance.setFlavorFromString(
             tenant['theme_mode'] ?? 'dark',
-            accentColorHex: tenant['primary_accent_color'],
+            loginBackgroundUrl: tenant['login_background_url'],
+            restaurantName: tenant['restaurant_name'] ?? 'ZAMZAM KITCHEN',
+            tagline: tenant['tagline'] ?? 'Universal Access Portal',
             logoUrl: tenant['logo_url'],
             secondaryLogoUrl: tenant['secondary_logo_url'],
-            restaurantName: tenant['restaurant_name'] ?? tenant['business_name'] ?? 'ZAMZAM KITCHEN',
-            tagline: tenant['tagline'] ?? 'Universal Access Portal',
           );
-          
           if (mounted) setState(() {});
         }
-      } else {
-        setState(() => _syncError = 'API Error ${response.statusCode}');
       }
     } catch (e) {
-      setState(() => _syncError = 'Connection Error: $e');
-    } finally {
-      if (mounted) setState(() => _isSyncing = false);
+      debugPrint('LoginPage: Branding Sync Error: $e');
     }
   }
-
-
 
   @override
   void dispose() {
@@ -112,12 +89,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
       if (response.statusCode == 200) {
         if (mounted) {
-
-          final data = jsonDecode(response.body);
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => POSMissionControl(
-                user: data['user'],
                 onLogout: (ctx) {
                   Navigator.of(ctx).pushReplacement(
                     MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -130,12 +104,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       } else {
         final data = jsonDecode(response.body);
         setState(() {
-          _errorMessage = data['message'] ?? LocalizationService().translate('login_failed');
+          _errorMessage = data['message'] ?? 'Login failed';
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = LocalizationService().translate('connection_error');
+        _errorMessage = 'Connection error. Please check backend.';
       });
     } finally {
       if (mounted) {
@@ -146,312 +120,271 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: ThemeService(),
-      builder: (context, _) {
-        final theme = ThemeService().themeData;
-        final themePrimary = theme.primaryColor;
-        final loc = LocalizationService();
-        final isDark = ThemeService().isDarkMode;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = theme.primaryColor;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white60 : Colors.black54;
 
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          body: Stack(
-            children: [
-              // Background Gradient - Enhanced to be more reactive
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.scaffoldBackgroundColor,
-                      theme.scaffoldBackgroundColor.withValues(alpha: 0.9),
-                      themePrimary.withValues(alpha: 0.25),
-                      theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
-                    ],
-                  ),
-                ),
-              ),
+    final themePrimary = theme.primaryColor;
 
-              // Manual Sync Button
-              Positioned(
-                top: 24,
-                left: 24,
-                child: IconButton(
-                  icon: Icon(Icons.sync, color: themePrimary.withValues(alpha: 0.5)),
-                  onPressed: _fetchBranding,
-                  tooltip: 'Sync Branding',
-                ),
-              ),
-              
-              // Decorative background shapes
-              Positioned(
-                top: -150,
-                right: -150,
-                child: Container(
-                  width: 400,
-                  height: 400,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: themePrimary.withValues(alpha: 0.08),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                bottom: -100,
-                left: -100,
-                child: Container(
-                  width: 300,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: themePrimary.withValues(alpha: 0.05),
-                  ),
-                ),
-              ),
-              
-              Center(
-                child: SingleChildScrollView(
-                  child: Container(
-                    width: 480,
-                    padding: const EdgeInsets.all(48),
-                    decoration: BoxDecoration(
-                      color: isDark ? theme.cardColor.withValues(alpha: 0.95) : theme.cardColor,
-                      borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2), 
-                          blurRadius: 50, 
-                          spreadRadius: -10
-                        )
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Branding Logos
-                        ScaleTransition(
-                          scale: _pulseAnimation,
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 32,
-                            runSpacing: 20,
-                            children: [
-                              _buildLogoCircle(ThemeService().logoUrl, themePrimary, isDark, theme),
-                              if (ThemeService().secondaryLogoUrl != null && ThemeService().secondaryLogoUrl!.isNotEmpty)
-                                _buildLogoCircle(ThemeService().secondaryLogoUrl, themePrimary, isDark, theme),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        Text(
-                          ThemeService().restaurantName.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : theme.textTheme.headlineMedium?.color,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 3,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          (ThemeService().tagline != null && ThemeService().tagline!.isNotEmpty)
-                              ? ThemeService().tagline!
-                              : 'Restaurant Management System',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isDark ? Colors.white.withValues(alpha: 0.8) : theme.primaryColor.withValues(alpha: 0.8),
-                            fontSize: 14,
-                            fontStyle: FontStyle.italic,
-                            letterSpacing: 2.0,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 56),
-                        
-                        // Form Fields
-                        _buildTextField(
-                          controller: _usernameController,
-                          label: loc.translate('username'),
-                          icon: Icons.person_outline,
-                          themePrimary: themePrimary,
-                          isDark: isDark,
-                          theme: theme,
-                        ),
-                        const SizedBox(height: 24),
-                        _buildTextField(
-                          controller: _passwordController,
-                          label: loc.translate('password'),
-                          icon: Icons.lock_outline,
-                          isPassword: true,
-                          themePrimary: themePrimary,
-                          isDark: isDark,
-                          theme: theme,
-                        ),
-                        
-                        if (_errorMessage != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 24),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.redAccent.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                          ),
-                        
-                        const SizedBox(height: 48),
-                        
-                        // Login Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 60,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _handleLogin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: themePrimary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 12,
-                              shadowColor: themePrimary.withValues(alpha: 0.5),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 28,
-                                    width: 28,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 3,
-                                    ),
-                                  )
-                                : Text(
-                                    loc.translate('authenticate').toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 2,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 32),
-                        TextButton(
-                          onPressed: () {},
-                          child: Text(
-                            loc.translate('forgot_password'),
-                            style: TextStyle(
-                              color: isDark ? Colors.white38 : theme.textTheme.bodySmall?.color,
-                              fontSize: 13,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Version info
-              Positioned(
-                bottom: 24,
-                right: 24,
-                child: Text(
-                  'v3.1.2-PREMIUM',
-                  style: TextStyle(
-                    color: isDark ? Colors.white12 : theme.dividerColor, 
-                    fontSize: 10,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ],
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          // Background Image or Gradient
+          Positioned.fill(
+            child: ThemeService.instance.loginBackgroundUrl != null
+              ? Image.network(
+                  '${ThemeService.instance.loginBackgroundUrl!}?t=${DateTime.now().millisecondsSinceEpoch}',
+                  fit: BoxFit.cover,
+                  color: Colors.black.withValues(alpha: 0.6),
+                  colorBlendMode: BlendMode.darken,
+                  errorBuilder: (context, error, stackTrace) => _buildDefaultBackground(theme, themePrimary),
+                )
+              : _buildDefaultBackground(theme, themePrimary),
           ),
-        );
-      }
+
+          Center(
+            child: SingleChildScrollView(
+              child: Container(
+                width: 480,
+                padding: const EdgeInsets.all(40),
+                decoration: BoxDecoration(
+                  color: isDark 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : theme.cardColor.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.dividerColor.withValues(alpha: 0.2)
+                  ),
+                  boxShadow: !isDark ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    )
+                  ] : null,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Dual Logos Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Primary Logo
+                        _buildLogoCircle(
+                          ThemeService.instance.logoUrl, 
+                          accentColor, 
+                          isDark,
+                          _pulseAnimation,
+                        ),
+                        
+                        // Secondary Logo
+                        if (ThemeService.instance.secondaryLogoUrl != null) ...[
+                          const SizedBox(width: 20),
+                          _buildLogoCircle(
+                            ThemeService.instance.secondaryLogoUrl, 
+                            accentColor, 
+                            isDark,
+                            null,
+                            isSecondary: true,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      ThemeService.instance.restaurantName.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    Text(
+                      ThemeService.instance.tagline,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: subTextColor,
+                        fontSize: 14,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                    
+                    // Form Fields
+                    _buildTextField(
+                      controller: _usernameController,
+                      label: 'Username',
+                      icon: Icons.person_outline,
+                      accentColor: accentColor,
+                      isDark: isDark,
+                      textColor: textColor,
+                      subTextColor: subTextColor,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _passwordController,
+                      label: 'Password',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
+                      accentColor: accentColor,
+                      isDark: isDark,
+                      textColor: textColor,
+                      subTextColor: subTextColor,
+                    ),
+                    
+                    if (_errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 20),
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                        ),
+                      ),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // Login Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 8,
+                          shadowColor: accentColor.withValues(alpha: 0.4),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'AUTHENTICATE',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: () {},
+                      child: Text(
+                        'Forgot Password?',
+                        style: TextStyle(color: subTextColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildDefaultBackground(ThemeData theme, Color themePrimary) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.scaffoldBackgroundColor,
+            theme.scaffoldBackgroundColor.withValues(alpha: 0.9),
+            themePrimary.withValues(alpha: 0.25),
+            theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoCircle(String? url, Color accentColor, bool isDark, Animation<double>? pulse, {bool isSecondary = false}) {
+    final logoWidget = Container(
+      height: isSecondary ? 80 : 120,
+      width: isSecondary ? 80 : 120,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.transparent,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(isSecondary ? 40 : 60),
+        child: url != null && url.isNotEmpty
+            ? Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => 
+                    Icon(isSecondary ? Icons.verified : Icons.restaurant, color: accentColor, size: isSecondary ? 40 : 60),
+              )
+            : Image.asset(
+                'packages/pos_terminal/assets/images/logo.png',
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => 
+                    Icon(isSecondary ? Icons.verified : Icons.restaurant, color: accentColor, size: isSecondary ? 40 : 60),
+              ),
+      ),
+    );
+
+    if (pulse != null) {
+      return ScaleTransition(scale: pulse, child: logoWidget);
+    }
+    return logoWidget;
   }
 
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    required Color themePrimary,
+    required Color accentColor,
     required bool isDark,
-    required ThemeData theme,
+    required Color textColor,
+    required Color subTextColor,
     bool isPassword = false,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : theme.dividerColor),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
-        style: TextStyle(color: isDark ? Colors.white : theme.textTheme.bodyLarge?.color, fontSize: 16),
+        style: TextStyle(color: textColor, fontSize: 16),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: isDark ? Colors.white38 : theme.textTheme.bodySmall?.color, fontSize: 14),
-          prefixIcon: Icon(icon, color: themePrimary.withValues(alpha: 0.8), size: 22),
+          labelStyle: TextStyle(color: subTextColor, fontSize: 14),
+          prefixIcon: Icon(icon, color: accentColor.withValues(alpha: 0.8), size: 22),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: themePrimary, width: 2),
+            borderSide: BorderSide(color: accentColor, width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 20),
         ),
-      ),
-    );
-  }
-  
-  Widget _buildLogoCircle(String? url, Color themePrimary, bool isDark, ThemeData theme) {
-    return SizedBox(
-      height: 120,
-      width: 120,
-      child: Center(
-        child: url != null && url.isNotEmpty
-          ? Image.network(
-              url,
-              fit: BoxFit.contain,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                        : null,
-                    strokeWidth: 2,
-                    color: themePrimary.withValues(alpha: 0.5),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                debugPrint('LoginPage: Failed to load logo from $url');
-                return Icon(Icons.restaurant, color: themePrimary, size: 60);
-              },
-            )
-          : Image.asset(
-              'assets/images/logo.png',
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Icon(Icons.restaurant, color: themePrimary, size: 60),
-            ),
       ),
     );
   }

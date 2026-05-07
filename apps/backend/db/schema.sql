@@ -9,11 +9,21 @@ USE zamzam_db;
 -- ─── SETTINGS ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS tenant_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    restaurant_name VARCHAR(100) DEFAULT 'ZAMZAM KITCHEN',
     theme_mode ENUM('Light', 'Dark', 'Adaptive') DEFAULT 'Adaptive',
     primary_accent_color VARCHAR(10) DEFAULT '#F15A24',
+    logo_url VARCHAR(255) DEFAULT NULL,
+    secondary_logo_url VARCHAR(255) DEFAULT NULL,
+    login_background_url VARCHAR(255) DEFAULT NULL,
+    hero_background_url VARCHAR(255) DEFAULT NULL,
+    tagline VARCHAR(255) DEFAULT NULL,
     typography_primary VARCHAR(50) DEFAULT 'Manrope',
     typography_secondary VARCHAR(50) DEFAULT 'Inter',
     currency VARCHAR(10) DEFAULT 'USD',
+    business_name VARCHAR(100) DEFAULT NULL,
+    business_email VARCHAR(255) DEFAULT NULL,
+    business_phone VARCHAR(20) DEFAULT NULL,
+    business_address TEXT DEFAULT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -76,6 +86,7 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     gratuity_percentage DECIMAL(5,2) DEFAULT 0.00,
     booking_fee_amount DECIMAL(10,2) DEFAULT 10.00,
     is_booking_fee_enabled BOOLEAN DEFAULT TRUE,
+    order_sort_direction VARCHAR(20) DEFAULT 'Descending',
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 
@@ -115,6 +126,8 @@ CREATE TABLE IF NOT EXISTS menu_items (
     description TEXT,
     price DECIMAL(10,2) NOT NULL,
     is_available BOOLEAN DEFAULT TRUE,
+    is_featured TINYINT(1) DEFAULT 0,
+    badge VARCHAR(50) DEFAULT NULL,
     dietary_info VARCHAR(255),
     prep_station ENUM('Bar', 'Grill', 'Fryer', 'Salad', 'Dessert', 'General') DEFAULT 'General',
     FOREIGN KEY (category_id) REFERENCES categories(id)
@@ -139,6 +152,7 @@ CREATE TABLE IF NOT EXISTS customers (
     last_name VARCHAR(100),
     email VARCHAR(255) UNIQUE,
     phone VARCHAR(20) UNIQUE,
+    origin VARCHAR(50) DEFAULT 'In-Store',
     dietary_profile VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -198,6 +212,11 @@ CREATE TABLE IF NOT EXISTS reservations (
     reservation_time TIME,
     reservation_time_dt DATETIME,
     party_size INT NOT NULL,
+    origin VARCHAR(50) DEFAULT 'In-Store',
+    booking_fee DECIMAL(10,2) DEFAULT 0.00,
+    payment_status VARCHAR(20) DEFAULT 'Pending',
+    payment_method VARCHAR(50) DEFAULT 'Counter',
+    customer_id INT DEFAULT NULL,
     status ENUM('Pending', 'Confirmed', 'Seated', 'Cancelled', 'No-Show', 'Completed') DEFAULT 'Pending',
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -213,6 +232,8 @@ CREATE TABLE IF NOT EXISTS orders (
     table_id INT,
     customer_id INT NULL,
     user_id INT NULL,
+    order_number VARCHAR(20) DEFAULT NULL,
+    party_size INT DEFAULT 1,
     session_id VARCHAR(50),
     order_type ENUM('Dine-In', 'Takeaway', 'Delivery') DEFAULT 'Dine-In',
     status ENUM('Pending', 'Ordered', 'Preparing', 'Ready', 'Served', 'Paid', 'Partially Paid', 'Cancelled', 'Rejected') DEFAULT 'Pending',
@@ -229,9 +250,14 @@ CREATE TABLE IF NOT EXISTS order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT,
     menu_item_id INT,
+    name VARCHAR(255),
+    description TEXT,
     quantity INT DEFAULT 1,
+    unit_price DECIMAL(10,2),
     subtotal DECIMAL(10,2) NOT NULL,
     notes TEXT,
+    extras JSON,
+    variants JSON,
     kds_status ENUM('Pending', 'Cooking', 'Done') DEFAULT 'Pending',
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)

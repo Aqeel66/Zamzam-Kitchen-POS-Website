@@ -13,6 +13,8 @@ process.on('uncaughtException', (err) => {
 const app = express();
 const PORT = process.env.PORT || 5000;
 const pool = require('./db');
+const syncSchema = require('./schemaSync');
+
 
 // Diagnostics
 const fs = require('fs');
@@ -37,7 +39,13 @@ if (!fs.existsSync(webPath)) {
   console.error('❌ CRITICAL: Public folder not found!');
 }
 
-app.use('/assets', express.static(assetsPath));
+app.use('/assets', express.static(assetsPath, {
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  }
+}));
 app.use(express.static(webPath));
 
 app.get('/api/health', (req, res) => {
@@ -138,141 +146,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
 });
 
-// Automatic Schema Correction
-async function ensureSchema() {
-  try {
-    const db = require('./db');
-    console.log('🛠️ Checking database schema for missing columns...');
-    
-    // Check if tables exist
-    const [tablesList] = await db.query('SHOW TABLES');
-    const existingTables = tablesList.map(t => Object.values(t)[0]);
-
-    if (!existingTables.includes('order_item_customizations')) {
-      console.log('➕ Creating missing table: order_item_customizations...');
-      await db.query(`
-        CREATE TABLE order_item_customizations (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          order_item_id INT,
-          type ENUM('Variant', 'Extra') NOT NULL,
-          customization_name VARCHAR(100) NOT NULL,
-          price_adjustment DECIMAL(10,2) DEFAULT 0.00,
-          FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE
-        )
-      `);
-    }
-
-    // Check tenant_settings
-    const [tenantCols] = await db.query('DESCRIBE tenant_settings');
-    const tenantFields = tenantCols.map(c => c.Field);
-    if (!tenantFields.includes('tagline')) {
-      console.log('➕ Adding missing tagline column to tenant_settings...');
-      await db.query('ALTER TABLE tenant_settings ADD COLUMN tagline VARCHAR(255) DEFAULT NULL');
-    }
-    
-    // Check menu_items
-    const [itemCols] = await db.query('DESCRIBE menu_items');
-    const itemFields = itemCols.map(c => c.Field);
-    if (!itemFields.includes('is_featured')) {
-      console.log('➕ Adding missing is_featured column to menu_items...');
-      await db.query('ALTER TABLE menu_items ADD COLUMN is_featured TINYINT(1) DEFAULT 0');
-    }
-    if (!itemFields.includes('badge')) {
-      console.log('➕ Adding missing badge column to menu_items...');
-      await db.query('ALTER TABLE menu_items ADD COLUMN badge VARCHAR(50) DEFAULT NULL');
-    }
-
-    // Check branch_settings
-    const [branchCols] = await db.query('DESCRIBE branch_settings');
-    const branchFields = branchCols.map(c => c.Field);
-    if (!branchFields.includes('order_sort_direction')) {
-      console.log('➕ Adding missing order_sort_direction column to branch_settings...');
-      await db.query("ALTER TABLE branch_settings ADD COLUMN order_sort_direction VARCHAR(20) DEFAULT 'Descending'");
-    }
-
-    // Ensure at least one branch exists
-    const [branches] = await db.query('SELECT id FROM branches LIMIT 1');
-    let branchId = 1;
-    if (branches.length === 0) {
-      console.log('➕ Creating default branch...');
-      const [result] = await db.query("INSERT INTO branches (name, location, contact_number, status) VALUES ('Main Branch', 'Default Location', '000-000-0000', 'Active')");
-      branchId = result.insertId;
-    } else {
-      branchId = branches[0].id;
-    }
-
-    // Ensure some tables exist
-    const [tables] = await db.query('SELECT id FROM restaurant_tables LIMIT 1');
-    if (tables.length === 0) {
-      console.log('➕ Creating default tables...');
-      const defaultTables = [
-        { num: '1', cap: 2, x: 100, y: 100 },
-        { num: '2', cap: 2, x: 250, y: 100 },
-        { num: '3', cap: 4, x: 100, y: 250 },
-        { num: '4', cap: 4, x: 250, y: 250 },
-        { num: '5', cap: 6, x: 100, y: 400 },
-      ];
-      for (const t of defaultTables) {
-        await db.query(
-          "INSERT INTO restaurant_tables (branch_id, table_number, capacity, status, pos_x, pos_y) VALUES (?, ?, ?, 'Available', ?, ?)",
-          [branchId, t.num, t.cap, t.x, t.y]
-        );
-      }
-    }
-
-    // Check customers
-    const [customerCols] = await db.query('DESCRIBE customers');
-    const customerFields = customerCols.map(c => c.Field);
-    if (!customerFields.includes('origin')) {
-      console.log('➕ Adding missing origin column to customers...');
-      await db.query("ALTER TABLE customers ADD COLUMN origin VARCHAR(50) DEFAULT 'In-Store'");
-    }
-
-    // Check reservations
-    const [resCols] = await db.query('DESCRIBE reservations');
-    const resFields = resCols.map(c => c.Field);
-    if (!resFields.includes('origin')) {
-      console.log('➕ Adding missing origin column to reservations...');
-      await db.query("ALTER TABLE reservations ADD COLUMN origin VARCHAR(50) DEFAULT 'In-Store'");
-    }
-    if (!resFields.includes('booking_fee')) {
-      console.log('➕ Adding missing booking_fee column to reservations...');
-      await db.query("ALTER TABLE reservations ADD COLUMN booking_fee DECIMAL(10,2) DEFAULT 0.00");
-    }
-    if (!resFields.includes('payment_status')) {
-      console.log('➕ Adding missing payment_status column to reservations...');
-      await db.query("ALTER TABLE reservations ADD COLUMN payment_status VARCHAR(20) DEFAULT 'Pending'");
-    }
-    if (!resFields.includes('payment_method')) {
-      console.log('➕ Adding missing payment_method column to reservations...');
-      await db.query("ALTER TABLE reservations ADD COLUMN payment_method VARCHAR(50) DEFAULT 'Counter'");
-    }
-    if (!resFields.includes('customer_id')) {
-      console.log('➕ Adding missing customer_id column to reservations...');
-      await db.query("ALTER TABLE reservations ADD COLUMN customer_id INT DEFAULT NULL");
-    }
-
-    // Check orders
-    const [orderCols] = await db.query('DESCRIBE orders');
-    const orderFields = orderCols.map(c => c.Field);
-    if (!orderFields.includes('order_number')) {
-      console.log('➕ Adding missing order_number column to orders...');
-      await db.query("ALTER TABLE orders ADD COLUMN order_number VARCHAR(20) DEFAULT NULL");
-    }
-    if (!orderFields.includes('party_size')) {
-      console.log('➕ Adding missing party_size column to orders...');
-      await db.query("ALTER TABLE orders ADD COLUMN party_size INT DEFAULT 1");
-    }
-    
-    console.log('✅ Schema check complete');
-  } catch (err) {
-    console.error('❌ Schema correction failed:', err.message);
-  }
-}
+// Schema Auto-Sync is now handled by the syncSchema module
 
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  await ensureSchema();
+  await syncSchema();
 });
 
 // Refresh: 2026-05-06 23:56

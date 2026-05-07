@@ -29,6 +29,7 @@ class ThemeService extends ChangeNotifier {
   Color? _customAccentColor;
   String? _logoPath;
   String? _secondaryLogoPath;
+  String? _loginBackgroundPath;
   String _restaurantName = 'ZAMZAM KITCHEN';
   String _tagline = '';
   bool _isInitialized = false;
@@ -53,6 +54,7 @@ class ThemeService extends ChangeNotifier {
       // Load Branding
       _logoPath = prefs.getString('branding_logo');
       _secondaryLogoPath = prefs.getString('branding_secondary_logo');
+      _loginBackgroundPath = prefs.getString('branding_login_bg');
       _restaurantName = prefs.getString('branding_name') ?? 'ZAMZAM KITCHEN';
       _tagline = prefs.getString('branding_tagline') ?? '';
       
@@ -72,6 +74,7 @@ class ThemeService extends ChangeNotifier {
       }
       await prefs.setString('branding_logo', _logoPath ?? '');
       await prefs.setString('branding_secondary_logo', _secondaryLogoPath ?? '');
+      await prefs.setString('branding_login_bg', _loginBackgroundPath ?? '');
       await prefs.setString('branding_name', _restaurantName);
       await prefs.setString('branding_tagline', _tagline);
     } catch (e) {
@@ -112,6 +115,11 @@ class ThemeService extends ChangeNotifier {
   String? get secondaryLogoUrl {
     if (_secondaryLogoPath == null || _secondaryLogoPath!.isEmpty) return null;
     return resolveImageUrl(_secondaryLogoPath!);
+  }
+
+  String? get loginBackgroundUrl {
+    if (_loginBackgroundPath == null || _loginBackgroundPath!.isEmpty) return null;
+    return resolveImageUrl(_loginBackgroundPath!);
   }
 
   static ImageProvider getImage(String? path) {
@@ -164,7 +172,7 @@ class ThemeService extends ChangeNotifier {
     }
   }
 
-  void updateBranding({String? logoUrl, String? secondaryLogoUrl, String? restaurantName, String? tagline}) {
+  void updateBranding({String? logoUrl, String? secondaryLogoUrl, String? loginBackgroundUrl, String? restaurantName, String? tagline}) {
     bool changed = false;
     if (logoUrl != null && _logoPath != logoUrl) {
       debugPrint('ThemeService: Updating logo from "$_logoPath" to "$logoUrl"');
@@ -174,6 +182,11 @@ class ThemeService extends ChangeNotifier {
     if (secondaryLogoUrl != null && _secondaryLogoPath != secondaryLogoUrl) {
       debugPrint('ThemeService: Updating secondary logo from "$_secondaryLogoPath" to "$secondaryLogoUrl"');
       _secondaryLogoPath = secondaryLogoUrl;
+      changed = true;
+    }
+    if (loginBackgroundUrl != null && _loginBackgroundPath != loginBackgroundUrl) {
+      debugPrint('ThemeService: Updating login background from "$_loginBackgroundPath" to "$loginBackgroundUrl"');
+      _loginBackgroundPath = loginBackgroundUrl;
       changed = true;
     }
     if (restaurantName != null && _restaurantName != restaurantName) {
@@ -192,7 +205,7 @@ class ThemeService extends ChangeNotifier {
     }
   }
 
-  void setFlavorFromString(String? flavorStr, {String? accentColorHex, String? logoUrl, String? secondaryLogoUrl, String? restaurantName, String? tagline}) {
+  void setFlavorFromString(String? flavorStr, {String? accentColorHex, String? logoUrl, String? secondaryLogoUrl, String? loginBackgroundUrl, String? restaurantName, String? tagline}) {
     debugPrint('ThemeService: Syncing from string. Raw Flavor: "$flavorStr", Tagline: "$tagline"');
     
     // Update local paths if provided
@@ -241,6 +254,7 @@ class ThemeService extends ChangeNotifier {
     updateBranding(
       logoUrl: logoUrl,
       secondaryLogoUrl: secondaryLogoUrl,
+      loginBackgroundUrl: loginBackgroundUrl,
       restaurantName: restaurantName,
       tagline: tagline,
     );

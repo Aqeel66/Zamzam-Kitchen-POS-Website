@@ -84,8 +84,8 @@ router.post('/', async (req, res) => {
         const subtotal = item.subtotal || (parseFloat(item.price || 0) * (item.quantity || 1));
 
         const [orderItemResult] = await connection.execute(
-          'INSERT INTO order_items (order_id, menu_item_id, quantity, subtotal, notes) VALUES (?, ?, ?, ?, ?)',
-          [orderId, menuItemId, item.quantity || 1, subtotal, item.notes || '']
+          'INSERT INTO order_items (order_id, menu_item_id, name, description, quantity, unit_price, subtotal, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [orderId, menuItemId, item.name, item.description || '', item.quantity || 1, item.price || 0, subtotal, item.notes || '']
         );
         const orderItemId = orderItemResult.insertId;
 
@@ -354,8 +354,10 @@ router.get('/', async (req, res) => {
     const detailedOrders = await Promise.all(orders.map(async (order) => {
       const [items] = await db.query(
         `SELECT oi.id, oi.quantity, oi.subtotal, oi.notes, 
-                COALESCE(mi.name, 'Unknown Item') as name, oi.menu_item_id,
-                COALESCE(mi.price, 0) as unit_price, mi.image
+                COALESCE(oi.name, mi.name, 'Unknown Item') as name, 
+                COALESCE(oi.description, mi.description, '') as description,
+                oi.menu_item_id,
+                COALESCE(oi.unit_price, mi.price, 0) as unit_price, mi.image
          FROM order_items oi 
          LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id 
          WHERE oi.order_id = ?`,
@@ -597,8 +599,8 @@ router.put('/:id', async (req, res) => {
         const subtotal = item.subtotal || (parseFloat(item.price || 0) * (item.quantity || 1));
 
         const [orderItemResult] = await connection.execute(
-          'INSERT INTO order_items (order_id, menu_item_id, quantity, subtotal, notes) VALUES (?, ?, ?, ?, ?)',
-          [id, menuItemId, item.quantity || 1, subtotal, item.notes || '']
+          'INSERT INTO order_items (order_id, menu_item_id, name, description, quantity, unit_price, subtotal, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [id, menuItemId, item.name, item.description || '', item.quantity || 1, item.price || 0, subtotal, item.notes || '']
         );
         const orderItemId = orderItemResult.insertId;
 

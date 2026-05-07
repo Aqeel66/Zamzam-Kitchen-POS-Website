@@ -40,7 +40,9 @@ router.patch('/tenant', async (req, res) => {
       'business_email',
       'business_phone',
       'business_address',
-      'tagline'
+      'tagline',
+      'login_background_url',
+      'hero_background_url'
     ];
     
     const [columns] = await db.query('DESCRIBE tenant_settings');

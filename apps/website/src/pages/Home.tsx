@@ -14,7 +14,9 @@ export default function Home() {
   const [branding, setBranding] = useState({
     email: 'info@zamzamkitchen.com',
     phone: '+61 3 9939 2479',
-    address: '329 Racecourse Road, VIC, Melbourne, Australia'
+    address: '329 Racecourse Road, VIC, Melbourne, Australia',
+    name: 'Zamzam Kitchen',
+    heroBg: null as string | null
   });
 
   useEffect(() => {
@@ -23,9 +25,11 @@ export default function Home() {
       .then(data => {
         if (data.tenant) {
           setBranding({
-            email: data.tenant.email || 'info@zamzamkitchen.com',
-            phone: data.tenant.phone || '+61 3 9939 2479',
-            address: data.tenant.address || '329 Racecourse Road, VIC, Melbourne, Australia'
+            email: data.tenant.business_email || 'info@zamzamkitchen.com',
+            phone: data.tenant.business_phone || '+61 3 9939 2479',
+            address: data.tenant.business_address || '329 Racecourse Road, VIC, Melbourne, Australia',
+            name: data.tenant.restaurant_name || 'Zamzam Kitchen',
+            heroBg: data.tenant.hero_background_url ? resolveImageUrl(data.tenant.hero_background_url) : null
           });
         }
       })
@@ -84,7 +88,7 @@ export default function Home() {
   return (
     <div className="home-page">
       {/* Hero Section - Matching Image */}
-      <section className="hero-section">
+      <section className="hero-section" style={branding.heroBg ? { backgroundImage: `url(${branding.heroBg})` } : {}}>
         <div className="hero-overlay"></div>
         
         {/* Photography-focused Hero (Matching Menu Page Style) */}
