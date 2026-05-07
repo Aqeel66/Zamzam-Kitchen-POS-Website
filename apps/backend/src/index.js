@@ -46,9 +46,8 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// PERSISTENT STORAGE: We use a folder outside the normal Git-tracked structure if possible,
-// or at least one that we explicitly protect.
-const assetsPath = path.join(process.cwd(), 'persistent_assets');
+// PERSISTENT STORAGE: Use absolute paths based on __dirname to avoid CWD issues on production servers
+const assetsPath = path.join(__dirname, '../../persistent_assets');
 const legacyAssetsPath = path.join(__dirname, '../assets');
 const webPath = path.join(__dirname, '../public');
 
@@ -84,10 +83,10 @@ const assetOptions = {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    // Prevent aggressive caching for branding images
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
+    // Use conditional caching (ETags) for performance
+    // Browser will check if file changed, but use cache if not.
+    // My Flutter cache-buster (?t=...) will still force a hard refresh when branding changes.
+    res.set('Cache-Control', 'public, max-age=0, must-revalidate');
   }
 };
 
