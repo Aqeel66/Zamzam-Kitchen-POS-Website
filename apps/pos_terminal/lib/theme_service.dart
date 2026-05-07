@@ -113,6 +113,10 @@ class ThemeService extends ChangeNotifier {
         final protocol = html.window.location.protocol;
         return '$protocol//$hostname:5000';
       }
+      // Force HTTPS in production to avoid redirects that strip POST method
+      if (origin.startsWith('http://')) {
+        return origin.replaceFirst('http://', 'https://');
+      }
       return origin;
     }
     return kDebugMode ? 'http://localhost:5000' : 'https://zamzamkitchen.net';
@@ -161,6 +165,8 @@ class ThemeService extends ChangeNotifier {
   String get restaurantName => _restaurantName;
   String get tagline => _tagline;
 
+  static String _cacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
+
   static String resolveImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http')) return path;
@@ -170,7 +176,7 @@ class ThemeService extends ChangeNotifier {
     if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
     if (cleanPath.startsWith('assets/')) cleanPath = cleanPath.substring(7);
 
-    return '${ThemeService.apiBaseUrl}/assets/$cleanPath';
+    return '${ThemeService.apiBaseUrl}/assets/$cleanPath?t=$_cacheBuster';
   }
 
   void setFlavor(AppThemeFlavor flavor) {
@@ -197,6 +203,7 @@ class ThemeService extends ChangeNotifier {
     String? tagline,
   }) {
     bool changed = false;
+    _cacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
     if (logoUrl != null && _logoPath != logoUrl) {
       debugPrint('ThemeService: Updating logo from "$_logoPath" to "$logoUrl"');
       _logoPath = logoUrl;

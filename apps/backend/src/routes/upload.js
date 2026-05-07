@@ -5,8 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../db');
 
-// Base persistent storage path (Absolute to root)
-const persistentAssetsPath = path.join(__dirname, '../../../../persistent_assets');
+// Base persistent storage path (Relative to this file)
+const persistentAssetsPath = path.join(__dirname, '../../persistent_assets');
 
 // ─── Menu Item Image Storage ────────────────────────────────────────────────
 const menuStorage = multer.diskStorage({

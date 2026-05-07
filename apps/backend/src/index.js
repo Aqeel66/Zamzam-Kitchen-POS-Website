@@ -46,8 +46,8 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// PERSISTENT STORAGE: Use absolute paths based on __dirname to avoid CWD issues on production servers
-const assetsPath = path.join(__dirname, '../../persistent_assets');
+// PERSISTENT STORAGE: Consolidated to backend directory for stability
+const assetsPath = path.join(__dirname, '../persistent_assets');
 const legacyAssetsPath = path.join(__dirname, '../assets');
 const webPath = path.join(__dirname, '../public');
 
@@ -55,51 +55,53 @@ const imagesPath = path.join(assetsPath, 'images');
 const menuItemsPath = path.join(imagesPath, 'menu_items');
 
 // Ensure upload directories exist
+console.log('📂 Initializing Persistent Storage...');
 [assetsPath, imagesPath, menuItemsPath].forEach(dir => {
   try {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`📁 Created persistent directory: ${dir}`);
+      console.log(`✅ Created directory: ${dir}`);
+    } else {
+      console.log(`ℹ️ Directory exists: ${dir}`);
     }
   } catch (err) {
-    console.error(`⚠️ Could not create directory ${dir}:`, err.message);
+    console.error(`❌ Failed to create directory ${dir}:`, err.message);
   }
 });
 
-console.log('📂 Serving persistent assets from:', assetsPath);
-console.log('📂 Serving legacy assets from:', legacyAssetsPath);
-console.log('🌐 Serving web files from:', webPath);
-
-if (!fs.existsSync(webPath)) {
-  console.error('❌ CRITICAL: Public folder not found!');
-}
-
-// Static files
-app.use(express.static(webPath));
-
-// Static headers for assets
+// Static headers for assets - Optimized for performance
 const assetOptions = {
-  setHeaders: (res) => {
+  setHeaders: (res, filePath) => {
     res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    // Use conditional caching (ETags) for performance
-    // Browser will check if file changed, but use cache if not.
-    // My Flutter cache-buster (?t=...) will still force a hard refresh when branding changes.
-    res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+    // For images, use aggressive caching because we have a cache-buster (?t=...)
+    if (filePath.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)) {
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+    }
   }
 };
 
-// First try persistent assets, then legacy assets
+// Mount static asset folders
 app.use('/assets', express.static(assetsPath, assetOptions));
 app.use('/assets', express.static(legacyAssetsPath, assetOptions));
 
 // Log 404s for assets specifically to help debugging
 app.use('/assets', (req, res) => {
-  console.warn(`❌ 404 Not Found (Asset): ${req.originalUrl}`);
+  const originalUrl = req.originalUrl;
+  console.warn(`❌ 404 Not Found (Asset): ${originalUrl}`);
+  
+  // Debug check: does it exist on disk?
+  const relativePath = req.url;
+  const fullPath = path.join(assetsPath, relativePath);
+  if (fs.existsSync(fullPath)) {
+    console.log(`🔍 DEBUG: File PHYSICALLY EXISTS but was NOT SERVED: ${fullPath}`);
+  }
+  
   res.status(404).send('Asset not found');
 });
 
+// Serve web frontend
 app.use(express.static(webPath));
 
 app.use('/api/health', (req, res) => {
