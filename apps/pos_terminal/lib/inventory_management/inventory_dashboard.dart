@@ -48,7 +48,11 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
   }
 
   Future<void> _fetchInventory() async {
-    setState(() => _isLoading = true);
+    // Only show loader if we have no items to prevent flickering on tab switch
+    if (_inventoryItems.isEmpty) {
+      setState(() => _isLoading = true);
+    }
+    
     try {
       final response = await http.get(
         Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'),
@@ -65,7 +69,7 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
     } catch (e) {
       _showError(LocalizationService().translate('failed_to_load_inventory'));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

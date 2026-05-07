@@ -7142,8 +7142,16 @@ class _POSMissionControlState extends State<POSMissionControl>
                 Text(
                   'User: ${ThemeService.instance.userName}',
                   style: TextStyle(
-                    color: themeText.withValues(alpha: 0.3),
+                    color: themeText.withValues(alpha: 0.4),
                     fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Roles: ${ThemeService.instance.userRoles.join(', ')}',
+                  style: TextStyle(
+                    color: themeText.withValues(alpha: 0.3),
+                    fontSize: 8,
                   ),
                 ),
               ],

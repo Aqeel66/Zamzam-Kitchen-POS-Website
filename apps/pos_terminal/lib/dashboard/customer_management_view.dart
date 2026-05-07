@@ -24,7 +24,11 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
   }
 
   Future<void> _fetchCustomers() async {
-    setState(() => _isLoading = true);
+    // Only show full-page loader on first load to prevent UI stuttering
+    if (_customers.isEmpty) {
+      setState(() => _isLoading = true);
+    }
+    
     try {
       final res = await http.get(
         Uri.parse('${ThemeService.apiBaseUrl}/api/customers'),
@@ -35,7 +39,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
     } catch (e) {
       if (kDebugMode) print('Fetch Customers Error: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

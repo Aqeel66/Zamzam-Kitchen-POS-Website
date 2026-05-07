@@ -31,7 +31,10 @@ class _PromotionsViewState extends State<PromotionsView> {
   }
 
   Future<void> _fetchPromoCodes() async {
-    setState(() => _isLoading = true);
+    if (_promoCodes.isEmpty) {
+      setState(() => _isLoading = true);
+    }
+    
     try {
       final response = await http.get(
         Uri.parse('${ThemeService.apiBaseUrl}/api/promotions'),
@@ -42,7 +45,7 @@ class _PromotionsViewState extends State<PromotionsView> {
     } catch (e) {
       debugPrint('Error fetching promos: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
