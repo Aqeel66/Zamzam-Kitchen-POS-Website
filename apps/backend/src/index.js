@@ -49,6 +49,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // PERSISTENT STORAGE: We use a folder outside the normal Git-tracked structure if possible,
 // or at least one that we explicitly protect.
 const assetsPath = path.join(process.cwd(), 'persistent_assets');
+const legacyAssetsPath = path.join(__dirname, '../assets');
 const webPath = path.join(__dirname, '../public');
 
 const imagesPath = path.join(assetsPath, 'images');
@@ -66,19 +67,29 @@ const menuItemsPath = path.join(imagesPath, 'menu_items');
   }
 });
 
-console.log('📂 Serving static assets from:', assetsPath);
+console.log('📂 Serving persistent assets from:', assetsPath);
+console.log('📂 Serving legacy assets from:', legacyAssetsPath);
 console.log('🌐 Serving web files from:', webPath);
+
 if (!fs.existsSync(webPath)) {
   console.error('❌ CRITICAL: Public folder not found!');
 }
 
-app.use('/assets', express.static(assetsPath, {
+// Static files
+app.use(express.static(webPath));
+
+// Static headers for assets
+const assetOptions = {
   setHeaders: (res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   }
-}));
+};
+
+// First try persistent assets, then legacy assets
+app.use('/assets', express.static(assetsPath, assetOptions));
+app.use('/assets', express.static(legacyAssetsPath, assetOptions));
 
 // Log 404s for assets specifically to help debugging
 app.use('/assets', (req, res) => {
