@@ -91,10 +91,16 @@ class _LoginPageState extends State<LoginPage>
       );
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = data['user'];
+        final roles = data['roles'] as List<dynamic>?;
+        
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => WaiterDashboard(
+                userData: user,
+                userPermissions: roles ?? [],
                 onLogout: (ctx) {
                   Navigator.of(ctx).pushReplacement(
                     MaterialPageRoute(builder: (context) => const LoginPage()),
