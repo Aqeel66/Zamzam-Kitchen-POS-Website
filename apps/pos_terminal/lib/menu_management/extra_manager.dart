@@ -44,7 +44,9 @@ class _ExtraManagerState extends State<ExtraManager> {
 
   Future<void> _fetchInventory() async {
     try {
-      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'));
+      final response = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'),
+      );
       if (response.statusCode == 200) {
         setState(() {
           _inventoryItems = jsonDecode(response.body);
@@ -108,7 +110,9 @@ class _ExtraManagerState extends State<ExtraManager> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   @override
@@ -135,12 +139,22 @@ class _ExtraManagerState extends State<ExtraManager> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Extras (e.g. Extra Cheese)', style: TextStyle(color: themeText, fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(
+                'Extras (e.g. Extra Cheese)',
+                style: TextStyle(
+                  color: themeText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
               if (extras.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: Text('No extras added yet.', style: TextStyle(color: themeHint)),
+                  child: Text(
+                    'No extras added yet.',
+                    style: TextStyle(color: themeHint),
+                  ),
                 )
               else
                 ListView.builder(
@@ -151,15 +165,28 @@ class _ExtraManagerState extends State<ExtraManager> {
                     final e = extras[index];
                     String invInfo = '';
                     if (e['inventory_item_id'] != null) {
-                       final invItem = _inventoryItems.firstWhere((i) => i['id'] == e['inventory_item_id'], orElse: () => null);
-                       invInfo = ' | Deducts: ${e['quantity_required']} ${invItem?['unit'] ?? ''}';
+                      final invItem = _inventoryItems.firstWhere(
+                        (i) => i['id'] == e['inventory_item_id'],
+                        orElse: () => null,
+                      );
+                      invInfo =
+                          ' | Deducts: ${e['quantity_required']} ${invItem?['unit'] ?? ''}';
                     }
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(e['name'], style: TextStyle(color: themeText)),
-                      subtitle: Text('Price: +\$${e['price_adjustment']}$invInfo', style: TextStyle(color: themeHint, fontSize: 11)),
+                      title: Text(
+                        e['name'],
+                        style: TextStyle(color: themeText),
+                      ),
+                      subtitle: Text(
+                        'Price: +\$${e['price_adjustment']}$invInfo',
+                        style: TextStyle(color: themeHint, fontSize: 11),
+                      ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
                         onPressed: () => _deleteExtra(e),
                       ),
                     );
@@ -180,7 +207,10 @@ class _ExtraManagerState extends State<ExtraManager> {
                             hintStyle: TextStyle(color: themeHint),
                             filled: true,
                             fillColor: themeBg,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
                       ),
@@ -196,7 +226,10 @@ class _ExtraManagerState extends State<ExtraManager> {
                             hintStyle: TextStyle(color: themeHint),
                             filled: true,
                             fillColor: themeBg,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
                       ),
@@ -211,11 +244,23 @@ class _ExtraManagerState extends State<ExtraManager> {
                           initialValue: _selectedInventoryItem,
                           dropdownColor: themeCard,
                           items: [
-                            const DropdownMenuItem(value: null, child: Text('No Inventory Link', style: TextStyle(color: Colors.grey))),
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text(
+                                'No Inventory Link',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
                             ..._inventoryItems.map((item) {
                               return DropdownMenuItem(
                                 value: item,
-                                child: Text('${item['name']} (${item['unit']})', style: TextStyle(color: themeText, fontSize: 13)),
+                                child: Text(
+                                  '${item['name']} (${item['unit']})',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               );
                             }),
                           ],
@@ -227,8 +272,14 @@ class _ExtraManagerState extends State<ExtraManager> {
                             hintStyle: TextStyle(color: themeHint),
                             filled: true,
                             fillColor: themeBg,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
@@ -244,7 +295,10 @@ class _ExtraManagerState extends State<ExtraManager> {
                             hintStyle: TextStyle(color: themeHint),
                             filled: true,
                             fillColor: themeBg,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
                       ),
@@ -254,10 +308,24 @@ class _ExtraManagerState extends State<ExtraManager> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: themePrimary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 18,
+                            horizontal: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        child: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.add),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.add),
                       ),
                     ],
                   ),
@@ -266,7 +334,7 @@ class _ExtraManagerState extends State<ExtraManager> {
             ],
           ),
         );
-      }
+      },
     );
   }
 }

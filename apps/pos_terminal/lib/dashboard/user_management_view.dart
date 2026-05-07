@@ -78,9 +78,19 @@ class _UserManagementViewState extends State<UserManagementView> {
                 padding: const EdgeInsets.fromLTRB(32, 32, 32, 0),
                 child: Row(
                   children: [
-                    _buildSubTab(LocalizationService().translate('user_management'), 0, themePrimary, themeText),
+                    _buildSubTab(
+                      LocalizationService().translate('user_management'),
+                      0,
+                      themePrimary,
+                      themeText,
+                    ),
                     const SizedBox(width: 24),
-                    _buildSubTab(LocalizationService().translate('role_permissions'), 1, themePrimary, themeText),
+                    _buildSubTab(
+                      LocalizationService().translate('role_permissions'),
+                      1,
+                      themePrimary,
+                      themeText,
+                    ),
                   ],
                 ),
               ),
@@ -89,14 +99,14 @@ class _UserManagementViewState extends State<UserManagementView> {
                 child: Divider(),
               ),
               Expanded(
-                child: _selectedSubTab == 0 
-                  ? _buildUsersList(theme) 
-                  : _buildRolesList(theme),
+                child: _selectedSubTab == 0
+                    ? _buildUsersList(theme)
+                    : _buildRolesList(theme),
               ),
             ],
           ),
         );
-      }
+      },
     );
   }
 
@@ -146,18 +156,43 @@ class _UserManagementViewState extends State<UserManagementView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(LocalizationService().translate('staff_management'), style: TextStyle(color: themeText, fontSize: 28, fontWeight: FontWeight.bold)),
-                  Text(LocalizationService().translate('staff_mgmt_desc'), style: TextStyle(color: themeHint, fontSize: 14)),
+                  Text(
+                    LocalizationService().translate('staff_management'),
+                    style: TextStyle(
+                      color: themeText,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    LocalizationService().translate('staff_mgmt_desc'),
+                    style: TextStyle(color: themeHint, fontSize: 14),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
                 onPressed: () => _showUserDialog(theme),
-                icon: const Icon(Icons.person_add_rounded, color: Colors.white, size: 18),
-                label: Text(LocalizationService().translate('add_new_staff'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                icon: const Icon(
+                  Icons.person_add_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                label: Text(
+                  LocalizationService().translate('add_new_staff'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -168,95 +203,206 @@ class _UserManagementViewState extends State<UserManagementView> {
             child: widget.isUsersLoading
                 ? Center(child: CircularProgressIndicator(color: themePrimary))
                 : widget.users.isEmpty
-                    ? Center(child: Text(LocalizationService().translate('no_users_found'), style: TextStyle(color: themeHint)))
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: themeCard,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: themeBorder),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: DataTable(
-                                headingRowColor: WidgetStateProperty.all(themePrimary.withValues(alpha: 0.05)),
-                                dataRowMinHeight: 70,
-                                dataRowMaxHeight: 70,
-                                columns: [
-                                  DataColumn(label: Text('STAFF MEMBER', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('USERNAME', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('ROLES', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('CONTACT INFO', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('ACTIONS', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                ],
-                                rows: widget.users.map((user) {
-                                  return DataRow(cells: [
-                                    DataCell(
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 18,
-                                            backgroundColor: themePrimary.withValues(alpha: 0.1),
-                                            child: Text(
-                                              (user['first_name'] ?? 'U')[0].toUpperCase(),
-                                              style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 12),
+                ? Center(
+                    child: Text(
+                      LocalizationService().translate('no_users_found'),
+                      style: TextStyle(color: themeHint),
+                    ),
+                  )
+                : Container(
+                    decoration: BoxDecoration(
+                      color: themeCard,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: themeBorder),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            headingRowColor: WidgetStateProperty.all(
+                              themePrimary.withValues(alpha: 0.05),
+                            ),
+                            dataRowMinHeight: 70,
+                            dataRowMaxHeight: 70,
+                            columns: [
+                              DataColumn(
+                                label: Text(
+                                  'STAFF MEMBER',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'USERNAME',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'ROLES',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'CONTACT INFO',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'ACTIONS',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            rows: widget.users.map((user) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: themePrimary
+                                              .withValues(alpha: 0.1),
+                                          child: Text(
+                                            (user['first_name'] ?? 'U')[0]
+                                                .toUpperCase(),
+                                            style: TextStyle(
+                                              color: themePrimary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
                                             ),
                                           ),
-                                          const SizedBox(width: 12),
-                                          Text('${user['first_name']} ${user['last_name']}', style: TextStyle(color: themeText, fontWeight: FontWeight.bold)),
-                                        ],
-                                      ),
-                                    ),
-                                    DataCell(Text('@${user['username']}', style: TextStyle(color: themeHint))),
-                                    DataCell(
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: themePrimary.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(20),
                                         ),
-                                        child: Text(
-                                          (user['roles'] ?? 'No Role').toUpperCase(),
-                                          style: TextStyle(color: themePrimary, fontSize: 10, fontWeight: FontWeight.bold),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          '${user['first_name']} ${user['last_name']}',
+                                          style: TextStyle(
+                                            color: themeText,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      '@${user['username']}',
+                                      style: TextStyle(color: themeHint),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: themePrimary.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        (user['roles'] ?? 'No Role')
+                                            .toUpperCase(),
+                                        style: TextStyle(
+                                          color: themePrimary,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
-                                    DataCell(
-                                      Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(user['email'] ?? '', style: TextStyle(color: themeText, fontSize: 13)),
-                                          Text(user['phone'] ?? '', style: TextStyle(color: themeHint, fontSize: 11)),
-                                        ],
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: Icon(Icons.edit_outlined, color: themeHint, size: 20),
-                                            onPressed: () => _showUserDialog(theme, user: user),
+                                  ),
+                                  DataCell(
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          user['email'] ?? '',
+                                          style: TextStyle(
+                                            color: themeText,
+                                            fontSize: 13,
                                           ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
-                                            onPressed: () => _showDeleteUserConfirm(user, themeCard, themeText),
+                                        ),
+                                        Text(
+                                          user['phone'] ?? '',
+                                          style: TextStyle(
+                                            color: themeHint,
+                                            fontSize: 11,
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
-                                  ]);
-                                }).toList(),
-                              ),
-                            ),
+                                  ),
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.edit_outlined,
+                                            color: themeHint,
+                                            size: 20,
+                                          ),
+                                          onPressed: () => _showUserDialog(
+                                            theme,
+                                            user: user,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.delete_outline_rounded,
+                                            color: Colors.redAccent,
+                                            size: 20,
+                                          ),
+                                          onPressed: () =>
+                                              _showDeleteUserConfirm(
+                                                user,
+                                                themeCard,
+                                                themeText,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
                           ),
                         ),
                       ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -281,18 +427,43 @@ class _UserManagementViewState extends State<UserManagementView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(LocalizationService().translate('roles_permissions_title'), style: TextStyle(color: themeText, fontSize: 28, fontWeight: FontWeight.bold)),
-                  Text(LocalizationService().translate('roles_desc'), style: TextStyle(color: themeHint, fontSize: 14)),
+                  Text(
+                    LocalizationService().translate('roles_permissions_title'),
+                    style: TextStyle(
+                      color: themeText,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    LocalizationService().translate('roles_desc'),
+                    style: TextStyle(color: themeHint, fontSize: 14),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
                 onPressed: () => _showRoleDialog(theme),
-                icon: const Icon(Icons.add_moderator_rounded, color: Colors.white, size: 18),
-                label: Text(LocalizationService().translate('add_new_role'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                icon: const Icon(
+                  Icons.add_moderator_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                label: Text(
+                  LocalizationService().translate('add_new_role'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -303,101 +474,206 @@ class _UserManagementViewState extends State<UserManagementView> {
             child: widget.isRolesLoading
                 ? Center(child: CircularProgressIndicator(color: themePrimary))
                 : widget.roles.isEmpty
-                    ? Center(child: Text(LocalizationService().translate('no_data'), style: TextStyle(color: themeHint)))
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: themeCard,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: themeBorder),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: DataTable(
-                                headingRowColor: WidgetStateProperty.all(themePrimary.withValues(alpha: 0.05)),
-                                dataRowMinHeight: 70,
-                                dataRowMaxHeight: 70,
-                                columns: [
-                                  DataColumn(label: Text('ROLE NAME', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('DESCRIPTION', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('PERMISSIONS', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('ACTIONS', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 12))),
-                                ],
-                                rows: widget.roles.map((role) {
-                                  final permissions = (role['permissions']?.toString().split(',') ?? []).where((p) => p.isNotEmpty).toList();
-                                  final permissionCount = permissions.length;
-                                  final isSystemRole = ['admin', 'manager', 'cashier', 'chef', 'waiter'].contains(role['name'].toString().toLowerCase());
-
-                                  return DataRow(cells: [
-                                    DataCell(
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 18,
-                                            backgroundColor: themePrimary.withValues(alpha: 0.1),
-                                            child: Icon(Icons.admin_panel_settings_rounded, color: themePrimary, size: 18),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(role['name'] ?? 'Unnamed', style: TextStyle(color: themeText, fontWeight: FontWeight.bold)),
-                                        ],
-                                      ),
-                                    ),
-                                    DataCell(
-                                      SizedBox(
-                                        width: 250,
-                                        child: Text(
-                                          role['description'] ?? 'No description',
-                                          style: TextStyle(color: themeHint, fontSize: 13),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: themePrimary.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          '$permissionCount Permissions',
-                                          style: TextStyle(color: themePrimary, fontSize: 12, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: Icon(Icons.security_rounded, color: themePrimary, size: 20),
-                                            tooltip: 'Edit Permissions',
-                                            onPressed: () => _showPermissionsDialog(role, themeCard, themeText, themePrimary, themeHint),
-                                          ),
-                                          IconButton(
-                                            icon: Icon(Icons.edit_outlined, color: themeHint, size: 20),
-                                            onPressed: () => _showRoleDialog(theme, role: role),
-                                          ),
-                                          if (!isSystemRole)
-                                            IconButton(
-                                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
-                                              onPressed: () => _showDeleteRoleConfirm(role, themeCard, themeText),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ]);
-                                }).toList(),
-                              ),
+                ? Center(
+                    child: Text(
+                      LocalizationService().translate('no_data'),
+                      style: TextStyle(color: themeHint),
+                    ),
+                  )
+                : Container(
+                    decoration: BoxDecoration(
+                      color: themeCard,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: themeBorder),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            headingRowColor: WidgetStateProperty.all(
+                              themePrimary.withValues(alpha: 0.05),
                             ),
+                            dataRowMinHeight: 70,
+                            dataRowMaxHeight: 70,
+                            columns: [
+                              DataColumn(
+                                label: Text(
+                                  'ROLE NAME',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'DESCRIPTION',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'PERMISSIONS',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'ACTIONS',
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            rows: widget.roles.map((role) {
+                              final permissions =
+                                  (role['permissions']?.toString().split(',') ??
+                                          [])
+                                      .where((p) => p.isNotEmpty)
+                                      .toList();
+                              final permissionCount = permissions.length;
+                              final isSystemRole = [
+                                'admin',
+                                'manager',
+                                'cashier',
+                                'chef',
+                                'waiter',
+                              ].contains(role['name'].toString().toLowerCase());
+
+                              return DataRow(
+                                cells: [
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: themePrimary
+                                              .withValues(alpha: 0.1),
+                                          child: Icon(
+                                            Icons.admin_panel_settings_rounded,
+                                            color: themePrimary,
+                                            size: 18,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          role['name'] ?? 'Unnamed',
+                                          style: TextStyle(
+                                            color: themeText,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  DataCell(
+                                    SizedBox(
+                                      width: 250,
+                                      child: Text(
+                                        role['description'] ?? 'No description',
+                                        style: TextStyle(
+                                          color: themeHint,
+                                          fontSize: 13,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: themePrimary.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '$permissionCount Permissions',
+                                        style: TextStyle(
+                                          color: themePrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.security_rounded,
+                                            color: themePrimary,
+                                            size: 20,
+                                          ),
+                                          tooltip: 'Edit Permissions',
+                                          onPressed: () =>
+                                              _showPermissionsDialog(
+                                                role,
+                                                themeCard,
+                                                themeText,
+                                                themePrimary,
+                                                themeHint,
+                                              ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.edit_outlined,
+                                            color: themeHint,
+                                            size: 20,
+                                          ),
+                                          onPressed: () => _showRoleDialog(
+                                            theme,
+                                            role: role,
+                                          ),
+                                        ),
+                                        if (!isSystemRole)
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline_rounded,
+                                              color: Colors.redAccent,
+                                              size: 20,
+                                            ),
+                                            onPressed: () =>
+                                                _showDeleteRoleConfirm(
+                                                  role,
+                                                  themeCard,
+                                                  themeText,
+                                                ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
                           ),
                         ),
                       ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -416,10 +692,14 @@ class _UserManagementViewState extends State<UserManagementView> {
     final emailController = TextEditingController(text: user?['email'] ?? '');
     final phoneController = TextEditingController(text: user?['phone'] ?? '');
     final pwController = TextEditingController();
-    
+
     List<int> selectedRoles = [];
     if (user != null && user['role_ids'] != null) {
-      selectedRoles = user['role_ids'].toString().split(',').map((id) => int.parse(id)).toList();
+      selectedRoles = user['role_ids']
+          .toString()
+          .split(',')
+          .map((id) => int.parse(id))
+          .toList();
     }
 
     showDialog(
@@ -427,8 +707,15 @@ class _UserManagementViewState extends State<UserManagementView> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(user == null ? LocalizationService().translate('add_new_staff') : LocalizationService().translate('edit_staff_details'), style: TextStyle(color: themeText)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            user == null
+                ? LocalizationService().translate('add_new_staff')
+                : LocalizationService().translate('edit_staff_details'),
+            style: TextStyle(color: themeText),
+          ),
           content: SizedBox(
             width: 500,
             child: SingleChildScrollView(
@@ -441,7 +728,12 @@ class _UserManagementViewState extends State<UserManagementView> {
                         child: TextField(
                           controller: fnController,
                           style: TextStyle(color: themeText),
-                          decoration: InputDecoration(labelText: LocalizationService().translate('first_name'), labelStyle: TextStyle(color: themeHint)),
+                          decoration: InputDecoration(
+                            labelText: LocalizationService().translate(
+                              'first_name',
+                            ),
+                            labelStyle: TextStyle(color: themeHint),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -449,7 +741,12 @@ class _UserManagementViewState extends State<UserManagementView> {
                         child: TextField(
                           controller: lnController,
                           style: TextStyle(color: themeText),
-                          decoration: InputDecoration(labelText: LocalizationService().translate('last_name'), labelStyle: TextStyle(color: themeHint)),
+                          decoration: InputDecoration(
+                            labelText: LocalizationService().translate(
+                              'last_name',
+                            ),
+                            labelStyle: TextStyle(color: themeHint),
+                          ),
                         ),
                       ),
                     ],
@@ -459,7 +756,10 @@ class _UserManagementViewState extends State<UserManagementView> {
                     controller: unController,
                     style: TextStyle(color: themeText),
                     enabled: user == null,
-                    decoration: InputDecoration(labelText: LocalizationService().translate('username'), labelStyle: TextStyle(color: themeHint)),
+                    decoration: InputDecoration(
+                      labelText: LocalizationService().translate('username'),
+                      labelStyle: TextStyle(color: themeHint),
+                    ),
                   ),
                   if (user == null) ...[
                     const SizedBox(height: 16),
@@ -467,25 +767,40 @@ class _UserManagementViewState extends State<UserManagementView> {
                       controller: pwController,
                       style: TextStyle(color: themeText),
                       obscureText: true,
-                      decoration: InputDecoration(labelText: LocalizationService().translate('password'), labelStyle: TextStyle(color: themeHint)),
+                      decoration: InputDecoration(
+                        labelText: LocalizationService().translate('password'),
+                        labelStyle: TextStyle(color: themeHint),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 16),
                   TextField(
                     controller: emailController,
                     style: TextStyle(color: themeText),
-                    decoration: InputDecoration(labelText: LocalizationService().translate('email'), labelStyle: TextStyle(color: themeHint)),
+                    decoration: InputDecoration(
+                      labelText: LocalizationService().translate('email'),
+                      labelStyle: TextStyle(color: themeHint),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: phoneController,
                     style: TextStyle(color: themeText),
-                    decoration: InputDecoration(labelText: LocalizationService().translate('phone'), labelStyle: TextStyle(color: themeHint)),
+                    decoration: InputDecoration(
+                      labelText: LocalizationService().translate('phone'),
+                      labelStyle: TextStyle(color: themeHint),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(LocalizationService().translate('assign_roles'), style: TextStyle(color: themeText, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      LocalizationService().translate('assign_roles'),
+                      style: TextStyle(
+                        color: themeText,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
@@ -493,7 +808,13 @@ class _UserManagementViewState extends State<UserManagementView> {
                     children: widget.roles.map((role) {
                       final isSelected = selectedRoles.contains(role['id']);
                       return FilterChip(
-                        label: Text(role['name'], style: TextStyle(color: isSelected ? Colors.white : themeText, fontSize: 12)),
+                        label: Text(
+                          role['name'],
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : themeText,
+                            fontSize: 12,
+                          ),
+                        ),
                         selected: isSelected,
                         onSelected: (val) {
                           setDialogState(() {
@@ -514,7 +835,13 @@ class _UserManagementViewState extends State<UserManagementView> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(LocalizationService().translate('cancel_btn'), style: TextStyle(color: themeHint))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                LocalizationService().translate('cancel_btn'),
+                style: TextStyle(color: themeHint),
+              ),
+            ),
             ElevatedButton(
               onPressed: () {
                 final userData = {
@@ -523,7 +850,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                   'username': unController.text,
                   'email': emailController.text,
                   'phone': phoneController.text,
-                  'role_ids': selectedRoles.join(','),
+                  'role_ids': selectedRoles,
                 };
                 if (user == null) {
                   userData['password'] = pwController.text;
@@ -534,7 +861,10 @@ class _UserManagementViewState extends State<UserManagementView> {
                 Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
-              child: Text(LocalizationService().translate('save_btn'), style: const TextStyle(color: Colors.white)),
+              child: Text(
+                LocalizationService().translate('save_btn'),
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -549,33 +879,52 @@ class _UserManagementViewState extends State<UserManagementView> {
     final themePrimary = theme.primaryColor;
 
     final nameController = TextEditingController(text: role?['name'] ?? '');
-    final descController = TextEditingController(text: role?['description'] ?? '');
+    final descController = TextEditingController(
+      text: role?['description'] ?? '',
+    );
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: themeCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(role == null ? LocalizationService().translate('add_new_role') : 'Edit Role Details', style: TextStyle(color: themeText)),
+        title: Text(
+          role == null
+              ? LocalizationService().translate('add_new_role')
+              : 'Edit Role Details',
+          style: TextStyle(color: themeText),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
               style: TextStyle(color: themeText),
-              decoration: InputDecoration(labelText: 'Role Name', labelStyle: TextStyle(color: themeHint)),
+              decoration: InputDecoration(
+                labelText: 'Role Name',
+                labelStyle: TextStyle(color: themeHint),
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descController,
               maxLines: 3,
               style: TextStyle(color: themeText),
-              decoration: InputDecoration(labelText: 'Description', labelStyle: TextStyle(color: themeHint)),
+              decoration: InputDecoration(
+                labelText: 'Description',
+                labelStyle: TextStyle(color: themeHint),
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(LocalizationService().translate('cancel_btn'), style: TextStyle(color: themeHint))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              LocalizationService().translate('cancel_btn'),
+              style: TextStyle(color: themeHint),
+            ),
+          ),
           ElevatedButton(
             onPressed: () {
               final roleData = {
@@ -590,7 +939,10 @@ class _UserManagementViewState extends State<UserManagementView> {
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
-            child: Text(LocalizationService().translate('save_btn'), style: const TextStyle(color: Colors.white)),
+            child: Text(
+              LocalizationService().translate('save_btn'),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -603,15 +955,21 @@ class _UserManagementViewState extends State<UserManagementView> {
       builder: (ctx) => AlertDialog(
         backgroundColor: themeCard,
         title: Text('Delete Staff Member?', style: TextStyle(color: themeText)),
-        content: Text('Are you sure you want to delete ${user['first_name']}? This action cannot be undone.', style: TextStyle(color: themeText.withValues(alpha: 0.7))),
+        content: Text(
+          'Are you sure you want to delete ${user['first_name']}? This action cannot be undone.',
+          style: TextStyle(color: themeText.withValues(alpha: 0.7)),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               widget.onDeleteUser(user['id']);
               Navigator.pop(ctx);
-            }, 
-            child: const Text('Delete', style: TextStyle(color: Colors.red))
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -624,22 +982,34 @@ class _UserManagementViewState extends State<UserManagementView> {
       builder: (ctx) => AlertDialog(
         backgroundColor: themeCard,
         title: Text('Delete Role?', style: TextStyle(color: themeText)),
-        content: Text('Are you sure you want to delete the "${role['name']}" role? Staff members assigned to this role will lose their permissions.', style: TextStyle(color: themeText.withValues(alpha: 0.7))),
+        content: Text(
+          'Are you sure you want to delete the "${role['name']}" role? Staff members assigned to this role will lose their permissions.',
+          style: TextStyle(color: themeText.withValues(alpha: 0.7)),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               widget.onDeleteRole(role['id']);
               Navigator.pop(ctx);
-            }, 
-            child: const Text('Delete', style: TextStyle(color: Colors.red))
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  void _showPermissionsDialog(dynamic role, Color themeCard, Color themeText, Color themePrimary, Color themeHint) {
+  void _showPermissionsDialog(
+    dynamic role,
+    Color themeCard,
+    Color themeText,
+    Color themePrimary,
+    Color themeHint,
+  ) {
     List<int> currentPermissions = [];
     if (role['permissions'] != null) {
       final names = role['permissions'].toString().split(',');
@@ -655,8 +1025,13 @@ class _UserManagementViewState extends State<UserManagementView> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Edit Permissions: ${role['name']}', style: TextStyle(color: themeText)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Edit Permissions: ${role['name']}',
+            style: TextStyle(color: themeText),
+          ),
           content: SizedBox(
             width: 400,
             child: ListView.builder(
@@ -666,8 +1041,16 @@ class _UserManagementViewState extends State<UserManagementView> {
                 final p = widget.permissions[index];
                 final isEnabled = currentPermissions.contains(p['id']);
                 return CheckboxListTile(
-                  title: Text(p['name'].toString().replaceAll('_', ' ').toUpperCase(), 
-                      style: TextStyle(color: themeText, fontSize: 13, fontWeight: isEnabled ? FontWeight.bold : FontWeight.normal)),
+                  title: Text(
+                    p['name'].toString().replaceAll('_', ' ').toUpperCase(),
+                    style: TextStyle(
+                      color: themeText,
+                      fontSize: 13,
+                      fontWeight: isEnabled
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
                   value: isEnabled,
                   onChanged: (val) {
                     setDialogState(() {
@@ -684,14 +1067,20 @@ class _UserManagementViewState extends State<UserManagementView> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('CANCEL', style: TextStyle(color: themeHint))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('CANCEL', style: TextStyle(color: themeHint)),
+            ),
             ElevatedButton(
               onPressed: () {
                 widget.onUpdateRolePermissions(role['id'], currentPermissions);
                 Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
-              child: const Text('SAVE CHANGES', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'SAVE CHANGES',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),

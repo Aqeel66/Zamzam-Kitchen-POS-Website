@@ -49,40 +49,49 @@ class OrdersView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final filteredOrders = placedOrders.where((o) {
-      if (statusFilter != 'ALL') {
-        final oStatus = o['status'].toString().toLowerCase();
-        final f = statusFilter.toLowerCase();
-        bool matches = false;
-        if (f == 'pending') {
-          matches = (oStatus == 'pending' || oStatus == 'ordered' || oStatus == 'preparing' || oStatus == 'paid' || oStatus == 'partially paid');
-        } else {
-          matches = (oStatus == f);
-        }
-        if (!matches) return false;
-      }
-      
-      try {
-        final date = DateTime.parse(o['order_time']).toLocal();
-        if (date.month != now.month || date.year != now.year) return false;
-      } catch (_) { return false; }
-      
-      return true;
-    }).toList()
-      ..sort((a, b) {
-        final aPay = (a['payment_status']?.toString() ?? '').toLowerCase();
-        final bPay = (b['payment_status']?.toString() ?? '').toLowerCase();
-        final aStatus = (a['status']?.toString() ?? '').toLowerCase();
-        final bStatus = (b['status']?.toString() ?? '').toLowerCase();
-        if (aPay == 'unpaid' && bPay != 'unpaid') return -1;
-        if (aPay != 'unpaid' && bPay == 'unpaid') return 1;
-        if (aStatus == 'pending' && bStatus != 'pending') return -1;
-        if (aStatus != 'pending' && bStatus == 'pending') return 1;
-        
-        final aId = int.tryParse(a['id'].toString()) ?? 0;
-        final bId = int.tryParse(b['id'].toString()) ?? 0;
-        return orderSortDirection == 'Ascending' ? aId.compareTo(bId) : bId.compareTo(aId);
-      });
+    final filteredOrders =
+        placedOrders.where((o) {
+          if (statusFilter != 'ALL') {
+            final oStatus = o['status'].toString().toLowerCase();
+            final f = statusFilter.toLowerCase();
+            bool matches = false;
+            if (f == 'pending') {
+              matches =
+                  (oStatus == 'pending' ||
+                  oStatus == 'ordered' ||
+                  oStatus == 'preparing' ||
+                  oStatus == 'paid' ||
+                  oStatus == 'partially paid');
+            } else {
+              matches = (oStatus == f);
+            }
+            if (!matches) return false;
+          }
+
+          try {
+            final date = DateTime.parse(o['order_time']).toLocal();
+            if (date.month != now.month || date.year != now.year) return false;
+          } catch (_) {
+            return false;
+          }
+
+          return true;
+        }).toList()..sort((a, b) {
+          final aPay = (a['payment_status']?.toString() ?? '').toLowerCase();
+          final bPay = (b['payment_status']?.toString() ?? '').toLowerCase();
+          final aStatus = (a['status']?.toString() ?? '').toLowerCase();
+          final bStatus = (b['status']?.toString() ?? '').toLowerCase();
+          if (aPay == 'unpaid' && bPay != 'unpaid') return -1;
+          if (aPay != 'unpaid' && bPay == 'unpaid') return 1;
+          if (aStatus == 'pending' && bStatus != 'pending') return -1;
+          if (aStatus != 'pending' && bStatus == 'pending') return 1;
+
+          final aId = int.tryParse(a['id'].toString()) ?? 0;
+          final bId = int.tryParse(b['id'].toString()) ?? 0;
+          return orderSortDirection == 'Ascending'
+              ? aId.compareTo(bId)
+              : bId.compareTo(aId);
+        });
 
     return Container(
       color: themeBg,
@@ -96,8 +105,20 @@ class OrdersView extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(LocalizationService().translate('live_order_feed'), style: TextStyle(color: themeText, fontSize: 28, fontWeight: FontWeight.bold)),
-                    Text(LocalizationService().translate('monthly_operational_history'), style: TextStyle(color: themeHint, fontSize: 13)),
+                    Text(
+                      LocalizationService().translate('live_order_feed'),
+                      style: TextStyle(
+                        color: themeText,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      LocalizationService().translate(
+                        'monthly_operational_history',
+                      ),
+                      style: TextStyle(color: themeHint, fontSize: 13),
+                    ),
                   ],
                 ),
                 const Spacer(),
@@ -107,34 +128,57 @@ class OrdersView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: filteredOrders.isEmpty 
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long_outlined, size: 80, color: themeHint.withValues(alpha: 0.3)),
-                      const SizedBox(height: 16),
-                      Text(LocalizationService().translate('no_orders_found'), style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(24),
-                  itemCount: filteredOrders.length,
-                  itemBuilder: (context, index) {
-                    final order = filteredOrders[index];
-                    final String timeStr = POSUtils.formatDateTime(order['order_time']?.toString());
-                    final double total = double.tryParse(order['total_amount'].toString()) ?? 0.0;
-                    
-                    final bool isPaidRecord = (order['status']?.toString() ?? '').toLowerCase() == 'paid' || 
-                                              (order['payment_status']?.toString() ?? '').toLowerCase() == 'paid' || 
-                                              order['payment'] != null ||
-                                              (order['payment_method'] != null && order['payment_method'].toString().isNotEmpty);
+            child: filteredOrders.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 80,
+                          color: themeHint.withValues(alpha: 0.3),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          LocalizationService().translate('no_orders_found'),
+                          style: TextStyle(
+                            color: themeText,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: filteredOrders.length,
+                    itemBuilder: (context, index) {
+                      final order = filteredOrders[index];
+                      final String timeStr = POSUtils.formatDateTime(
+                        order['order_time']?.toString(),
+                      );
+                      final double total =
+                          double.tryParse(order['total_amount'].toString()) ??
+                          0.0;
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
+                      final bool isPaidRecord =
+                          (order['status']?.toString() ?? '').toLowerCase() ==
+                              'paid' ||
+                          (order['payment_status']?.toString() ?? '')
+                                  .toLowerCase() ==
+                              'paid' ||
+                          order['payment'] != null ||
+                          (order['payment_method'] != null &&
+                              order['payment_method'].toString().isNotEmpty);
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
                           color: themeCard,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: themeBorder),
@@ -143,7 +187,7 @@ class OrdersView extends StatelessWidget {
                               color: Colors.black.withValues(alpha: 0.03),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
-                            )
+                            ),
                           ],
                         ),
                         child: Row(
@@ -162,74 +206,142 @@ class OrdersView extends StatelessWidget {
                                       maintainAnimation: true,
                                       maintainState: true,
                                       child: Tooltip(
-                                        message: LocalizationService().translate('settle_payment'),
+                                        message: LocalizationService()
+                                            .translate('settle_payment'),
                                         child: IconButton(
                                           padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 40,
+                                            minWidth: 40,
+                                          ),
                                           visualDensity: VisualDensity.compact,
-                                          icon: const Icon(Icons.payments_rounded, color: Colors.green, size: 24),
+                                          icon: const Icon(
+                                            Icons.payments_rounded,
+                                            color: Colors.green,
+                                            size: 24,
+                                          ),
                                           onPressed: () => onSettle(order),
                                         ),
                                       ),
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('edit'),
+                                    message: LocalizationService().translate(
+                                      'edit',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: Icon(Icons.edit_note_rounded, color: themePrimary, size: 22),
+                                      icon: Icon(
+                                        Icons.edit_note_rounded,
+                                        color: themePrimary,
+                                        size: 22,
+                                      ),
                                       onPressed: () => onEdit(order),
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('print'),
+                                    message: LocalizationService().translate(
+                                      'print',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: const Icon(Icons.print_rounded, color: Colors.blue, size: 20),
-                                      onPressed: () => ReceiptService.printReceipt(order: order, settings: settings),
+                                      icon: const Icon(
+                                        Icons.print_rounded,
+                                        color: Colors.blue,
+                                        size: 20,
+                                      ),
+                                      onPressed: () =>
+                                          ReceiptService.printReceipt(
+                                            order: order,
+                                            settings: settings,
+                                          ),
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('download_pdf'),
+                                    message: LocalizationService().translate(
+                                      'download_pdf',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 20),
-                                      onPressed: () => onDownloadPdf(Map<String, dynamic>.from(order)),
+                                      icon: const Icon(
+                                        Icons.picture_as_pdf_rounded,
+                                        color: Colors.red,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => onDownloadPdf(
+                                        Map<String, dynamic>.from(order),
+                                      ),
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('split_bill'),
+                                    message: LocalizationService().translate(
+                                      'split_bill',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: const Icon(Icons.call_split_rounded, color: Colors.purple, size: 20),
+                                      icon: const Icon(
+                                        Icons.call_split_rounded,
+                                        color: Colors.purple,
+                                        size: 20,
+                                      ),
                                       onPressed: () => onSplit(order),
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('merge_bill'),
+                                    message: LocalizationService().translate(
+                                      'merge_bill',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: const Icon(Icons.merge_type_rounded, color: Colors.orange, size: 20),
+                                      icon: const Icon(
+                                        Icons.merge_type_rounded,
+                                        color: Colors.orange,
+                                        size: 20,
+                                      ),
                                       onPressed: () => onMerge(order),
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('view_details'),
+                                    message: LocalizationService().translate(
+                                      'view_details',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: Icon(Icons.visibility_rounded, color: themePrimary, size: 20),
+                                      icon: Icon(
+                                        Icons.visibility_rounded,
+                                        color: themePrimary,
+                                        size: 20,
+                                      ),
                                       onPressed: () => onViewDetails(order),
                                     ),
                                   ),
@@ -244,10 +356,14 @@ class OrdersView extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '#${order['order_number'] ?? order['id']}', 
+                                    '#${order['order_number'] ?? order['id']}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.bold)
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   const SizedBox(height: 2),
                                   FittedBox(
@@ -255,13 +371,33 @@ class OrdersView extends StatelessWidget {
                                     alignment: Alignment.centerLeft,
                                     child: Row(
                                       children: [
-                                        Icon(Icons.access_time_rounded, size: 10, color: themeHint),
+                                        Icon(
+                                          Icons.access_time_rounded,
+                                          size: 10,
+                                          color: themeHint,
+                                        ),
                                         const SizedBox(width: 4),
-                                        Text(timeStr, style: TextStyle(color: themeHint, fontSize: 10)),
+                                        Text(
+                                          timeStr,
+                                          style: TextStyle(
+                                            color: themeHint,
+                                            fontSize: 10,
+                                          ),
+                                        ),
                                         const SizedBox(width: 10),
-                                        Icon(Icons.restaurant_menu_rounded, size: 10, color: themeHint),
+                                        Icon(
+                                          Icons.restaurant_menu_rounded,
+                                          size: 10,
+                                          color: themeHint,
+                                        ),
                                         const SizedBox(width: 4),
-                                        Text('${(order['items'] as List?)?.length ?? 0} Items', style: TextStyle(color: themeHint, fontSize: 10)),
+                                        Text(
+                                          '${(order['items'] as List?)?.length ?? 0} Items',
+                                          style: TextStyle(
+                                            color: themeHint,
+                                            fontSize: 10,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -274,14 +410,20 @@ class OrdersView extends StatelessWidget {
                               width: 85,
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
-                                child: OrderStatusChip(status: order['status'] ?? 'Unknown', themePrimary: themePrimary),
+                                child: OrderStatusChip(
+                                  status: order['status'] ?? 'Unknown',
+                                  themePrimary: themePrimary,
+                                ),
                               ),
                             ),
                             SizedBox(
                               width: 85,
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
-                                child: OriginBadge(origin: order['origin'], themePrimary: themePrimary),
+                                child: OriginBadge(
+                                  origin: order['origin'],
+                                  themePrimary: themePrimary,
+                                ),
                               ),
                             ),
                             SizedBox(
@@ -289,21 +431,26 @@ class OrdersView extends StatelessWidget {
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Visibility(
-                                  visible: order['order_type'] != null && order['order_type'] != 'In-Store',
+                                  visible:
+                                      order['order_type'] != null &&
+                                      order['order_type'] != 'In-Store',
                                   maintainSize: true,
                                   maintainAnimation: true,
                                   maintainState: true,
-                                  child: OrderTypeBadge(type: order['order_type'], themePrimary: themePrimary),
+                                  child: OrderTypeBadge(
+                                    type: order['order_type'],
+                                    themePrimary: themePrimary,
+                                  ),
                                 ),
                               ),
                             ),
-                             SizedBox(
-                               width: 90,
-                               child: FittedBox(
-                                 fit: BoxFit.scaleDown,
-                                 child: PaymentStatusBadge(order: order),
-                               ),
-                             ),
+                            SizedBox(
+                              width: 90,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: PaymentStatusBadge(order: order),
+                              ),
+                            ),
                             const Spacer(),
                             // 4. Fixed Total Column
                             SizedBox(
@@ -311,14 +458,18 @@ class OrdersView extends StatelessWidget {
                               child: Text(
                                 '${settings['tenant']?['currency'] ?? '\$'}${total.toStringAsFixed(2)}',
                                 textAlign: TextAlign.right,
-                                style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16),
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       );
-                  },
-                ),
+                    },
+                  ),
           ),
         ],
       ),
@@ -326,7 +477,15 @@ class OrdersView extends StatelessWidget {
   }
 
   Widget _buildFilters() {
-    final filters = ['ALL', 'Pending', 'Preparing', 'Ready', 'Served', 'Paid', 'Cancelled'];
+    final filters = [
+      'ALL',
+      'Pending',
+      'Preparing',
+      'Ready',
+      'Served',
+      'Paid',
+      'Cancelled',
+    ];
     return Row(
       children: filters.map((f) {
         final bool sel = statusFilter == f;
@@ -336,10 +495,18 @@ class OrdersView extends StatelessWidget {
         } else if (f == 'Pending') {
           count = placedOrders.where((o) {
             final s = o['status'].toString().toLowerCase();
-            return (s == 'pending' || s == 'ordered' || s == 'preparing' || s == 'paid' || s == 'partially paid');
+            return (s == 'pending' ||
+                s == 'ordered' ||
+                s == 'preparing' ||
+                s == 'paid' ||
+                s == 'partially paid');
           }).length;
         } else {
-          count = placedOrders.where((o) => o['status'].toString().toLowerCase() == f.toLowerCase()).length;
+          count = placedOrders
+              .where(
+                (o) => o['status'].toString().toLowerCase() == f.toLowerCase(),
+              )
+              .length;
         }
 
         return GestureDetector(
@@ -350,15 +517,24 @@ class OrdersView extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: sel ? themePrimary : Colors.transparent,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: sel ? themePrimary : themeBorder),
                   ),
                   child: Text(
-                    LocalizationService().translate(f == 'ALL' ? 'all_caps' : f.toLowerCase()).toUpperCase(),
-                    style: TextStyle(color: sel ? Colors.white : themeHint, fontWeight: sel ? FontWeight.bold : FontWeight.w500, fontSize: 11)
+                    LocalizationService()
+                        .translate(f == 'ALL' ? 'all_caps' : f.toLowerCase())
+                        .toUpperCase(),
+                    style: TextStyle(
+                      color: sel ? Colors.white : themeHint,
+                      fontWeight: sel ? FontWeight.bold : FontWeight.w500,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
                 if (count > 0)
@@ -367,11 +543,17 @@ class OrdersView extends StatelessWidget {
                     top: -6,
                     child: Container(
                       padding: const EdgeInsets.all(4),
-                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
                       decoration: BoxDecoration(
                         color: sel ? Colors.white : themePrimary,
                         shape: BoxShape.circle,
-                        border: Border.all(color: sel ? themePrimary : themeBg, width: 1.5),
+                        border: Border.all(
+                          color: sel ? themePrimary : themeBg,
+                          width: 1.5,
+                        ),
                       ),
                       child: Center(
                         child: Text(

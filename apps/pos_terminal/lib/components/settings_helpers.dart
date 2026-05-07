@@ -21,7 +21,14 @@ class SettingsHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(color: themeText, fontSize: 32, fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: TextStyle(
+            color: themeText,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 8),
         Text(subtitle, style: TextStyle(color: themeHint, fontSize: 16)),
       ],
@@ -57,7 +64,14 @@ class SettingsGridCard extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-            child: Text(title, style: TextStyle(color: themeText, fontSize: 16, fontWeight: FontWeight.bold)),
+            child: Text(
+              title,
+              style: TextStyle(
+                color: themeText,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(height: 8),
           Divider(color: themeBorder),
@@ -102,7 +116,8 @@ class _SettingInputState extends State<SettingInput> {
   @override
   void didUpdateWidget(SettingInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialValue != widget.initialValue && _controller.text != widget.initialValue) {
+    if (oldWidget.initialValue != widget.initialValue &&
+        _controller.text != widget.initialValue) {
       _controller.text = widget.initialValue;
     }
   }
@@ -122,8 +137,16 @@ class _SettingInputState extends State<SettingInput> {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      title: Text(widget.label, style: TextStyle(color: themeText, fontWeight: FontWeight.w600)),
-      subtitle: widget.description.isNotEmpty ? Text(widget.description, style: TextStyle(color: themeHint, fontSize: 13)) : null,
+      title: Text(
+        widget.label,
+        style: TextStyle(color: themeText, fontWeight: FontWeight.w600),
+      ),
+      subtitle: widget.description.isNotEmpty
+          ? Text(
+              widget.description,
+              style: TextStyle(color: themeHint, fontSize: 13),
+            )
+          : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -133,15 +156,25 @@ class _SettingInputState extends State<SettingInput> {
               controller: _controller,
               obscureText: widget.isObscure,
               textAlign: widget.isNumeric ? TextAlign.end : TextAlign.start,
-              keyboardType: widget.isNumeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+              keyboardType: widget.isNumeric
+                  ? const TextInputType.numberWithOptions(decimal: true)
+                  : TextInputType.text,
               decoration: InputDecoration(
-                border: widget.isNumeric ? InputBorder.none : const OutlineInputBorder(),
-                hintText: widget.isNumeric ? null : 'Enter ${widget.label.toLowerCase()}...',
-                contentPadding: widget.isNumeric ? null : const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                border: widget.isNumeric
+                    ? InputBorder.none
+                    : const OutlineInputBorder(),
+                hintText: widget.isNumeric
+                    ? null
+                    : 'Enter ${widget.label.toLowerCase()}...',
+                contentPadding: widget.isNumeric
+                    ? null
+                    : const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
               style: TextStyle(
-                color: widget.isNumeric ? themePrimary : themeText, 
-                fontWeight: widget.isNumeric ? FontWeight.bold : FontWeight.normal,
+                color: widget.isNumeric ? themePrimary : themeText,
+                fontWeight: widget.isNumeric
+                    ? FontWeight.bold
+                    : FontWeight.normal,
                 fontSize: 14,
               ),
               onSubmitted: widget.onChanged,
@@ -149,7 +182,11 @@ class _SettingInputState extends State<SettingInput> {
           ),
           const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.check_circle_outline, color: Colors.green, size: 22),
+            icon: const Icon(
+              Icons.check_circle_outline,
+              color: Colors.green,
+              size: 22,
+            ),
             onPressed: () => widget.onChanged(_controller.text),
             tooltip: LocalizationService().translate('save'),
           ),
@@ -182,8 +219,14 @@ class SettingToggle extends StatelessWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      title: Text(label, style: TextStyle(color: themeText, fontWeight: FontWeight.w600)),
-      subtitle: Text(description, style: TextStyle(color: themeHint, fontSize: 13)),
+      title: Text(
+        label,
+        style: TextStyle(color: themeText, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(color: themeHint, fontSize: 13),
+      ),
       trailing: Switch(
         value: value,
         onChanged: onChanged,
@@ -221,16 +264,24 @@ class SettingDropdown extends StatelessWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      title: Text(label, style: TextStyle(color: themeText, fontWeight: FontWeight.w600)),
-      subtitle: Text(description, style: TextStyle(color: themeHint, fontSize: 13)),
+      title: Text(
+        label,
+        style: TextStyle(color: themeText, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(color: themeHint, fontSize: 13),
+      ),
       trailing: DropdownButton<String>(
-        value: items.contains(value) ? value : (items.isNotEmpty ? items.first : null),
+        value: items.contains(value)
+            ? value
+            : (items.isNotEmpty ? items.first : null),
         underline: const SizedBox.shrink(),
         dropdownColor: themeCard,
         items: items.map((opt) {
           final displayLabel = labels?[opt] ?? opt;
           return DropdownMenuItem(
-            value: opt, 
+            value: opt,
             child: Text(displayLabel, style: TextStyle(color: themeText)),
           );
         }).toList(),
@@ -261,19 +312,37 @@ class SettingColorPicker extends StatelessWidget {
     final themeHint = themeText.withValues(alpha: 0.6);
 
     final presets = [
-      {'name': 'Pulse Orange', 'color': const Color(0xFFF15A24), 'hex': '#F15A24'},
+      {
+        'name': 'Pulse Orange',
+        'color': const Color(0xFFF15A24),
+        'hex': '#F15A24',
+      },
       {'name': 'Navy Blue', 'color': const Color(0xFF1E3A8A), 'hex': '#1E3A8A'},
-      {'name': 'Ocean Blue', 'color': const Color(0xFF0EA5E9), 'hex': '#0EA5E9'},
+      {
+        'name': 'Ocean Blue',
+        'color': const Color(0xFF0EA5E9),
+        'hex': '#0EA5E9',
+      },
       {'name': 'Emerald', 'color': const Color(0xFF10B981), 'hex': '#10B981'},
-      {'name': 'Royal Purple', 'color': const Color(0xFF8B5CF6), 'hex': '#8B5CF6'},
+      {
+        'name': 'Royal Purple',
+        'color': const Color(0xFF8B5CF6),
+        'hex': '#8B5CF6',
+      },
       {'name': 'Crimson', 'color': const Color(0xFFEF4444), 'hex': '#EF4444'},
       {'name': 'Amber', 'color': const Color(0xFFF59E0B), 'hex': '#F59E0B'},
     ];
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      title: Text(label, style: TextStyle(color: themeText, fontWeight: FontWeight.w600)),
-      subtitle: Text(description, style: TextStyle(color: themeHint, fontSize: 13)),
+      title: Text(
+        label,
+        style: TextStyle(color: themeText, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(color: themeHint, fontSize: 13),
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -294,11 +363,21 @@ class SettingColorPicker extends StatelessWidget {
                       color: isSelected ? Colors.white : Colors.transparent,
                       width: 2,
                     ),
-                    boxShadow: isSelected ? [
-                      BoxShadow(color: (p['color'] as Color).withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)
-                    ] : [],
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: (p['color'] as Color).withValues(
+                                alpha: 0.4,
+                              ),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : [],
                   ),
-                  child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : null,
                 ),
               ),
             );
@@ -312,11 +391,16 @@ class SettingColorPicker extends StatelessWidget {
                 hintText: '#HEX',
                 prefixText: '#',
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 border: const OutlineInputBorder(),
               ),
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-              controller: TextEditingController(text: value?.replaceFirst('#', '')),
+              controller: TextEditingController(
+                text: value?.replaceFirst('#', ''),
+              ),
               onSubmitted: (val) {
                 if (val.isNotEmpty) {
                   onChanged('#${val.replaceFirst('#', '')}');

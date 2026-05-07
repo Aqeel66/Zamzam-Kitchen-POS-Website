@@ -52,24 +52,28 @@ class SoundService extends ChangeNotifier {
 
   Future<void> play(String soundName) async {
     if (!_enabled) return;
-    
+
     String url;
     switch (soundName) {
       case 'Modern Alert':
-        url = 'https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'; // Classic short
+        url =
+            'https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'; // Classic short
         break;
       case 'Kitchen Chime':
-        url = 'https://assets.mixkit.co/active_storage/sfx/1010/1010-preview.mp3'; // Bell ding
+        url =
+            'https://assets.mixkit.co/active_storage/sfx/1010/1010-preview.mp3'; // Bell ding
         break;
       case 'Soft Notification':
-        url = 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'; // Soft electronic beep
+        url =
+            'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'; // Soft electronic beep
         break;
       case 'Classic Ding':
       default:
-        url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'; // Traditional notification bell
+        url =
+            'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'; // Traditional notification bell
         break;
     }
-    
+
     try {
       await _player.play(UrlSource(url));
     } catch (e) {

@@ -55,16 +55,22 @@ router.get('/financial', async (req, res) => {
     // Using current recipe prices * quantities sold
     const [cogs] = await db.query(`
       SELECT 
-        SUM(oi.quantity * mii.quantity_required * (
-          SELECT unit_price FROM purchase_order_items 
-          WHERE inventory_item_id = mii.inventory_item_id 
-          ORDER BY id DESC LIMIT 1
+        SUM(oi.quantity * mii.quantity_required * COALESCE(
+          (SELECT unit_price FROM purchase_order_items 
+           WHERE inventory_item_id = mii.inventory_item_id 
+           ORDER BY id DESC LIMIT 1),
+          ii.cost_per_unit,
+          0
         )) as estimated_cogs
       FROM order_items oi
       JOIN orders o ON oi.order_id = o.id
       JOIN menu_item_ingredients mii ON oi.menu_item_id = mii.menu_item_id
+      JOIN inventory_items ii ON mii.inventory_item_id = ii.id
       WHERE ${dateFilter} AND o.status != 'Cancelled'
-    `).catch(() => [[{ estimated_cogs: 0 }]]);
+    `).catch((err) => {
+      console.error('COGS Query Error:', err);
+      return [[{ estimated_cogs: 0 }]];
+    });
 
     const financialData = {
       summary: sales[0] || { order_count: 0, gross_sales: 0, total_discounts: 0, net_sales: 0 },
@@ -147,6 +153,52 @@ router.get('/operational', async (req, res) => {
     });
   } catch (error) {
     console.error('Operational Report Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+/**
+ * @route   GET /api/reports/inventory-trends
+ * @desc    Get procurement trends and cost fluctuations
+ */
+router.get('/inventory-trends', async (req, res) => {
+  try {
+    // 1. Vendor Spend Distribution
+    const [vendorSpend] = await db.query(`
+      SELECT 
+        s.name as vendor_name,
+        COUNT(po.id) as order_count,
+        SUM(po.total_amount) as total_spend
+      FROM purchase_orders po
+      JOIN suppliers s ON po.supplier_id = s.id
+      WHERE po.status = 'Received'
+      GROUP BY s.id
+      ORDER BY total_spend DESC
+    `);
+
+    // 2. Recent Item Cost Fluctuations (Top 10 most purchased items)
+    const [costFluctuations] = await db.query(`
+      SELECT 
+        ii.name as item_name,
+        poi.unit_price,
+        po.order_date,
+        s.name as supplier_name
+      FROM purchase_order_items poi
+      JOIN purchase_orders po ON poi.purchase_order_id = po.id
+      JOIN inventory_items ii ON poi.inventory_item_id = ii.id
+      JOIN suppliers s ON po.supplier_id = s.id
+      WHERE po.status = 'Received'
+      ORDER BY ii.name, po.order_date DESC
+      LIMIT 100
+    `);
+
+    res.json({
+      vendorSpend,
+      costFluctuations,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('Inventory Trends Error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

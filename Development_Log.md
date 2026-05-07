@@ -87,4 +87,43 @@ Today's focus was on finalizing the Expense Logging system and standardizing glo
 - **Dependency Management**: Stabilized PDF and printing service integrations across the workspace.
 
 ---
+
+## Session Date: May 7, 2026
+
+### Overview
+This session focused on infrastructure stabilization, refactoring the POS cart UI, and initializing the Waiter App module.
+
+### 1. Infrastructure & Stability
+- **"Crash-Proof" Backend**: Implemented `try-catch` blocks around directory creation and filesystem operations to prevent fatal server crashes on Hostinger.
+- **Async Database Sync**: Refactored the Node.js startup sequence to run database schema synchronization in the background, preventing Hostinger health check timeouts.
+- **Persistent Asset Logging**: Added 404 logging for assets to identify missing files caused by Git deployment wipes.
+
+### 2. POS Terminal Enhancements
+- **Cart UI Refinement**: 
+    - Initially implemented item description visibility in the cart.
+    - Reverted to a compact layout (removing descriptions) based on user preference to maximize space efficiency in high-density orders.
+- **Branding Consistency**: Fixed login page background resolution and asset path handling for production environments.
+
+### 3. Waiter App Initialization
+- **Project Setup**: Initialized a new Flutter project in `apps/waiter_app`.
+- **Shared Architecture**:
+    - Linked `ui_kit`, `core_logic`, and `settings_manager` shared packages.
+    - Reused `ThemeService`, `ApiService`, and `LocalizationService` from the POS terminal.
+- **Module Foundation**:
+    - Implemented a branded Login Page consistent with the POS system.
+    - Created a placeholder Waiter Dashboard with logout functionality.
+
+---
+### 4. Staff Management & Branding Persistence
+- **Fixed User Management Persistence**:
+    - Resolved a critical bug where creating staff members failed silently due to a `role_ids` type mismatch (String vs. Array).
+    - Frontend now correctly sends `role_ids` as a JSON list.
+    - Backend `users.js` now robustly handles both comma-separated strings and JSON arrays.
+- **Enhanced Branding Stability**:
+    - **Deployment Protection**: Modified `.gitignore` to prevent Git push/pull from overwriting or deleting user-uploaded assets (Logos, Backgrounds, Menu Images) on the live server.
+    - **Specialized Upload Routes**: Added dedicated backend routes for `login-bg` and `hero-bg` to ensure high-resolution background persistence.
+- **Improved UX Feedback**:
+    - Added **Detailed Error Reporting** (Red Snackbars) across User Management and Image Uploads. The system now informs the user of specific failures (e.g., "Username taken" or "File too large") instead of failing silently.
+
+---
 **End of Session Log**

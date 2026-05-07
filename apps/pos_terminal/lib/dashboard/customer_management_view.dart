@@ -6,9 +6,7 @@ import '../theme_service.dart';
 import '../components/pos_widgets.dart';
 
 class CustomerManagementView extends StatefulWidget {
-  const CustomerManagementView({
-    super.key,
-  });
+  const CustomerManagementView({super.key});
 
   @override
   State<CustomerManagementView> createState() => _CustomerManagementViewState();
@@ -28,7 +26,9 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
   Future<void> _fetchCustomers() async {
     setState(() => _isLoading = true);
     try {
-      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/customers'));
+      final res = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/customers'),
+      );
       if (res.statusCode == 200) {
         setState(() => _customers = json.decode(res.body));
       }
@@ -41,19 +41,31 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
 
   Future<void> _saveCustomer(Map<String, dynamic> customer, {int? id}) async {
     try {
-      final url = id == null 
-        ? '${ThemeService.apiBaseUrl}/api/customers'
-        : '${ThemeService.apiBaseUrl}/api/customers/$id';
-      
-      final res = id == null 
-        ? await http.post(Uri.parse(url), headers: {'Content-Type': 'application/json'}, body: json.encode(customer))
-        : await http.put(Uri.parse(url), headers: {'Content-Type': 'application/json'}, body: json.encode(customer));
+      final url = id == null
+          ? '${ThemeService.apiBaseUrl}/api/customers'
+          : '${ThemeService.apiBaseUrl}/api/customers/$id';
+
+      final res = id == null
+          ? await http.post(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode(customer),
+            )
+          : await http.put(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode(customer),
+            );
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         _fetchCustomers();
       } else {
-        final error = json.decode(res.body)['error'] ?? 'Failed to save customer';
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+        final error =
+            json.decode(res.body)['error'] ?? 'Failed to save customer';
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error)));
       }
     } catch (e) {
       if (kDebugMode) print('Save Customer Error: $e');
@@ -62,7 +74,9 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
 
   Future<void> _deleteCustomer(int id) async {
     try {
-      final res = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/customers/$id'));
+      final res = await http.delete(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/customers/$id'),
+      );
       if (res.statusCode == 200) {
         _fetchCustomers();
       }
@@ -89,7 +103,9 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
           final name = '${c['first_name']} ${c['last_name']}'.toLowerCase();
           final email = (c['email'] ?? '').toString().toLowerCase();
           final phone = (c['phone'] ?? '').toString().toLowerCase();
-          return name.contains(query) || email.contains(query) || phone.contains(query);
+          return name.contains(query) ||
+              email.contains(query) ||
+              phone.contains(query);
         }).toList();
 
         return Container(
@@ -105,18 +121,43 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Customer Directory', style: TextStyle(color: themeText, fontSize: 32, fontWeight: FontWeight.bold)),
-                      Text('Manage your loyal customers and their preferences.', style: TextStyle(color: themeHint, fontSize: 14)),
+                      Text(
+                        'Customer Directory',
+                        style: TextStyle(
+                          color: themeText,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Manage your loyal customers and their preferences.',
+                        style: TextStyle(color: themeHint, fontSize: 14),
+                      ),
                     ],
                   ),
                   ElevatedButton.icon(
                     onPressed: () => _showCustomerDialog(null, theme),
-                    icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 20),
-                    label: const Text('Add New Customer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    icon: const Icon(
+                      Icons.person_add_alt_1_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    label: const Text(
+                      'Add New Customer',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: themePrimary,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 18,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 4,
                       shadowColor: themePrimary.withValues(alpha: 0.3),
                     ),
@@ -124,7 +165,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                 ],
               ),
               const SizedBox(height: 32),
-              
+
               // Search Bar
               Container(
                 width: 450,
@@ -132,7 +173,11 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                   color: themeCard,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                   border: Border.all(color: themeBorder),
                 ),
@@ -144,7 +189,10 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                     hintStyle: TextStyle(color: themeHint, fontSize: 14),
                     prefixIcon: Icon(Icons.search_rounded, color: themePrimary),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 15,
+                    ),
                   ),
                 ),
               ),
@@ -152,15 +200,30 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
 
               // Customer List
               Expanded(
-                child: _isLoading 
-                  ? Center(child: CircularProgressIndicator(color: themePrimary))
-                  : filteredCustomers.isEmpty
-                    ? Center(child: Text('No customers found', style: TextStyle(color: themeHint)))
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(color: themePrimary),
+                      )
+                    : filteredCustomers.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No customers found',
+                          style: TextStyle(color: themeHint),
+                        ),
+                      )
                     : ListView.builder(
                         itemCount: filteredCustomers.length,
                         itemBuilder: (context, index) {
                           final c = filteredCustomers[index];
-                          return _buildCustomerCard(c, theme, themeText, themeHint, themeCard, themeBorder, themePrimary);
+                          return _buildCustomerCard(
+                            c,
+                            theme,
+                            themeText,
+                            themeHint,
+                            themeCard,
+                            themeBorder,
+                            themePrimary,
+                          );
                         },
                       ),
               ),
@@ -171,7 +234,15 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
     );
   }
 
-  Widget _buildCustomerCard(dynamic c, ThemeData theme, Color text, Color hint, Color card, Color border, Color primary) {
+  Widget _buildCustomerCard(
+    dynamic c,
+    ThemeData theme,
+    Color text,
+    Color hint,
+    Color card,
+    Color border,
+    Color primary,
+  ) {
     final origin = c['origin'] ?? 'In-Store';
 
     return Container(
@@ -182,7 +253,11 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: border),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
@@ -192,7 +267,11 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
             backgroundColor: primary.withValues(alpha: 0.1),
             child: Text(
               '${c['first_name']?[0] ?? 'C'}'.toUpperCase(),
-              style: TextStyle(color: primary, fontWeight: FontWeight.bold, fontSize: 20),
+              style: TextStyle(
+                color: primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
             ),
           ),
           const SizedBox(width: 24),
@@ -202,7 +281,14 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
               children: [
                 Row(
                   children: [
-                    Text('${c['first_name']} ${c['last_name']}', style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      '${c['first_name']} ${c['last_name']}',
+                      style: TextStyle(
+                        color: text,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     OriginBadge(origin: origin, themePrimary: primary),
                   ],
@@ -212,22 +298,29 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                   children: [
                     Icon(Icons.email_outlined, size: 14, color: hint),
                     const SizedBox(width: 6),
-                    Text(c['email'] ?? 'No email', style: TextStyle(color: hint, fontSize: 13)),
+                    Text(
+                      c['email'] ?? 'No email',
+                      style: TextStyle(color: hint, fontSize: 13),
+                    ),
                     const SizedBox(width: 20),
                     Icon(Icons.phone_outlined, size: 14, color: hint),
                     const SizedBox(width: 6),
-                    Text(c['phone'] ?? 'No phone', style: TextStyle(color: hint, fontSize: 13)),
+                    Text(
+                      c['phone'] ?? 'No phone',
+                      style: TextStyle(color: hint, fontSize: 13),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-          if (c['dietary_profile'] != null && c['dietary_profile'].toString().isNotEmpty)
-             BaseBadge(
-                label: c['dietary_profile'],
-                color: Colors.green,
-                icon: Icons.restaurant_menu_rounded,
-             ),
+          if (c['dietary_profile'] != null &&
+              c['dietary_profile'].toString().isNotEmpty)
+            BaseBadge(
+              label: c['dietary_profile'],
+              color: Colors.green,
+              icon: Icons.restaurant_menu_rounded,
+            ),
           const SizedBox(width: 40),
           IconButton(
             icon: Icon(Icons.edit_outlined, color: hint),
@@ -235,7 +328,10 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
             tooltip: 'Edit Customer',
           ),
           IconButton(
-            icon: Icon(Icons.delete_outline_rounded, color: Colors.redAccent.withValues(alpha: 0.7)),
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              color: Colors.redAccent.withValues(alpha: 0.7),
+            ),
             onPressed: () => _showDeleteConfirm(c, card, text),
             tooltip: 'Delete Customer',
           ),
@@ -250,11 +346,21 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
     final themeCard = theme.cardColor;
     final themePrimary = theme.primaryColor;
 
-    final fnController = TextEditingController(text: customer?['first_name'] ?? '');
-    final lnController = TextEditingController(text: customer?['last_name'] ?? '');
-    final emailController = TextEditingController(text: customer?['email'] ?? '');
-    final phoneController = TextEditingController(text: customer?['phone'] ?? '');
-    final dpController = TextEditingController(text: customer?['dietary_profile'] ?? '');
+    final fnController = TextEditingController(
+      text: customer?['first_name'] ?? '',
+    );
+    final lnController = TextEditingController(
+      text: customer?['last_name'] ?? '',
+    );
+    final emailController = TextEditingController(
+      text: customer?['email'] ?? '',
+    );
+    final phoneController = TextEditingController(
+      text: customer?['phone'] ?? '',
+    );
+    final dpController = TextEditingController(
+      text: customer?['dietary_profile'] ?? '',
+    );
     String selectedOrigin = customer?['origin'] ?? 'In-Store';
 
     showDialog(
@@ -262,8 +368,13 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(customer == null ? 'Add Customer' : 'Edit Customer', style: TextStyle(color: themeText, fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            customer == null ? 'Add Customer' : 'Edit Customer',
+            style: TextStyle(color: themeText, fontWeight: FontWeight.bold),
+          ),
           content: SizedBox(
             width: 500,
             child: Column(
@@ -272,20 +383,53 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField('First Name', fnController, themeText, themeHint, themePrimary),
+                      child: _buildTextField(
+                        'First Name',
+                        fnController,
+                        themeText,
+                        themeHint,
+                        themePrimary,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildTextField('Last Name', lnController, themeText, themeHint, themePrimary),
+                      child: _buildTextField(
+                        'Last Name',
+                        lnController,
+                        themeText,
+                        themeHint,
+                        themePrimary,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildTextField('Email Address', emailController, themeText, themeHint, themePrimary, icon: Icons.email_outlined),
+                _buildTextField(
+                  'Email Address',
+                  emailController,
+                  themeText,
+                  themeHint,
+                  themePrimary,
+                  icon: Icons.email_outlined,
+                ),
                 const SizedBox(height: 16),
-                _buildTextField('Phone Number', phoneController, themeText, themeHint, themePrimary, icon: Icons.phone_outlined),
+                _buildTextField(
+                  'Phone Number',
+                  phoneController,
+                  themeText,
+                  themeHint,
+                  themePrimary,
+                  icon: Icons.phone_outlined,
+                ),
                 const SizedBox(height: 16),
-                _buildTextField('Dietary Preferences / Notes', dpController, themeText, themeHint, themePrimary, icon: Icons.restaurant_menu_rounded),
+                _buildTextField(
+                  'Dietary Preferences / Notes',
+                  dpController,
+                  themeText,
+                  themeHint,
+                  themePrimary,
+                  icon: Icons.restaurant_menu_rounded,
+                ),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
                   value: selectedOrigin,
@@ -293,29 +437,48 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                   decoration: InputDecoration(
                     labelText: 'Lead Source / Origin',
                     labelStyle: TextStyle(color: themeHint),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: themeText.withValues(alpha: 0.1))),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: themePrimary)),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: themeText.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: themePrimary),
+                    ),
                   ),
                   style: TextStyle(color: themeText),
-                  items: ['In-Store', 'Website', 'QR-Menu'].map((s) => DropdownMenuItem(value: s, child: Text(s == 'In-Store' ? 'Counter' : s))).toList(),
-                  onChanged: (val) => setDialogState(() => selectedOrigin = val!),
+                  items: ['In-Store', 'Website', 'QR-Menu']
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(s == 'In-Store' ? 'Counter' : s),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) =>
+                      setDialogState(() => selectedOrigin = val!),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('CANCEL', style: TextStyle(color: themeHint))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('CANCEL', style: TextStyle(color: themeHint)),
+            ),
             ElevatedButton(
               onPressed: () {
                 if (fnController.text.trim().isEmpty) {
-                  _showWarningDialog('Please enter the customer\'s first name.');
+                  _showWarningDialog(
+                    'Please enter the customer\'s first name.',
+                  );
                   return;
                 }
                 if (lnController.text.trim().isEmpty) {
                   _showWarningDialog('Please enter the customer\'s last name.');
                   return;
                 }
-                
+
                 final data = {
                   'first_name': fnController.text,
                   'last_name': lnController.text,
@@ -329,10 +492,21 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: themePrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: const Text('SAVE CUSTOMER', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'SAVE CUSTOMER',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -340,7 +514,14 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, Color text, Color hint, Color primary, {IconData? icon}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    Color text,
+    Color hint,
+    Color primary, {
+    IconData? icon,
+  }) {
     return TextField(
       controller: controller,
       style: TextStyle(color: text),
@@ -348,8 +529,12 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         labelText: label,
         labelStyle: TextStyle(color: hint, fontSize: 13),
         prefixIcon: icon != null ? Icon(icon, size: 18, color: hint) : null,
-        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: text.withValues(alpha: 0.1))),
-        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: primary)),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: text.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: primary),
+        ),
       ),
     );
   }
@@ -360,20 +545,27 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
       builder: (ctx) => AlertDialog(
         backgroundColor: card,
         title: Text('Delete Customer?', style: TextStyle(color: text)),
-        content: Text('Are you sure you want to remove ${customer['first_name']}? this will delete their history from the directory.', style: TextStyle(color: text.withValues(alpha: 0.7))),
+        content: Text(
+          'Are you sure you want to remove ${customer['first_name']}? this will delete their history from the directory.',
+          style: TextStyle(color: text.withValues(alpha: 0.7)),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () {
               _deleteCustomer(customer['id']);
               Navigator.pop(ctx);
-            }, 
-            child: const Text('DELETE', style: TextStyle(color: Colors.red))
+            },
+            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
+
   void _showWarningDialog(String message) {
     showDialog(
       context: context,
@@ -390,7 +582,10 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'OK',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

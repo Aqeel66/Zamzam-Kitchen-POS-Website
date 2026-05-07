@@ -35,9 +35,19 @@ router.post('/', async (req, res) => {
     const userId = userResult.insertId;
 
     // 2. Insert roles
-    if (role_ids && role_ids.length > 0) {
-      const values = role_ids.map(roleId => [userId, roleId]);
-      await connection.query('INSERT INTO user_roles (user_id, role_id) VALUES ?', [values]);
+    if (role_ids) {
+      let roleArray = [];
+      if (Array.isArray(role_ids)) {
+        roleArray = role_ids;
+      } else if (typeof role_ids === 'string' && role_ids.trim() !== '') {
+        roleArray = role_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      }
+
+      if (roleArray.length > 0) {
+        const values = roleArray.map(roleId => [userId, roleId]);
+        console.log(`Assigning roles to user ${userId}:`, roleArray);
+        await connection.query('INSERT INTO user_roles (user_id, role_id) VALUES ?', [values]);
+      }
     }
 
     await connection.commit();
@@ -66,9 +76,19 @@ router.put('/:id', async (req, res) => {
 
     // 2. Update roles (simple replace)
     await connection.query('DELETE FROM user_roles WHERE user_id = ?', [id]);
-    if (role_ids && role_ids.length > 0) {
-      const values = role_ids.map(roleId => [id, roleId]);
-      await connection.query('INSERT INTO user_roles (user_id, role_id) VALUES ?', [values]);
+    if (role_ids) {
+      let roleArray = [];
+      if (Array.isArray(role_ids)) {
+        roleArray = role_ids;
+      } else if (typeof role_ids === 'string' && role_ids.trim() !== '') {
+        roleArray = role_ids.split(',').map(rid => parseInt(rid.trim())).filter(rid => !isNaN(rid));
+      }
+
+      if (roleArray.length > 0) {
+        const values = roleArray.map(roleId => [id, roleId]);
+        console.log(`Updating roles for user ${id}:`, roleArray);
+        await connection.query('INSERT INTO user_roles (user_id, role_id) VALUES ?', [values]);
+      }
     }
 
     await connection.commit();

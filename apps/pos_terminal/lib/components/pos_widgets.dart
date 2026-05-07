@@ -28,13 +28,15 @@ class BaseBadge extends StatelessWidget {
           color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color, width: 1.5),
-          boxShadow: useShadow ? [
-            BoxShadow(
-              color: color.withValues(alpha: 0.2),
-              blurRadius: 4 * opacity,
-              spreadRadius: 2 * opacity,
-            )
-          ] : null,
+          boxShadow: useShadow
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.2),
+                    blurRadius: 4 * opacity,
+                    spreadRadius: 2 * opacity,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -74,14 +76,22 @@ class OrderStatusChip extends StatelessWidget {
 
   Color _getStatusColor(String s) {
     switch (s) {
-      case 'Pending': return Colors.red;
-      case 'Ordered': return Colors.orange;
-      case 'Preparing': return themePrimary;
-      case 'Ready': return Colors.greenAccent[700]!;
-      case 'Served': return Colors.teal;
-      case 'Paid': return Colors.green;
-      case 'Cancelled': return Colors.grey;
-      default: return Colors.grey;
+      case 'Pending':
+        return Colors.red;
+      case 'Ordered':
+        return Colors.orange;
+      case 'Preparing':
+        return themePrimary;
+      case 'Ready':
+        return Colors.greenAccent[700]!;
+      case 'Served':
+        return Colors.teal;
+      case 'Paid':
+        return Colors.green;
+      case 'Cancelled':
+        return Colors.grey;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -90,11 +100,8 @@ class OrderStatusChip extends StatelessWidget {
     String s = status.toLowerCase();
     if (s == 'ordered' || s == 'paid') return const SizedBox.shrink();
     Color c = _getStatusColor(status);
-    
-    return BaseBadge(
-      label: status,
-      color: c,
-    );
+
+    return BaseBadge(label: status, color: c);
   }
 }
 
@@ -102,16 +109,12 @@ class OriginBadge extends StatelessWidget {
   final String? origin;
   final Color themePrimary;
 
-  const OriginBadge({
-    super.key,
-    this.origin,
-    required this.themePrimary,
-  });
+  const OriginBadge({super.key, this.origin, required this.themePrimary});
 
   @override
   Widget build(BuildContext context) {
     if (origin == null || origin!.isEmpty) return const SizedBox.shrink();
-    
+
     Color badgeColor;
     IconData badgeIcon;
     String? labelOverride;
@@ -127,7 +130,7 @@ class OriginBadge extends StatelessWidget {
       badgeColor = Colors.purple;
       badgeIcon = Icons.qr_code_scanner;
     }
-    
+
     return BaseBadge(
       label: labelOverride ?? origin!,
       color: badgeColor,
@@ -139,18 +142,21 @@ class OriginBadge extends StatelessWidget {
 class PaymentStatusBadge extends StatelessWidget {
   final Map<String, dynamic> order;
 
-  const PaymentStatusBadge({
-    super.key,
-    required this.order,
-  });
+  const PaymentStatusBadge({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
     final status = (order['status']?.toString() ?? '').toLowerCase();
-    final paymentStatus = (order['payment_status']?.toString() ?? '').toLowerCase();
-    
-    bool isPaid = status == 'paid' || paymentStatus == 'paid' || order['payment'] != null || (order['payment_method'] != null && order['payment_method'].toString().isNotEmpty);
-    
+    final paymentStatus = (order['payment_status']?.toString() ?? '')
+        .toLowerCase();
+
+    bool isPaid =
+        status == 'paid' ||
+        paymentStatus == 'paid' ||
+        order['payment'] != null ||
+        (order['payment_method'] != null &&
+            order['payment_method'].toString().isNotEmpty);
+
     if (isPaid) {
       return _StatusBadge(
         color: Colors.green,
@@ -158,7 +164,7 @@ class PaymentStatusBadge extends StatelessWidget {
         icon: Icons.check_circle_rounded,
       );
     }
-    
+
     return _StatusBadge(
       color: Colors.deepOrange,
       label: LocalizationService().translate('unpaid'),
@@ -199,30 +205,31 @@ class _StatusBadge extends StatelessWidget {
 class ReservationStatusChip extends StatelessWidget {
   final String status;
 
-  const ReservationStatusChip({
-    super.key,
-    required this.status,
-  });
+  const ReservationStatusChip({super.key, required this.status});
 
   Color _getResStatusColor(String s) {
     switch (s.toLowerCase()) {
-      case 'pending': return Colors.orange;
-      case 'confirmed': return Colors.green;
-      case 'seated': return Colors.blue;
-      case 'completed': return Colors.teal;
-      case 'cancelled': return Colors.red;
-      case 'no-show': return Colors.grey;
-      default: return Colors.grey;
+      case 'pending':
+        return Colors.orange;
+      case 'confirmed':
+        return Colors.green;
+      case 'seated':
+        return Colors.blue;
+      case 'completed':
+        return Colors.teal;
+      case 'cancelled':
+        return Colors.red;
+      case 'no-show':
+        return Colors.grey;
+      default:
+        return Colors.grey;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     Color c = _getResStatusColor(status);
-    return BaseBadge(
-      label: status,
-      color: c,
-    );
+    return BaseBadge(label: status, color: c);
   }
 }
 
@@ -230,11 +237,7 @@ class OrderTypeBadge extends StatelessWidget {
   final String? type;
   final Color themePrimary;
 
-  const OrderTypeBadge({
-    super.key,
-    this.type,
-    required this.themePrimary,
-  });
+  const OrderTypeBadge({super.key, this.type, required this.themePrimary});
 
   @override
   Widget build(BuildContext context) {
@@ -266,10 +269,6 @@ class OrderTypeBadge extends StatelessWidget {
         badgeIcon = Icons.info_outline_rounded;
     }
 
-    return BaseBadge(
-      label: label,
-      color: badgeColor,
-      icon: badgeIcon,
-    );
+    return BaseBadge(label: label, color: badgeColor, icon: badgeIcon);
   }
 }

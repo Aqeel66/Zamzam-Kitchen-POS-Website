@@ -15,10 +15,7 @@ class POSApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([
-        ThemeService(),
-        LocalizationService(),
-      ]),
+      listenable: Listenable.merge([ThemeService(), LocalizationService()]),
       builder: (context, child) {
         return MaterialApp(
           title: 'Zamzam Kitchen POS',

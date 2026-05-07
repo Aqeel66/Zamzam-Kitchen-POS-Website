@@ -33,14 +33,16 @@ class LocalizationService extends ChangeNotifier {
       'terminal': 'Terminal',
       'close': 'Close',
       'attention': 'Attention',
-      'add_items_to_cart_warning': 'Please add items to your cart before proceeding.',
+      'add_items_to_cart_warning':
+          'Please add items to your cart before proceeding.',
       'select_table_warning': 'Please select a table for this Dine-In order.',
       'select_waiter_warning': 'Please select a waiter for this order.',
       'enter_guest_name_warning': 'Please enter the guest name.',
       'enter_guest_phone_warning': 'Please enter the guest phone number.',
       'enter_table_number_warning': 'Please enter a table number.',
       'enter_capacity_warning': 'Please specify table capacity.',
-      'fill_guest_details_warning': 'Please provide both Name and Phone number to continue.',
+      'fill_guest_details_warning':
+          'Please provide both Name and Phone number to continue.',
       'ok': 'OK',
       'save_settings': 'Save Settings',
       'save_changes': 'Save Changes',
@@ -194,7 +196,8 @@ class LocalizationService extends ChangeNotifier {
       'low_stock_alert': 'Low Stock Alert',
       'payment_processed': 'Payment Processed',
       'payment_policy': 'Payment Policy',
-      'payment_policy_desc': 'Determine when payment is collected (Pay First for Counter, Pay Last for Tables)',
+      'payment_policy_desc':
+          'Determine when payment is collected (Pay First for Counter, Pay Last for Tables)',
       'pay_first': 'Pay First',
       'pay_last': 'Pay Last',
       'pay_all': 'Pay All',
@@ -244,7 +247,8 @@ class LocalizationService extends ChangeNotifier {
       'test_sound': 'Test Sound',
       'lang_settings': 'Language Settings',
       'auto_sync_active': 'Auto-sync Active (15s)',
-      'live_data_sync': 'Live data synchronization with Online Orders & Reservations',
+      'live_data_sync':
+          'Live data synchronization with Online Orders & Reservations',
       'todays_sale': "Today's Sale",
       'todays_orders': "Today's Orders",
       'lifetime_orders': 'Lifetime Orders',
@@ -299,7 +303,8 @@ class LocalizationService extends ChangeNotifier {
       'custom_item': 'Custom Item',
       'capacity_label': 'Capacity',
       'general_settings': 'General Settings',
-      'general_settings_desc': 'Configure core restaurant identity and preferences.',
+      'general_settings_desc':
+          'Configure core restaurant identity and preferences.',
       'restaurant_info': 'Restaurant Information',
       'legal_name': 'Legal Name',
       'legal_name_desc': 'Displayed on receipts and legal docs',
@@ -308,7 +313,8 @@ class LocalizationService extends ChangeNotifier {
       'interface_theme': 'Interface Theme',
       'interface_theme_desc': 'Visual style for all terminal interfaces',
       'operational_controls': 'Operational Controls',
-      'operational_controls_desc': 'Manage taxes, fees, and system automation behavior.',
+      'operational_controls_desc':
+          'Manage taxes, fees, and system automation behavior.',
       'taxes_gratuity': 'Taxes & Gratuity',
       'kitchen_bookings': 'Kitchen & Bookings',
       'order_channels': 'Order Channels',
@@ -400,7 +406,8 @@ class LocalizationService extends ChangeNotifier {
       'advance_booking_fee': 'Advance Booking Fee',
       'collect_at_counter': 'Collect from guest at counter',
       'card': 'Card',
-      'fee_policy_desc': 'Fee is deductible from final bill but non-refundable for no-shows.',
+      'fee_policy_desc':
+          'Fee is deductible from final bill but non-refundable for no-shows.',
       'free_status': 'Free',
       'occupied_status': 'Occupied',
       'pax_label': 'pax',
@@ -408,7 +415,8 @@ class LocalizationService extends ChangeNotifier {
       'copy_link': 'Copy Link',
       'settings_updated_msg': 'Settings updated successfully!',
       'messaging_integration': 'Messaging Integration',
-      'twilio_setup_desc': 'Configure Twilio for WhatsApp and SMS notifications.',
+      'twilio_setup_desc':
+          'Configure Twilio for WhatsApp and SMS notifications.',
       'account_sid': 'Account SID',
       'auth_token': 'Auth Token',
       'sender_number': 'Sender Number',
@@ -467,7 +475,8 @@ class LocalizationService extends ChangeNotifier {
       'edit_permissions_btn': 'EDIT PERMISSIONS',
       'assign_role': 'Assign Role',
       'delete_staff_q': 'Delete Staff?',
-      'remove_user_confirm': 'Are you sure you want to remove user from the system?',
+      'remove_user_confirm':
+          'Are you sure you want to remove user from the system?',
       'business_intelligence': 'Business Intelligence',
       'no_data': 'No data',
       'error_loading_page': 'Oops! Something went wrong loading this page.',
@@ -522,9 +531,11 @@ class LocalizationService extends ChangeNotifier {
       'from_label': 'From',
       'system_reset': 'System Reset',
       'system_maintenance': 'System Maintenance',
-      'reset_transactional_data_desc': 'Perform administrative maintenance by purging transactional records while keeping structural data intact.',
+      'reset_transactional_data_desc':
+          'Perform administrative maintenance by purging transactional records while keeping structural data intact.',
       'danger_zone': 'Danger Zone',
-      'reset_warning_text': 'This action will permanently delete all orders, payments, and operational history. This cannot be undone.',
+      'reset_warning_text':
+          'This action will permanently delete all orders, payments, and operational history. This cannot be undone.',
       'data_impact_analysis': 'Data Impact Analysis',
       'orders_payments_reservations': 'Orders, Payments & Reservations',
       'expenses_purchases': 'Expenses & Purchase Orders',
@@ -535,9 +546,11 @@ class LocalizationService extends ChangeNotifier {
       'will_be_deleted': 'WILL BE DELETED',
       'will_be_preserved': 'WILL BE PRESERVED',
       'are_you_sure': 'Are you absolutely sure?',
-      'reset_confirmation_detailed': 'You are about to purge all transactional data from the system. This will reset your dashboard metrics and order history to zero. Master data like your menu and staff will remain untouched.',
+      'reset_confirmation_detailed':
+          'You are about to purge all transactional data from the system. This will reset your dashboard metrics and order history to zero. Master data like your menu and staff will remain untouched.',
       'confirm_reset': 'CONFIRM RESET',
-      'transactional_reset_success': 'Transactional data has been successfully reset.',
+      'transactional_reset_success':
+          'Transactional data has been successfully reset.',
       'payment_success_message': 'Payment processed successfully!',
       'order_payment': 'Order Payment',
       'amount_due': 'Amount Due',
@@ -728,7 +741,8 @@ class LocalizationService extends ChangeNotifier {
       'low_stock_alert': 'تنبيه انخفاض المخزون',
       'payment_processed': 'تمت معالجة الدفع',
       'payment_policy': 'سياسة الدفع',
-      'payment_policy_desc': 'تحديد وقت تحصيل الدفع (الدفع أولاً للكاونتر، الدفع آخراً للطاولات)',
+      'payment_policy_desc':
+          'تحديد وقت تحصيل الدفع (الدفع أولاً للكاونتر، الدفع آخراً للطاولات)',
       'pay_first': 'دفع أولاً',
       'pay_last': 'دفع آخراً',
       'pay_all': 'دفع الكل',
@@ -778,7 +792,8 @@ class LocalizationService extends ChangeNotifier {
       'test_sound': 'تجربة الصوت',
       'lang_settings': 'إعدادات اللغة',
       'auto_sync_active': 'المزامنة التلقائية نشطة (15 ث)',
-      'live_data_sync': 'مزامنة البيانات الحية مع الطلبات عبر الإنترنت والحجوزات',
+      'live_data_sync':
+          'مزامنة البيانات الحية مع الطلبات عبر الإنترنت والحجوزات',
       'todays_sale': 'مبيعات اليوم',
       'todays_orders': 'طلبات اليوم',
       'lifetime_orders': 'إجمالي الطلبات',
@@ -915,7 +930,8 @@ class LocalizationService extends ChangeNotifier {
       'advance_booking_fee': 'رسوم الحجز المسبق',
       'collect_at_counter': 'تحصل من الضيف عند الكاونتر',
       'card': 'بطاقة',
-      'fee_policy_desc': 'الرسوم قابلة للخصم من الفاتورة النهائية ولكن غير قابلة للاسترداد في حالة عدم الحضور.',
+      'fee_policy_desc':
+          'الرسوم قابلة للخصم من الفاتورة النهائية ولكن غير قابلة للاسترداد في حالة عدم الحضور.',
       'free_status': 'شاغر',
       'occupied_status': 'مشغول',
       'pax_label': 'شخص',
@@ -934,7 +950,8 @@ class LocalizationService extends ChangeNotifier {
       'test_msg_success': 'تم! تم إرسال الرسالة التجريبية.',
       'error_label': 'خطأ',
       'email_notifications': 'البريد الإلكتروني والتنبيهات',
-      'smtp_setup_desc': 'تكوين خادم SMTP الخاص بك لإرسال رسائل البريد الإلكتروني التلقائية.',
+      'smtp_setup_desc':
+          'تكوين خادم SMTP الخاص بك لإرسال رسائل البريد الإلكتروني التلقائية.',
       'smtp_host': 'SMTP Host',
       'smtp_port': 'SMTP Port',
       'username': 'اسم المستخدم',
@@ -1031,9 +1048,11 @@ class LocalizationService extends ChangeNotifier {
       'from_label': 'من',
       'system_reset': 'إعادة ضبط النظام',
       'system_maintenance': 'صيانة النظام',
-      'reset_transactional_data_desc': 'إجراء صيانة إدارية عن طريق مسح السجلات المعاملات مع الحفاظ على البيانات الهيكلية سليمة.',
+      'reset_transactional_data_desc':
+          'إجراء صيانة إدارية عن طريق مسح السجلات المعاملات مع الحفاظ على البيانات الهيكلية سليمة.',
       'danger_zone': 'منطقة الخطر',
-      'reset_warning_text': 'سيؤدي هذا الإجراء إلى حذف جميع الطلبات والمدفوعات والسجل التشغيلي بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.',
+      'reset_warning_text':
+          'سيؤدي هذا الإجراء إلى حذف جميع الطلبات والمدفوعات والسجل التشغيلي بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.',
       'data_impact_analysis': 'تحليل تأثير البيانات',
       'orders_payments_reservations': 'الطلبات والمدفوعات والحجوزات',
       'expenses_purchases': 'المصاريف وطلبات الشراء',
@@ -1044,7 +1063,8 @@ class LocalizationService extends ChangeNotifier {
       'will_be_deleted': 'سيتم حذفها',
       'will_be_preserved': 'سيتم الحفاظ عليها',
       'are_you_sure': 'هل أنت متأكد تماماً؟',
-      'reset_confirmation_detailed': 'أنت على وشك مسح جميع بيانات المعاملات من النظام. سيؤدي هذا إلى إعادة تعيين مقاييس لوحة القيادة وسجل الطلبات إلى الصفر. ستبقى البيانات الأساسية مثل قائمتك وموظفيك دون تغيير.',
+      'reset_confirmation_detailed':
+          'أنت على وشك مسح جميع بيانات المعاملات من النظام. سيؤدي هذا إلى إعادة تعيين مقاييس لوحة القيادة وسجل الطلبات إلى الصفر. ستبقى البيانات الأساسية مثل قائمتك وموظفيك دون تغيير.',
       'confirm_reset': 'تأكيد إعادة الضبط',
       'transactional_reset_success': 'تمت إعادة ضبط بيانات المعاملات بنجاح.',
       'payment_success_message': 'تمت معالجة الدفع بنجاح!',
@@ -1089,7 +1109,8 @@ class LocalizationService extends ChangeNotifier {
       'main_course_items': 'مین کورس آئٹمز',
       'updating_order': 'آرڈر اپ ڈیٹ کر رہا ہے',
       'demo_mode_desc': 'ڈیمو موڈ: نمونہ دستخطی اشیاء دکھا رہا ہے',
-      'browse_menu_desc': 'مینو اشیاء براؤز کریں اور انہیں موجودہ آرڈر میں شامل کریں',
+      'browse_menu_desc':
+          'مینو اشیاء براؤز کریں اور انہیں موجودہ آرڈر میں شامل کریں',
       'cancel_edit': 'ترمیم منسوخ کریں',
       'all_items': 'تمام اشیاء',
       'cart_details': 'کارٹ کی تفصیلات',
@@ -1109,7 +1130,8 @@ class LocalizationService extends ChangeNotifier {
       'pickup': 'پک اپ',
       'select_table': 'ٹیبل منتخب کریں',
       'select_waiter': 'ویٹر منتخب کریں',
-      'no_items_desc': 'ابھی تک کوئی آئٹم نہیں ہے۔ شامل کرنے کے لیے مینو کارڈ پر ٹیپ کریں۔',
+      'no_items_desc':
+          'ابھی تک کوئی آئٹم نہیں ہے۔ شامل کرنے کے لیے مینو کارڈ پر ٹیپ کریں۔',
       'item': 'آئٹم',
       'qty': 'تعداد',
       'price': 'قیمت',
@@ -1289,7 +1311,8 @@ class LocalizationService extends ChangeNotifier {
       'custom_item': 'کسٹم آئٹم',
       'capacity_label': 'گنجائش',
       'general_settings': 'عمومی ترتیبات',
-      'general_settings_desc': 'ریستورین کی بنیادی شناخت اور ترجیحات ترتیب کریں.',
+      'general_settings_desc':
+          'ریستورین کی بنیادی شناخت اور ترجیحات ترتیب کریں.',
       'restaurant_info': 'ریستورین کی معلومات',
       'legal_name': 'قانونی نام',
       'legal_name_desc': 'رسیدوں اور قانونی دستاویزات پر دکھائی جاتی ہے',
@@ -1318,7 +1341,8 @@ class LocalizationService extends ChangeNotifier {
       'booking_fee_amount': 'بکنگ فیس کی رقم',
       'booking_fee_amount_desc': 'فی ریزرویشن مقررہ فیس',
       'qr_table_ordering': 'QR ٹیبل آرڈرنگ',
-      'qr_table_ordering_desc': 'صارفین کو QR کوڈز کے ذریعے آرڈر کرنے کی اجازت دیں',
+      'qr_table_ordering_desc':
+          'صارفین کو QR کوڈز کے ذریعے آرڈر کرنے کی اجازت دیں',
       'home_delivery': 'ہوم ڈیلیوری',
       'home_delivery_desc': 'ویب سائٹ پر ڈیلیوری کا آپشن فعال کریں',
       'customer_pickup': 'کسٹمر پک اپ',
@@ -1328,7 +1352,8 @@ class LocalizationService extends ChangeNotifier {
       'update_order': 'آرڈر اپ ڈیٹ کریں',
       'pay_now': 'ابھی ادا کریں',
       'order_updated_success': 'آرڈر کامیابی سے اپ ڈیٹ ہو گیا!',
-      'order_placed_success': 'آرڈر کامیابی سے دے دیا گیا! کچن کو بھیج دیا گیا۔',
+      'order_placed_success':
+          'آرڈر کامیابی سے دے دیا گیا! کچن کو بھیج دیا گیا۔',
       'server_error_retry': 'سرور کی خرابی۔ دوبارہ کوشش کریں۔',
       'connection_error_msg': 'کنکشن کی خرابی',
       'table_added_floor': 'ٹیبل فلور پلان میں شامل کر دی گئی ہے',
@@ -1372,7 +1397,8 @@ class LocalizationService extends ChangeNotifier {
       'advance_booking_fee': 'ایڈوانس بکنگ فیس',
       'collect_at_counter': 'کاؤنٹر پر مہمان سے وصول کریں',
       'card': 'کارڈ',
-      'fee_policy_desc': 'فیس فائنل بل سے منہا کی جائے گی لیکن نہ آنے کی صورت میں ناقابل واپسی ہوگی۔',
+      'fee_policy_desc':
+          'فیس فائنل بل سے منہا کی جائے گی لیکن نہ آنے کی صورت میں ناقابل واپسی ہوگی۔',
       'free_status': 'خالی',
       'occupied_status': 'مصروف',
       'pax_label': 'افراد',
@@ -1392,7 +1418,8 @@ class LocalizationService extends ChangeNotifier {
       'test_msg_success': 'کامیاب! ٹیسٹ پیغام بھیج دیا گیا۔',
       'error_label': 'غلطی',
       'email_notifications': 'ای میل اور اطلاعات',
-      'smtp_setup_desc': 'خودکار ای میلز بھیجنے کے لیے اپنا SMTP سرور ترتیب دیں۔',
+      'smtp_setup_desc':
+          'خودکار ای میلز بھیجنے کے لیے اپنا SMTP سرور ترتیب دیں۔',
       'smtp_host': 'SMTP ہوسٹ',
       'smtp_port': 'SMTP پورٹ',
       'username': 'صارف کا نام',
@@ -1489,9 +1516,11 @@ class LocalizationService extends ChangeNotifier {
       'from_label': 'سے',
       'system_reset': 'سسٹم ری سیٹ',
       'system_maintenance': 'سسٹم مینٹیننس',
-      'reset_transactional_data_desc': 'ٹرانزیکشنل ریکارڈز کو ختم کرکے انتظامی دیکھ بھال کریں جبکہ ساختی ڈیٹا کو برقرار رکھیں۔',
+      'reset_transactional_data_desc':
+          'ٹرانزیکشنل ریکارڈز کو ختم کرکے انتظامی دیکھ بھال کریں جبکہ ساختی ڈیٹا کو برقرار رکھیں۔',
       'danger_zone': 'خطرہ زون',
-      'reset_warning_text': 'یہ عمل تمام آرڈرز، ادائیگیوں اور آپریشنل ہسٹری کو مستقل طور پر حذف کر دے گا۔ اسے واپس نہیں کیا جا سکتا۔',
+      'reset_warning_text':
+          'یہ عمل تمام آرڈرز، ادائیگیوں اور آپریشنل ہسٹری کو مستقل طور پر حذف کر دے گا۔ اسے واپس نہیں کیا جا سکتا۔',
       'data_impact_analysis': 'ڈیٹا اثر تجزیہ',
       'orders_payments_reservations': 'آرڈرز، ادائیگیاں اور ریزرویشنز',
       'expenses_purchases': 'اخراجات اور خریداری کے آرڈرز',
@@ -1502,16 +1531,18 @@ class LocalizationService extends ChangeNotifier {
       'will_be_deleted': 'حذف کر دیا جائے گا',
       'will_be_preserved': 'برقرار رکھا جائے گا',
       'are_you_sure': 'کیا آپ کو یقین ہے؟',
-      'reset_confirmation_detailed': 'آپ سسٹم سے تمام ٹرانزیکشنل ڈیٹا کو صاف کرنے والے ہیں۔ اس سے آپ کے ڈیش بورڈ میٹرکس اور آرڈر ہسٹری صفر ہو جائے گی۔ ماسٹر ڈیٹا جیسے آپ کا مینو اور عملہ اچھوتا رہے گا۔',
+      'reset_confirmation_detailed':
+          'آپ سسٹم سے تمام ٹرانزیکشنل ڈیٹا کو صاف کرنے والے ہیں۔ اس سے آپ کے ڈیش بورڈ میٹرکس اور آرڈر ہسٹری صفر ہو جائے گی۔ ماسٹر ڈیٹا جیسے آپ کا مینو اور عملہ اچھوتا رہے گا۔',
       'confirm_reset': 'ری سیٹ کی تصدیق کریں',
-      'transactional_reset_success': 'ٹرانزیکشنل ڈیٹا کامیابی کے ساتھ ری سیٹ ہو گیا ہے۔',
+      'transactional_reset_success':
+          'ٹرانزیکشنل ڈیٹا کامیابی کے ساتھ ری سیٹ ہو گیا ہے۔',
       'payment_success_message': 'ادائیگی کامیابی کے ساتھ مکمل ہو گئی ہے!',
       'order_payment': 'آرڈر کی ادائیگی',
       'unpaid': 'غیر ادا شدہ',
       'amount_due': 'واجب الادا رقم',
       'confirm_payment': 'ادائیگی کی تصدیق کریں',
       'complete_payment': 'ادائیگی مکمل کریں',
-    }
+    },
   };
 
   void setLanguage(String language) {
@@ -1520,7 +1551,7 @@ class LocalizationService extends ChangeNotifier {
       (k) => k.toLowerCase() == language.toLowerCase(),
       orElse: () => '',
     );
-    
+
     if (matchedKey.isNotEmpty) {
       _currentLanguage = matchedKey;
       notifyListeners();
@@ -1530,11 +1561,14 @@ class LocalizationService extends ChangeNotifier {
   String translate(String key) {
     final translation = _translations[_currentLanguage]?[key];
     if (translation != null) return translation;
-    
+
     // Fallback: Return key with underscores replaced by spaces and Title Cased
-    return key.split('_').map((word) {
-      if (word.isEmpty) return word;
-      return word[0].toUpperCase() + word.substring(1).toLowerCase();
-    }).join(' ');
+    return key
+        .split('_')
+        .map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
   }
 }

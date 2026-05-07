@@ -7,7 +7,7 @@ class CategoryManagementView extends StatefulWidget {
   final Function(String, String, String) onCreateCategory;
   final Function(dynamic, String, String, String) onUpdateCategory;
   final Function(dynamic) onDeleteCategory;
-  final Future<String?> Function() onPickImage;
+  final Future<String?> Function({String? target}) onPickImage;
 
   final bool isDarkMode;
 
@@ -85,7 +85,14 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Category Management', style: TextStyle(color: themeText, fontSize: 32, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Category Management',
+                          style: TextStyle(
+                            color: themeText,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         ElevatedButton.icon(
                           onPressed: _reset,
                           icon: const Icon(Icons.add_rounded),
@@ -93,7 +100,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: themePrimary,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ],
@@ -110,39 +119,80 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                             decoration: BoxDecoration(
                               color: themeCard,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: _editingId == cat['id'] ? themePrimary : themeBorder),
+                              border: Border.all(
+                                color: _editingId == cat['id']
+                                    ? themePrimary
+                                    : themeBorder,
+                              ),
                             ),
                             child: Row(
                               children: [
                                 Container(
-                                  width: 50, height: 50,
+                                  width: 50,
+                                  height: 50,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
                                     image: DecorationImage(
-                                      image: ThemeService.getImage(cat['image']),
+                                      image: ThemeService.getImage(
+                                        cat['image'],
+                                      ),
                                       fit: BoxFit.cover,
                                     ),
                                     color: themePrimary.withValues(alpha: 0.1),
                                   ),
-                                  child: cat['image'] == null || cat['image'].toString().isEmpty
-                                    ? Icon(Icons.category_rounded, color: themePrimary, size: 20)
-                                    : null,
+                                  child:
+                                      cat['image'] == null ||
+                                          cat['image'].toString().isEmpty
+                                      ? Icon(
+                                          Icons.category_rounded,
+                                          color: themePrimary,
+                                          size: 20,
+                                        )
+                                      : null,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(cat['name'], style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16)),
+                                      Text(
+                                        cat['name'],
+                                        style: TextStyle(
+                                          color: themeText,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
                                       if (cat['description'] != null)
-                                        Text(cat['description'], style: TextStyle(color: themeHint, fontSize: 12)),
+                                        Text(
+                                          cat['description'],
+                                          style: TextStyle(
+                                            color: themeHint,
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
-                                IconButton(onPressed: () => _edit(cat), icon: Icon(Icons.edit_outlined, color: themePrimary)),
                                 IconButton(
-                                  onPressed: () => _showDeleteConfirm(cat, themeCard, themeText, themeBorder), 
-                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red)
+                                  onPressed: () => _edit(cat),
+                                  icon: Icon(
+                                    Icons.edit_outlined,
+                                    color: themePrimary,
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => _showDeleteConfirm(
+                                    cat,
+                                    themeCard,
+                                    themeText,
+                                    themeBorder,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Colors.red,
+                                  ),
                                 ),
                               ],
                             ),
@@ -158,18 +208,36 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
               Expanded(
                 flex: 2,
                 child: FormCard(
-                  title: _editingId == null ? 'Add New Category' : 'Edit Category',
-                  subtitle: _editingId == null ? 'Create a new category' : 'Update existing category details',
-                  icon: _editingId == null ? Icons.add_circle_outline : Icons.edit_note_rounded,
+                  title: _editingId == null
+                      ? 'Add New Category'
+                      : 'Edit Category',
+                  subtitle: _editingId == null
+                      ? 'Create a new category'
+                      : 'Update existing category details',
+                  icon: _editingId == null
+                      ? Icons.add_circle_outline
+                      : Icons.edit_note_rounded,
                   children: [
-                    FormTextField(label: 'Category Name', controller: _catNameController),
+                    FormTextField(
+                      label: 'Category Name',
+                      controller: _catNameController,
+                    ),
                     const SizedBox(height: 20),
-                    FormTextField(label: 'Description (Optional)', controller: _catDescController, maxLines: 2),
+                    FormTextField(
+                      label: 'Description (Optional)',
+                      controller: _catDescController,
+                      maxLines: 2,
+                    ),
                     const SizedBox(height: 20),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Expanded(child: FormTextField(label: 'Image Path', controller: _catImageController)),
+                        Expanded(
+                          child: FormTextField(
+                            label: 'Image Path',
+                            controller: _catImageController,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: () async {
@@ -179,56 +247,88 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: themePrimary.withValues(alpha: 0.1),
+                            backgroundColor: themePrimary.withValues(
+                              alpha: 0.1,
+                            ),
                             foregroundColor: themePrimary,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: const Icon(Icons.folder_open_rounded),
                         ),
                         const SizedBox(width: 16),
                         Container(
-                          width: 54, height: 54,
+                          width: 54,
+                          height: 54,
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: themeBorder),
                           ),
-                          child: _catImageController.text.isNotEmpty 
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image(
-                                  image: ThemeService.getImage(_catImageController.text),
-                                  fit: BoxFit.cover,
+                          child: _catImageController.text.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image(
+                                    image: ThemeService.getImage(
+                                      _catImageController.text,
+                                    ),
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.image_search_rounded,
+                                  color: Colors.grey,
                                 ),
-                              )
-                            : const Icon(Icons.image_search_rounded, color: Colors.grey),
                         ),
                       ],
                     ),
                     const SizedBox(height: 32),
                     FormActionButton(
-                      label: _editingId == null ? 'Create Category' : 'Save Changes', 
+                      label: _editingId == null
+                          ? 'Create Category'
+                          : 'Save Changes',
                       onPressed: () {
                         if (_catNameController.text.trim().isEmpty) {
-                          _showWarningDialog('Please enter a name for the category.');
+                          _showWarningDialog(
+                            'Please enter a name for the category.',
+                          );
                           return;
                         }
 
                         if (_editingId == null) {
-                          widget.onCreateCategory(_catNameController.text, _catDescController.text, _catImageController.text);
+                          widget.onCreateCategory(
+                            _catNameController.text,
+                            _catDescController.text,
+                            _catImageController.text,
+                          );
                         } else {
-                          widget.onUpdateCategory(_editingId, _catNameController.text, _catDescController.text, _catImageController.text);
+                          widget.onUpdateCategory(
+                            _editingId,
+                            _catNameController.text,
+                            _catDescController.text,
+                            _catImageController.text,
+                          );
                         }
                         _reset();
-                      }
+                      },
                     ),
                     if (_editingId != null) ...[
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
-                        child: TextButton(onPressed: _reset, child: const Text('Cancel Edit', style: TextStyle(color: Colors.red))),
+                        child: TextButton(
+                          onPressed: _reset,
+                          child: const Text(
+                            'Cancel Edit',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
                       ),
                     ],
                   ],
@@ -237,32 +337,43 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
             ],
           ),
         );
-      }
+      },
     );
   }
 
-  void _showDeleteConfirm(dynamic cat, Color themeCard, Color themeText, Color themeBorder) {
+  void _showDeleteConfirm(
+    dynamic cat,
+    Color themeCard,
+    Color themeText,
+    Color themeBorder,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: themeCard,
         title: Text('Delete Category?', style: TextStyle(color: themeText)),
-        content: Text('Are you sure you want to delete "${cat['name']}"? This will not delete items but they will be un-categorized.', 
-          style: TextStyle(color: themeText.withValues(alpha: 0.7))),
+        content: Text(
+          'Are you sure you want to delete "${cat['name']}"? This will not delete items but they will be un-categorized.',
+          style: TextStyle(color: themeText.withValues(alpha: 0.7)),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               widget.onDeleteCategory(cat['id']);
               Navigator.pop(ctx);
               if (_editingId == cat['id']) _reset();
-            }, 
-            child: const Text('Delete', style: TextStyle(color: Colors.red))
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
+
   void _showWarningDialog(String message) {
     showDialog(
       context: context,
@@ -279,7 +390,10 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'OK',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

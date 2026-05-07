@@ -138,15 +138,25 @@ class TrendChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final List<String> monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final List<String> monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final List<Map<String, dynamic>> last6Months = [];
-    
+
     for (int i = 5; i >= 0; i--) {
       final d = DateTime(now.year, now.month - i, 1);
-      last6Months.add({
-        'month': monthNames[d.month - 1],
-        'total': 0.0,
-      });
+      last6Months.add({'month': monthNames[d.month - 1], 'total': 0.0});
     }
 
     for (var t in trends) {
@@ -192,9 +202,10 @@ class TrendChart extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: last6Months.map((t) {
-                final double total = double.tryParse(t['total'].toString()) ?? 0.0;
+                final double total =
+                    double.tryParse(t['total'].toString()) ?? 0.0;
                 final heightFactor = total / maxVal;
-                
+
                 return Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,

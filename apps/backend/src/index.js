@@ -18,12 +18,27 @@ const syncSchema = require('./schemaSync');
 
 // Diagnostics
 const fs = require('fs');
-const envPath = path.resolve(__dirname, '../.env');
-console.log('🔍 Checking .env file at:', envPath);
-if (fs.existsSync(envPath)) {
-  console.log('✅ .env file found');
-} else {
-  console.warn('⚠️ .env file NOT found! Using default environment variables.');
+const pathsToCheck = [
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(__dirname, '../.env'),
+  path.resolve(process.cwd(), 'production.env'),
+  path.resolve(process.cwd(), 'config.env')
+];
+
+console.log('📂 Current Working Directory:', process.cwd());
+let foundEnv = false;
+for (const p of pathsToCheck) {
+  console.log('🔍 Checking .env at:', p);
+  if (fs.existsSync(p)) {
+    console.log('✅ .env file found at:', p);
+    require('dotenv').config({ path: p });
+    foundEnv = true;
+    break;
+  }
+}
+
+if (!foundEnv) {
+  console.warn('⚠️ .env file NOT found in any known locations! Using default environment variables.');
 }
 
 // Middleware
@@ -32,6 +47,21 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 const assetsPath = path.join(__dirname, '../assets');
 const webPath = path.join(__dirname, '../public');
+
+const imagesPath = path.join(assetsPath, 'images');
+const menuItemsPath = path.join(imagesPath, 'menu_items');
+
+// Ensure upload directories exist
+[assetsPath, imagesPath, menuItemsPath].forEach(dir => {
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`📁 Created directory: ${dir}`);
+    }
+  } catch (err) {
+    console.error(`⚠️ Could not create directory ${dir}:`, err.message);
+  }
+});
 
 console.log('📂 Serving static assets from:', assetsPath);
 console.log('🌐 Serving web files from:', webPath);
@@ -46,6 +76,13 @@ app.use('/assets', express.static(assetsPath, {
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   }
 }));
+
+// Log 404s for assets specifically to help debugging
+app.use('/assets', (req, res) => {
+  console.warn(`❌ 404 Not Found (Asset): ${req.originalUrl}`);
+  res.status(404).send('Asset not found');
+});
+
 app.use(express.static(webPath));
 
 app.get('/api/health', (req, res) => {
@@ -146,13 +183,36 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
 });
 
-// Schema Auto-Sync is now handled by the syncSchema module
-
-app.listen(PORT, async () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  await syncSchema();
+// Handle Process Events for Debugging Crash Loop
+process.on('exit', (code) => {
+  console.log(`👋 Process exiting with code: ${code}`);
 });
 
-// Refresh: 2026-05-06 23:56
-// Keep the process alive
-setInterval(() => {}, 1000 * 60 * 60);
+process.on('SIGINT', () => {
+  console.log('🛑 Received SIGINT. Shutting down...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM. Shutting down...');
+  process.exit(0);
+});
+
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  
+  // Run Auto-Sync in the background so we don't block the port binding
+  setImmediate(async () => {
+    try {
+      console.log('🛠️ Starting Database Auto-Sync...');
+      await syncSchema();
+      console.log('✅ Database Auto-Sync complete.');
+    } catch (error) {
+      console.error('🔥 CRITICAL: Database Auto-Sync failed!', error);
+    }
+  });
+});
+
+// Increase timeout for long-running DB sync operations
+server.keepAliveTimeout = 120000;
+server.headersTimeout = 125000;

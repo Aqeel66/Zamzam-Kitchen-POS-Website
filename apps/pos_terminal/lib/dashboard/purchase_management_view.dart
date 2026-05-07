@@ -21,7 +21,8 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   List<dynamic> _purchases = [];
   List<dynamic> _inventoryItems = [];
   List<dynamic> _suppliers = [];
-  
+  Map<String, dynamic> _trendData = {};
+
   // Order Form Controllers
   final TextEditingController _invoiceController = TextEditingController();
   dynamic _selectedSupplier;
@@ -43,7 +44,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   ThemeData get _theme => ThemeService().themeData;
   Color get themeBg => _theme.scaffoldBackgroundColor;
   Color get themeCard => _theme.cardColor;
-  Color get themeText => _theme.textTheme.bodyLarge?.color ?? (widget.isDarkMode ? Colors.white : const Color(0xFF1E293B));
+  Color get themeText =>
+      _theme.textTheme.bodyLarge?.color ??
+      (widget.isDarkMode ? Colors.white : const Color(0xFF1E293B));
   Color get themeHint => themeText.withValues(alpha: 0.6);
   Color get themeBorder => themeText.withValues(alpha: 0.12);
   Color get themePrimary => _theme.primaryColor;
@@ -60,11 +63,27 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
     _fetchPurchases();
     _fetchInventory();
     _fetchSuppliers();
+    _fetchTrends();
+  }
+
+  Future<void> _fetchTrends() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/reports/inventory-trends'),
+      );
+      if (response.statusCode == 200) {
+        setState(() => _trendData = jsonDecode(response.body));
+      }
+    } catch (e) {
+      if (kDebugMode) print('Fetch Trends Error: $e');
+    }
   }
 
   Future<void> _fetchSuppliers() async {
     try {
-      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers'));
+      final response = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers'),
+      );
       if (response.statusCode == 200) {
         setState(() => _suppliers = jsonDecode(response.body));
       } else {
@@ -78,7 +97,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
 
   Future<void> _fetchInventory() async {
     try {
-      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'));
+      final response = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'),
+      );
       if (response.statusCode == 200) {
         setState(() => _inventoryItems = jsonDecode(response.body));
       } else {
@@ -92,7 +113,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   Future<void> _fetchPurchases() async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases'));
+      final response = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases'),
+      );
       if (response.statusCode == 200) {
         setState(() => _purchases = jsonDecode(response.body));
       } else {
@@ -119,7 +142,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       _showWarningDialog('Please enter a unit cost.');
       return;
     }
-    
+
     double qty = double.tryParse(_qtyController.text) ?? 0;
     double price = double.tryParse(_costController.text) ?? 0;
 
@@ -128,9 +151,12 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       return;
     }
 
-    double packSize = double.tryParse(_selectedItem['pack_size']?.toString() ?? '1.0') ?? 1.0;
+    double packSize =
+        double.tryParse(_selectedItem['pack_size']?.toString() ?? '1.0') ?? 1.0;
     double finalStockQty = _isBuyingBulk ? (qty * packSize) : qty;
-    String displayUnit = _isBuyingBulk ? (_selectedItem['pack_unit'] ?? 'pack') : (_selectedItem['unit'] ?? 'unit');
+    String displayUnit = _isBuyingBulk
+        ? (_selectedItem['pack_unit'] ?? 'pack')
+        : (_selectedItem['unit'] ?? 'unit');
 
     setState(() {
       _currentOrderItems.add({
@@ -138,7 +164,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         'name': _selectedItem['name'],
         'display_name': '${_selectedItem['name']} ($qty $displayUnit)',
         'quantity': finalStockQty, // Stock quantity to add
-        'purchase_qty': qty,       // Quantity entered in form
+        'purchase_qty': qty, // Quantity entered in form
         'unit_price': price,
         'subtotal': qty * price,
         'is_bulk': _isBuyingBulk,
@@ -191,10 +217,12 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       if (response.statusCode == 201) {
         _resetOrderForm();
         _fetchPurchases();
-        _fetchInventory(); 
+        _fetchInventory();
         _showSuccess('Purchase recorded successfully');
       } else {
-        _showError('Failed to save purchase: ${response.statusCode} - ${response.body}');
+        _showError(
+          'Failed to save purchase: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       _showError(e.toString());
@@ -219,7 +247,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       _showWarningDialog('Please enter the vendor name.');
       return;
     }
-    
+
     final data = {
       'name': _supNameController.text,
       'contact_email': _supEmailController.text,
@@ -237,7 +265,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         );
       } else {
         response = await http.put(
-          Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers/${_editingSupplier['id']}'),
+          Uri.parse(
+            '${ThemeService.apiBaseUrl}/api/purchases/suppliers/${_editingSupplier['id']}',
+          ),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(data),
         );
@@ -248,7 +278,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         _fetchSuppliers();
         _showSuccess('Supplier saved successfully');
       } else {
-        _showError('Failed to save supplier: ${response.statusCode} - ${response.body}');
+        _showError(
+          'Failed to save supplier: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       _showError('Error saving supplier: $e');
@@ -277,7 +309,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
 
   Future<void> _deleteSupplier(int id) async {
     try {
-      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers/$id'));
+      final response = await http.delete(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers/$id'),
+      );
       if (response.statusCode == 200) {
         _fetchSuppliers();
         _showSuccess('Supplier deleted');
@@ -293,7 +327,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   Future<void> _linkItemToSupplier(int itemId, int? supplierId) async {
     try {
       final response = await http.put(
-        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/inventory/$itemId/supplier'),
+        Uri.parse(
+          '${ThemeService.apiBaseUrl}/api/purchases/inventory/$itemId/supplier',
+        ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'supplier_id': supplierId}),
       );
@@ -328,18 +364,30 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   // --- UI Helpers ---
   void _showError(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red.shade800, behavior: SnackBarBehavior.floating));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.red.shade800,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _showSuccess(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Container(
         color: themeBg,
         child: Column(
@@ -353,8 +401,14 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(LocalizationService().translate('purchase_management'), 
-                          style: TextStyle(color: themeText, fontSize: 28, fontWeight: FontWeight.bold)),
+                      Text(
+                        LocalizationService().translate('purchase_management'),
+                        style: TextStyle(
+                          color: themeText,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       _buildTabBar(),
                     ],
                   ),
@@ -370,6 +424,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                   _buildPurchasesTab(),
                   _buildSuppliersTab(),
                   _buildLinkageTab(),
+                  _buildTrendsTab(),
                 ],
               ),
             ),
@@ -389,7 +444,10 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       ),
       padding: const EdgeInsets.all(4),
       child: TabBar(
-        indicator: BoxDecoration(color: themePrimary, borderRadius: BorderRadius.circular(8)),
+        indicator: BoxDecoration(
+          color: themePrimary,
+          borderRadius: BorderRadius.circular(8),
+        ),
         labelColor: Colors.white,
         unselectedLabelColor: themeHint,
         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
@@ -397,6 +455,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
           Tab(text: 'Purchases'),
           Tab(text: 'Suppliers'),
           Tab(text: 'Linkage'),
+          Tab(text: 'Trends'),
         ],
       ),
     );
@@ -415,18 +474,30 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Purchase History', style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Purchase History',
+                  style: TextStyle(
+                    color: themeText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 20),
                 Expanded(
-                  child: _purchases.isEmpty 
-                    ? Center(child: Text('No records', style: TextStyle(color: themeHint)))
-                    : ListView.builder(
-                        itemCount: _purchases.length,
-                        itemBuilder: (context, index) {
-                          final p = _purchases[index];
-                          return _buildOrderCard(p);
-                        },
-                      ),
+                  child: _purchases.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No records',
+                            style: TextStyle(color: themeHint),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _purchases.length,
+                          itemBuilder: (context, index) {
+                            final p = _purchases[index];
+                            return _buildOrderCard(p);
+                          },
+                        ),
                 ),
               ],
             ),
@@ -449,14 +520,27 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       decoration: BoxDecoration(
         color: themeCard,
         borderRadius: BorderRadius.circular(16),
-        border: isPending ? Border.all(color: themePrimary.withValues(alpha: 0.3), width: 1) : null,
+        border: isPending
+            ? Border.all(color: themePrimary.withValues(alpha: 0.3), width: 1)
+            : null,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: (isPending ? themePrimary : Colors.green).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-            child: Icon(isPending ? Icons.shopping_cart_outlined : Icons.check_circle_outline, color: isPending ? themePrimary : Colors.green, size: 20),
+            decoration: BoxDecoration(
+              color: (isPending ? themePrimary : Colors.green).withValues(
+                alpha: 0.1,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isPending
+                  ? Icons.shopping_cart_outlined
+                  : Icons.check_circle_outline,
+              color: isPending ? themePrimary : Colors.green,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -465,23 +549,39 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
               children: [
                 Row(
                   children: [
-                    Text(p['supplier_name'] ?? 'General Supplier', style: TextStyle(color: themeText, fontWeight: FontWeight.bold)),
+                    Text(
+                      p['supplier_name'] ?? 'General Supplier',
+                      style: TextStyle(
+                        color: themeText,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: (isPending ? Colors.orange : Colors.green).withValues(alpha: 0.1),
+                        color: (isPending ? Colors.orange : Colors.green)
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         status.toUpperCase(),
-                        style: TextStyle(color: isPending ? Colors.orange : Colors.green, fontSize: 9, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: isPending ? Colors.orange : Colors.green,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                Text('Invoice: ${p['invoice_number'] ?? 'N/A'} • ${DateFormat('MMM dd').format(DateTime.parse(p['order_date']))}', 
-                    style: TextStyle(color: themeHint, fontSize: 12)),
+                Text(
+                  'Invoice: ${p['invoice_number'] ?? 'N/A'} • ${DateFormat('MMM dd').format(DateTime.parse(p['order_date']))}',
+                  style: TextStyle(color: themeHint, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -491,10 +591,21 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('\$${p['total_amount']}', style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    '\$${p['total_amount']}',
+                    style: TextStyle(
+                      color: themePrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                      size: 18,
+                    ),
                     onPressed: () => _deletePurchase(p['id']),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -504,8 +615,19 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
               if (isPending)
                 TextButton(
                   onPressed: () => _updateOrderStatus(p['id'], 'Received'),
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(50, 24), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  child: const Text('Mark Received', style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(50, 24),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Mark Received',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -538,10 +660,18 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Purchase?'),
-        content: const Text('Are you sure you want to remove this purchase record?'),
+        content: const Text(
+          'Are you sure you want to remove this purchase record?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -550,7 +680,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
 
     setState(() => _isLoading = true);
     try {
-      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/$id'));
+      final response = await http.delete(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/$id'),
+      );
       if (response.statusCode == 200) {
         _fetchAllData();
         _showSuccess('Purchase deleted');
@@ -565,30 +697,57 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   Widget _buildNewOrderForm() {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: themeCard, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: themeCard,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('New Purchase', style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'New Purchase',
+              style: TextStyle(
+                color: themeText,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 20),
             _buildField('Invoice #', _invoiceController),
             const SizedBox(height: 12),
             _buildSupplierDropdown(),
             const SizedBox(height: 12),
             SwitchListTile(
-              title: Text('Mark as Received', style: TextStyle(color: themeText, fontSize: 13, fontWeight: FontWeight.bold)),
-              subtitle: Text('Instantly update inventory levels', style: TextStyle(color: themeHint, fontSize: 11)),
+              title: Text(
+                'Mark as Received',
+                style: TextStyle(
+                  color: themeText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                'Instantly update inventory levels',
+                style: TextStyle(color: themeHint, fontSize: 11),
+              ),
               value: _markAsReceived,
               onChanged: (val) => setState(() => _markAsReceived = val),
               activeThumbColor: themePrimary,
               contentPadding: EdgeInsets.zero,
             ),
             const Divider(height: 40),
-            Text('Add Items', style: TextStyle(color: themeText, fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(
+              'Add Items',
+              style: TextStyle(
+                color: themeText,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 12),
             _buildItemDropdown(),
-            
+
             // AUTOMATIC STOCK PICK (Observation 2)
             if (_selectedItem != null) ...[
               const SizedBox(height: 8),
@@ -597,16 +756,23 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                   Icon(Icons.inventory_2_outlined, size: 14, color: themeHint),
                   const SizedBox(width: 4),
                   Text(
-                    'Stock: ${_selectedItem['quantity']} ${_selectedItem['unit']}', 
-                    style: TextStyle(color: themeHint, fontSize: 12, fontWeight: FontWeight.w500)
+                    'Stock: ${_selectedItem['quantity']} ${_selectedItem['unit']}',
+                    style: TextStyle(
+                      color: themeHint,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const Spacer(),
                   if (_selectedItem['pack_unit'] != null) ...[
-                    Text('Buy Bulk?', style: TextStyle(color: themeHint, fontSize: 11)),
+                    Text(
+                      'Buy Bulk?',
+                      style: TextStyle(color: themeHint, fontSize: 11),
+                    ),
                     SizedBox(
                       height: 24,
                       child: Switch(
-                        value: _isBuyingBulk, 
+                        value: _isBuyingBulk,
                         onChanged: (v) => setState(() => _isBuyingBulk = v),
                         activeThumbColor: themePrimary,
                       ),
@@ -618,7 +784,12 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                 const SizedBox(height: 4),
                 Text(
                   'Converting: 1 ${_selectedItem['pack_unit']} = ${_selectedItem['pack_size']} ${_selectedItem['unit']}',
-                  style: TextStyle(color: themePrimary, fontSize: 11, fontStyle: FontStyle.italic, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: themePrimary,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ],
@@ -626,34 +797,58 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _buildField('Qty', _qtyController, isNum: true)),
+                Expanded(
+                  child: _buildField('Qty', _qtyController, isNum: true),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _buildField('Price', _costController, isNum: true)),
+                Expanded(
+                  child: _buildField('Price', _costController, isNum: true),
+                ),
                 const SizedBox(width: 8),
                 IconButton.filled(
                   onPressed: _addItemToOrder,
                   icon: const Icon(Icons.add),
-                  style: IconButton.styleFrom(backgroundColor: themePrimary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  style: IconButton.styleFrom(
+                    backgroundColor: themePrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ),
               ],
             ),
             if (_currentOrderItems.isNotEmpty) ...[
               const SizedBox(height: 16),
-              ..._currentOrderItems.asMap().entries.map((e) => ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(e.value['display_name'] ?? e.value['name'], style: TextStyle(color: themeText, fontSize: 13)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('\$${e.value['subtotal']}', style: TextStyle(color: themeHint, fontSize: 12)),
-                    IconButton(icon: const Icon(Icons.close, size: 14, color: Colors.red), onPressed: () => setState(() {
-                      _currentOrderItems.removeAt(e.key);
-                      _calculateTotal();
-                    })),
-                  ],
+              ..._currentOrderItems.asMap().entries.map(
+                (e) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    e.value['display_name'] ?? e.value['name'],
+                    style: TextStyle(color: themeText, fontSize: 13),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '\$${e.value['subtotal']}',
+                        style: TextStyle(color: themeHint, fontSize: 12),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: Colors.red,
+                        ),
+                        onPressed: () => setState(() {
+                          _currentOrderItems.removeAt(e.key);
+                          _calculateTotal();
+                        }),
+                      ),
+                    ],
+                  ),
                 ),
-              )),
+              ),
             ],
             const Divider(height: 32),
             _buildField('Total', _totalAmountController, isNum: true),
@@ -665,9 +860,17 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
                   padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text('Confirm Purchase', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Confirm Purchase',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
@@ -688,33 +891,83 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Active Vendors', style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Active Vendors',
+                  style: TextStyle(
+                    color: themeText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 20),
                 Expanded(
                   child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 2.5, crossAxisSpacing: 16, mainAxisSpacing: 16),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 2.5,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                     itemCount: _suppliers.length,
                     itemBuilder: (context, i) {
                       final s = _suppliers[i];
                       return Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: themeCard, borderRadius: BorderRadius.circular(16)),
+                        decoration: BoxDecoration(
+                          color: themeCard,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         child: Row(
                           children: [
-                            CircleAvatar(backgroundColor: themePrimary.withValues(alpha: 0.1), child: Text(s['name']?[0] ?? 'V', style: TextStyle(color: themePrimary))),
+                            CircleAvatar(
+                              backgroundColor: themePrimary.withValues(
+                                alpha: 0.1,
+                              ),
+                              child: Text(
+                                s['name']?[0] ?? 'V',
+                                style: TextStyle(color: themePrimary),
+                              ),
+                            ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(s['name'] ?? '', style: TextStyle(color: themeText, fontWeight: FontWeight.bold)),
-                                  Text(s['contact_phone'] ?? 'No phone', style: TextStyle(color: themeHint, fontSize: 12)),
+                                  Text(
+                                    s['name'] ?? '',
+                                    style: TextStyle(
+                                      color: themeText,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    s['contact_phone'] ?? 'No phone',
+                                    style: TextStyle(
+                                      color: themeHint,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                            IconButton(icon: Icon(Icons.edit_outlined, color: themePrimary, size: 18), onPressed: () => _editSupplier(s)),
-                            IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18), onPressed: () => _deleteSupplier(s['id'])),
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit_outlined,
+                                color: themePrimary,
+                                size: 18,
+                              ),
+                              onPressed: () => _editSupplier(s),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                              onPressed: () => _deleteSupplier(s['id']),
+                            ),
                           ],
                         ),
                       );
@@ -734,11 +987,21 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   Widget _buildSupplierForm() {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: themeCard, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: themeCard,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_editingSupplier == null ? 'Add Supplier' : 'Edit Supplier', style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            _editingSupplier == null ? 'Add Supplier' : 'Edit Supplier',
+            style: TextStyle(
+              color: themeText,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 20),
           _buildField('Vendor Name', _supNameController),
           const SizedBox(height: 12),
@@ -746,24 +1009,39 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
           const SizedBox(height: 12),
           _buildField('Phone', _supPhoneController),
           const SizedBox(height: 20),
-          Text('Reliability Score: $_supReliability%', style: TextStyle(color: themeHint, fontSize: 12)),
+          Text(
+            'Reliability Score: $_supReliability%',
+            style: TextStyle(color: themeHint, fontSize: 12),
+          ),
           Slider(
             value: _supReliability.toDouble(),
-            min: 0, max: 100,
+            min: 0,
+            max: 100,
             activeColor: themePrimary,
             onChanged: (v) => setState(() => _supReliability = v.toInt()),
           ),
           const Spacer(),
           Row(
             children: [
-              if (_editingSupplier != null) 
-                Expanded(child: OutlinedButton(onPressed: _resetSupplierForm, child: const Text('Cancel'))),
+              if (_editingSupplier != null)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _resetSupplierForm,
+                    child: const Text('Cancel'),
+                  ),
+                ),
               if (_editingSupplier != null) const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
                   onPressed: _saveSupplier,
-                  style: ElevatedButton.styleFrom(backgroundColor: themePrimary, padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: const Text('Save Vendor', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: themePrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    'Save Vendor',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
             ],
@@ -780,24 +1058,46 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Inventory - Supplier Mapping & Stock Thresholds', style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            'Inventory - Supplier Mapping & Stock Thresholds',
+            style: TextStyle(
+              color: themeText,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 20),
           Expanded(
             child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 2.2, crossAxisSpacing: 16, mainAxisSpacing: 16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 2.2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
               itemCount: _inventoryItems.length,
               itemBuilder: (context, i) {
                 final item = _inventoryItems[i];
-                double qty = double.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
-                double threshold = double.tryParse(item['low_stock_threshold']?.toString() ?? '0') ?? 0;
+                double qty =
+                    double.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
+                double threshold =
+                    double.tryParse(
+                      item['low_stock_threshold']?.toString() ?? '0',
+                    ) ??
+                    0;
                 bool isLow = qty <= threshold;
 
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: themeCard, 
+                    color: themeCard,
                     borderRadius: BorderRadius.circular(16),
-                    border: isLow ? Border.all(color: Colors.red.withValues(alpha: 0.3), width: 1) : null,
+                    border: isLow
+                        ? Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                            width: 1,
+                          )
+                        : null,
                   ),
                   child: Column(
                     children: [
@@ -807,15 +1107,34 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item['name'], style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 14)),
+                                Text(
+                                  item['name'],
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
                                 // VISUAL STOCK POSITION (Observation 1)
                                 Row(
                                   children: [
-                                    Text('Stock: ${qty.toStringAsFixed(1)} ${item['unit']}', 
-                                        style: TextStyle(color: isLow ? Colors.red : themePrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'Stock: ${qty.toStringAsFixed(1)} ${item['unit']}',
+                                      style: TextStyle(
+                                        color: isLow
+                                            ? Colors.red
+                                            : themePrimary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     if (isLow) ...[
                                       const SizedBox(width: 4),
-                                      const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 14),
+                                      const Icon(
+                                        Icons.warning_amber_rounded,
+                                        color: Colors.red,
+                                        size: 14,
+                                      ),
                                     ],
                                   ],
                                 ),
@@ -829,14 +1148,24 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                             child: TextField(
                               decoration: InputDecoration(
                                 labelText: 'Min',
-                                labelStyle: TextStyle(color: themeHint, fontSize: 10),
+                                labelStyle: TextStyle(
+                                  color: themeHint,
+                                  fontSize: 10,
+                                ),
                                 isDense: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                               style: TextStyle(color: themeText, fontSize: 11),
                               keyboardType: TextInputType.number,
-                              onSubmitted: (val) => _updateMinStock(item['id'], double.tryParse(val) ?? 0),
-                              controller: TextEditingController(text: threshold.toStringAsFixed(0)),
+                              onSubmitted: (val) => _updateMinStock(
+                                item['id'],
+                                double.tryParse(val) ?? 0,
+                              ),
+                              controller: TextEditingController(
+                                text: threshold.toStringAsFixed(0),
+                              ),
                             ),
                           ),
                         ],
@@ -846,18 +1175,39 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Supplier:', style: TextStyle(color: themeHint, fontSize: 11)),
+                          Text(
+                            'Supplier:',
+                            style: TextStyle(color: themeHint, fontSize: 11),
+                          ),
                           SizedBox(
                             width: 140,
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<int>(
                                 value: item['supplier_id'],
-                                hint: Text('Link Supplier', style: TextStyle(color: themeHint, fontSize: 11)),
+                                hint: Text(
+                                  'Link Supplier',
+                                  style: TextStyle(
+                                    color: themeHint,
+                                    fontSize: 11,
+                                  ),
+                                ),
                                 dropdownColor: themeCard,
                                 isExpanded: true,
-                                style: TextStyle(color: themeText, fontSize: 12, fontWeight: FontWeight.w500),
-                                items: _suppliers.map((s) => DropdownMenuItem<int>(value: s['id'], child: Text(s['name'] ?? 'Vendor'))).toList(),
-                                onChanged: (val) => _linkItemToSupplier(item['id'], val),
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                items: _suppliers
+                                    .map(
+                                      (s) => DropdownMenuItem<int>(
+                                        value: s['id'],
+                                        child: Text(s['name'] ?? 'Vendor'),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (val) =>
+                                    _linkItemToSupplier(item['id'], val),
                               ),
                             ),
                           ),
@@ -875,7 +1225,11 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   }
 
   // --- Reusable UI ---
-  Widget _buildField(String label, TextEditingController controller, {bool isNum = false}) {
+  Widget _buildField(
+    String label,
+    TextEditingController controller, {
+    bool isNum = false,
+  }) {
     return TextField(
       controller: controller,
       keyboardType: isNum ? TextInputType.number : TextInputType.text,
@@ -885,8 +1239,14 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         labelStyle: TextStyle(color: themeHint, fontSize: 12),
         filled: true,
         fillColor: themeBg,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
     );
   }
@@ -898,11 +1258,25 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       decoration: InputDecoration(
         labelText: 'Supplier',
         labelStyle: TextStyle(color: themeHint, fontSize: 12),
-        filled: true, fillColor: themeBg,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        filled: true,
+        fillColor: themeBg,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
-      items: _suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s['name'] ?? '', style: TextStyle(color: themeText, fontSize: 14)))).toList(),
+      items: _suppliers
+          .map(
+            (s) => DropdownMenuItem(
+              value: s,
+              child: Text(
+                s['name'] ?? '',
+                style: TextStyle(color: themeText, fontSize: 14),
+              ),
+            ),
+          )
+          .toList(),
       onChanged: (val) => setState(() => _selectedSupplier = val),
     );
   }
@@ -914,14 +1288,29 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
       decoration: InputDecoration(
         labelText: 'Select Inventory Item',
         labelStyle: TextStyle(color: themeHint, fontSize: 12),
-        filled: true, fillColor: themeBg,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        filled: true,
+        fillColor: themeBg,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
-      items: _inventoryItems.map((item) => DropdownMenuItem(value: item, child: Text(item['name'], style: TextStyle(color: themeText, fontSize: 14)))).toList(),
+      items: _inventoryItems
+          .map(
+            (item) => DropdownMenuItem(
+              value: item,
+              child: Text(
+                item['name'],
+                style: TextStyle(color: themeText, fontSize: 14),
+              ),
+            ),
+          )
+          .toList(),
       onChanged: (val) => setState(() => _selectedItem = val),
     );
   }
+
   void _showWarningDialog(String message) {
     if (!mounted) return;
     showDialog(
@@ -939,7 +1328,204 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'OK',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Tab 4: Trends ---
+  Widget _buildTrendsTab() {
+    final vendors = _trendData['vendorSpend'] as List? ?? [];
+    final fluctuations = _trendData['costFluctuations'] as List? ?? [];
+
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Vendor Performance
+          Expanded(
+            flex: 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Vendor Spend Distribution',
+                  style: TextStyle(
+                    color: themeText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: vendors.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Insufficient data for trends',
+                            style: TextStyle(color: themeHint),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: vendors.length,
+                          itemBuilder: (context, i) {
+                            final v = vendors[i];
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: themeCard,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: themePrimary.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    child: Icon(
+                                      Icons.business_rounded,
+                                      color: themePrimary,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          v['vendor_name'],
+                                          style: TextStyle(
+                                            color: themeText,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${v['order_count']} successful orders',
+                                          style: TextStyle(
+                                            color: themeHint,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    '${ThemeService.currency}${v['total_spend']}',
+                                    style: TextStyle(
+                                      color: themePrimary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 32),
+          // Cost Fluctuations
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cost Fluctuations (Purchase History)',
+                  style: TextStyle(
+                    color: themeText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: fluctuations.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No item history available',
+                            style: TextStyle(color: themeHint),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: fluctuations.length,
+                          itemBuilder: (context, i) {
+                            final f = fluctuations[i];
+                            final date = DateFormat(
+                              'MMM dd, yyyy',
+                            ).format(DateTime.parse(f['order_date']));
+
+                            // Check if price changed from previous record (simple heuristic)
+                            bool priceChanged = false;
+                            if (i < fluctuations.length - 1) {
+                              if (fluctuations[i + 1]['item_name'] ==
+                                      f['item_name'] &&
+                                  fluctuations[i + 1]['unit_price'] !=
+                                      f['unit_price']) {
+                                priceChanged = true;
+                              }
+                            }
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 1),
+                              decoration: BoxDecoration(
+                                color: themeCard,
+                                border: Border(
+                                  bottom: BorderSide(color: themeBorder),
+                                ),
+                              ),
+                              child: ListTile(
+                                leading: Icon(
+                                  priceChanged
+                                      ? Icons.trending_up_rounded
+                                      : Icons.horizontal_rule_rounded,
+                                  color: priceChanged
+                                      ? Colors.orange
+                                      : themeHint,
+                                  size: 20,
+                                ),
+                                title: Text(
+                                  f['item_name'],
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Vendor: ${f['supplier_name']} • $date',
+                                  style: TextStyle(
+                                    color: themeHint,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                trailing: Text(
+                                  '${ThemeService.currency}${f['unit_price']}',
+                                  style: TextStyle(
+                                    color: priceChanged
+                                        ? Colors.orange
+                                        : themeText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

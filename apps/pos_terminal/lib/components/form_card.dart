@@ -67,10 +67,7 @@ class FormCard extends StatelessWidget {
                       ),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          color: themeHint,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: themeHint, fontSize: 13),
                       ),
                     ],
                   ),
@@ -137,7 +134,10 @@ class FormTextField extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: themePrimary, width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
         ),
       ],
@@ -169,7 +169,9 @@ class FormActionButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: color ?? themePrimary,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
         child: Text(

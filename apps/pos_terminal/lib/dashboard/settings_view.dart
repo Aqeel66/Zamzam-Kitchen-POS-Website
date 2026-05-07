@@ -9,7 +9,7 @@ class SettingsView extends StatefulWidget {
   final Function(String, Map<String, dynamic>) onUpdateSetting;
   final Function(String, Map<String, dynamic>) onSaveGatewaySettings;
   final VoidCallback onFetchSettings;
-  final Future<String?> Function() onPickImage;
+  final Future<String?> Function({String? target}) onPickImage;
   final VoidCallback onResetTransactions;
   final List<dynamic> userPermissions;
   final int initialCategory;
@@ -42,7 +42,8 @@ class _SettingsViewState extends State<SettingsView> {
   late int _selectedCategory;
 
   bool _hasPermission(String permission) {
-    if (widget.userPermissions.isEmpty) return true; // Default for dev/unauthenticated
+    if (widget.userPermissions.isEmpty)
+      return true; // Default for dev/unauthenticated
     return widget.userPermissions.contains(permission);
   }
 
@@ -50,7 +51,7 @@ class _SettingsViewState extends State<SettingsView> {
   void initState() {
     super.initState();
     _selectedCategory = widget.initialCategory;
-    
+
     // Ensure the initial category is permitted, otherwise find the first permitted one
     final categories = {
       0: 'manage_settings_general',
@@ -77,7 +78,9 @@ class _SettingsViewState extends State<SettingsView> {
       listenable: ThemeService(),
       builder: (context, _) {
         final bool isDark = ThemeService().isDarkMode;
-        final Color themeText = Theme.of(context).textTheme.bodyLarge?.color ?? (isDark ? Colors.white : const Color(0xFF0F172A));
+        final Color themeText =
+            Theme.of(context).textTheme.bodyLarge?.color ??
+            (isDark ? Colors.white : const Color(0xFF0F172A));
         final Color themeCard = Theme.of(context).cardColor;
         final Color themeBorder = Theme.of(context).dividerColor;
         final Color themePrimary = Theme.of(context).primaryColor;
@@ -93,11 +96,21 @@ class _SettingsViewState extends State<SettingsView> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.settings_suggest_outlined, size: 64, color: themeHint),
+                Icon(
+                  Icons.settings_suggest_outlined,
+                  size: 64,
+                  color: themeHint,
+                ),
                 const SizedBox(height: 16),
-                Text(LocalizationService().translate('settings_not_loaded'), style: TextStyle(color: themeText, fontSize: 18)),
+                Text(
+                  LocalizationService().translate('settings_not_loaded'),
+                  style: TextStyle(color: themeText, fontSize: 18),
+                ),
                 const SizedBox(height: 16),
-                ElevatedButton(onPressed: widget.onFetchSettings, child: Text(LocalizationService().translate('retry'))),
+                ElevatedButton(
+                  onPressed: widget.onFetchSettings,
+                  child: Text(LocalizationService().translate('retry')),
+                ),
               ],
             ),
           );
@@ -120,42 +133,107 @@ class _SettingsViewState extends State<SettingsView> {
                     Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Text(
-                        LocalizationService().translate('configuration').toUpperCase(), 
-                        style: TextStyle(color: themeHint, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)
+                        LocalizationService()
+                            .translate('configuration')
+                            .toUpperCase(),
+                        style: TextStyle(
+                          color: themeHint,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                     if (_hasPermission('manage_settings_general'))
-                      _buildSidebarTab(0, LocalizationService().translate('general'), Icons.tune_rounded, themePrimary, themeText, themeHint),
+                      _buildSidebarTab(
+                        0,
+                        LocalizationService().translate('general'),
+                        Icons.tune_rounded,
+                        themePrimary,
+                        themeText,
+                        themeHint,
+                      ),
                     if (_hasPermission('manage_settings_operations'))
-                      _buildSidebarTab(1, LocalizationService().translate('operations'), Icons.restaurant_menu_rounded, themePrimary, themeText, themeHint),
+                      _buildSidebarTab(
+                        1,
+                        LocalizationService().translate('operations'),
+                        Icons.restaurant_menu_rounded,
+                        themePrimary,
+                        themeText,
+                        themeHint,
+                      ),
                     if (_hasPermission('manage_settings_branding'))
-                      _buildSidebarTab(2, LocalizationService().translate('branding'), Icons.auto_awesome_mosaic_rounded, themePrimary, themeText, themeHint),
+                      _buildSidebarTab(
+                        2,
+                        LocalizationService().translate('branding'),
+                        Icons.auto_awesome_mosaic_rounded,
+                        themePrimary,
+                        themeText,
+                        themeHint,
+                      ),
                     if (_hasPermission('manage_settings_communications'))
-                      _buildSidebarTab(3, LocalizationService().translate('communications'), Icons.message_rounded, themePrimary, themeText, themeHint),
+                      _buildSidebarTab(
+                        3,
+                        LocalizationService().translate('communications'),
+                        Icons.message_rounded,
+                        themePrimary,
+                        themeText,
+                        themeHint,
+                      ),
                     if (_hasPermission('manage_settings_payments'))
-                      _buildSidebarTab(4, LocalizationService().translate('payments'), Icons.payments_outlined, themePrimary, themeText, themeHint),
+                      _buildSidebarTab(
+                        4,
+                        LocalizationService().translate('payments'),
+                        Icons.payments_outlined,
+                        themePrimary,
+                        themeText,
+                        themeHint,
+                      ),
                     if (_hasPermission('manage_settings_reset'))
-                      _buildSidebarTab(5, LocalizationService().translate('system_reset'), Icons.restart_alt_rounded, themePrimary, themeText, themeHint),
+                      _buildSidebarTab(
+                        5,
+                        LocalizationService().translate('system_reset'),
+                        Icons.restart_alt_rounded,
+                        themePrimary,
+                        themeText,
+                        themeHint,
+                      ),
                     const Spacer(),
                     Padding(
                       padding: const EdgeInsets.all(24.0),
-                      child: Text('Version 2.4.0', style: TextStyle(color: themeHint, fontSize: 10)),
+                      child: Text(
+                        'Version 2.4.0',
+                        style: TextStyle(color: themeHint, fontSize: 10),
+                      ),
                     ),
                   ],
                 ),
               ),
               // Content
               Expanded(
-                child: _getContent(themeText, themeCard, themeBorder, themePrimary, themeHint),
+                child: _getContent(
+                  themeText,
+                  themeCard,
+                  themeBorder,
+                  themePrimary,
+                  themeHint,
+                ),
               ),
             ],
           ),
         );
-      }
+      },
     );
   }
 
-  Widget _buildSidebarTab(int index, String label, IconData icon, Color primary, Color text, Color hint) {
+  Widget _buildSidebarTab(
+    int index,
+    String label,
+    IconData icon,
+    Color primary,
+    Color text,
+    Color hint,
+  ) {
     final isSelected = _selectedCategory == index;
     return GestureDetector(
       onTap: () => setState(() => _selectedCategory = index),
@@ -184,19 +262,38 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _getContent(Color text, Color card, Color border, Color primary, Color hint) {
+  Widget _getContent(
+    Color text,
+    Color card,
+    Color border,
+    Color primary,
+    Color hint,
+  ) {
     switch (_selectedCategory) {
-      case 0: return _buildGeneralSettings(text, card, border, primary, hint);
-      case 1: return _buildOperationalSettings(text, card, border, primary, hint);
-      case 2: return _buildBrandingSettings(text, card, border, primary, hint);
-      case 3: return _buildCommunicationSettings(text, card, border, primary, hint);
-      case 4: return _buildPaymentGateways(text, card, border, primary, hint);
-      case 5: return _buildResetView(text, card, border, primary, hint);
-      default: return _buildGeneralSettings(text, card, border, primary, hint);
+      case 0:
+        return _buildGeneralSettings(text, card, border, primary, hint);
+      case 1:
+        return _buildOperationalSettings(text, card, border, primary, hint);
+      case 2:
+        return _buildBrandingSettings(text, card, border, primary, hint);
+      case 3:
+        return _buildCommunicationSettings(text, card, border, primary, hint);
+      case 4:
+        return _buildPaymentGateways(text, card, border, primary, hint);
+      case 5:
+        return _buildResetView(text, card, border, primary, hint);
+      default:
+        return _buildGeneralSettings(text, card, border, primary, hint);
     }
   }
 
-  Widget _buildGeneralSettings(Color text, Color card, Color border, Color primary, Color hint) {
+  Widget _buildGeneralSettings(
+    Color text,
+    Color card,
+    Color border,
+    Color primary,
+    Color hint,
+  ) {
     final tenant = widget.settings['tenant'] ?? {};
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
@@ -213,16 +310,26 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               SettingDropdown(
                 label: LocalizationService().translate('primary_currency'),
-                description: LocalizationService().translate('primary_currency_desc'),
+                description: LocalizationService().translate(
+                  'primary_currency_desc',
+                ),
                 value: tenant['currency'] ?? 'USD',
                 items: const ['USD', 'AUD', 'GBP', 'EUR', 'AED', 'SAR'],
-                onChanged: (val) => widget.onUpdateSetting('tenant', {'currency': val}),
+                onChanged: (val) =>
+                    widget.onUpdateSetting('tenant', {'currency': val}),
               ),
               SettingDropdown(
                 label: LocalizationService().translate('ui_theme'),
                 description: 'Select your preferred visual style',
                 value: tenant['theme_mode'] ?? 'Dark',
-                items: const ['Light', 'Dark', 'System', 'Midnight Blue', 'Emerald Green', 'Aura Purple'],
+                items: const [
+                  'Light',
+                  'Dark',
+                  'System',
+                  'Midnight Blue',
+                  'Emerald Green',
+                  'Aura Purple',
+                ],
                 onChanged: (val) {
                   if (val != null) {
                     widget.onUpdateSetting('tenant', {'theme_mode': val});
@@ -238,7 +345,13 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildOperationalSettings(Color text, Color card, Color border, Color primary, Color hint) {
+  Widget _buildOperationalSettings(
+    Color text,
+    Color card,
+    Color border,
+    Color primary,
+    Color hint,
+  ) {
     final branch = widget.settings['branch'] ?? {};
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
@@ -256,21 +369,29 @@ class _SettingsViewState extends State<SettingsView> {
               SettingToggle(
                 label: LocalizationService().translate('enable_tax'),
                 description: 'Apply tax to all orders',
-                value: (branch['is_tax_enabled'] == 1 || branch['is_tax_enabled'] == true),
-                onChanged: (val) => widget.onUpdateSetting('branch', {'is_tax_enabled': val ? 1 : 0}),
+                value:
+                    (branch['is_tax_enabled'] == 1 ||
+                    branch['is_tax_enabled'] == true),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'is_tax_enabled': val ? 1 : 0,
+                }),
               ),
               SettingInput(
                 label: 'Tax Rate (%)',
                 description: 'Percentage to charge',
                 initialValue: branch['tax_rate']?.toString() ?? '0',
-                onChanged: (val) => widget.onUpdateSetting('branch', {'tax_rate': double.tryParse(val) ?? 0.0}),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'tax_rate': double.tryParse(val) ?? 0.0,
+                }),
                 isNumeric: true,
               ),
               SettingInput(
                 label: 'Service Charge (%)',
                 description: 'Optional gratuity fee',
                 initialValue: branch['gratuity_percentage']?.toString() ?? '0',
-                onChanged: (val) => widget.onUpdateSetting('branch', {'gratuity_percentage': double.tryParse(val) ?? 0.0}),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'gratuity_percentage': double.tryParse(val) ?? 0.0,
+                }),
                 isNumeric: true,
               ),
             ],
@@ -283,18 +404,26 @@ class _SettingsViewState extends State<SettingsView> {
                 label: 'KDS Timer (Minutes)',
                 description: 'Warning threshold for orders',
                 initialValue: branch['kds_timer_minutes']?.toString() ?? '15',
-                onChanged: (val) => widget.onUpdateSetting('branch', {'kds_timer_minutes': int.tryParse(val) ?? 15}),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'kds_timer_minutes': int.tryParse(val) ?? 15,
+                }),
                 isNumeric: true,
               ),
               SettingToggle(
                 label: 'QR Table Ordering',
                 description: 'Allow customers to order from table',
-                value: (branch['allow_qr_pay'] == 1 || branch['allow_qr_pay'] == true),
-                onChanged: (val) => widget.onUpdateSetting('branch', {'allow_qr_pay': val ? 1 : 0}),
+                value:
+                    (branch['allow_qr_pay'] == 1 ||
+                    branch['allow_qr_pay'] == true),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'allow_qr_pay': val ? 1 : 0,
+                }),
               ),
               SettingDropdown(
                 label: LocalizationService().translate('payment_policy'),
-                description: LocalizationService().translate('payment_policy_desc'),
+                description: LocalizationService().translate(
+                  'payment_policy_desc',
+                ),
                 value: branch['payment_policy'] ?? 'Pay Last',
                 items: const ['Pay First', 'Pay Last', 'Pay All'],
                 labels: {
@@ -302,7 +431,8 @@ class _SettingsViewState extends State<SettingsView> {
                   'Pay Last': LocalizationService().translate('pay_last'),
                   'Pay All': LocalizationService().translate('pay_all'),
                 },
-                onChanged: (val) => widget.onUpdateSetting('branch', {'payment_policy': val}),
+                onChanged: (val) =>
+                    widget.onUpdateSetting('branch', {'payment_policy': val}),
               ),
               SettingDropdown(
                 label: LocalizationService().translate('order_sort_direction'),
@@ -313,7 +443,9 @@ class _SettingsViewState extends State<SettingsView> {
                   'Ascending': LocalizationService().translate('ascending'),
                   'Descending': LocalizationService().translate('descending'),
                 },
-                onChanged: (val) => widget.onUpdateSetting('branch', {'order_sort_direction': val}),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'order_sort_direction': val,
+                }),
               ),
             ],
           ),
@@ -323,15 +455,27 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               SettingToggle(
                 label: LocalizationService().translate('home_delivery'),
-                description: LocalizationService().translate('home_delivery_desc'),
-                value: (branch['allow_delivery'] == 1 || branch['allow_delivery'] == true),
-                onChanged: (val) => widget.onUpdateSetting('branch', {'allow_delivery': val ? 1 : 0}),
+                description: LocalizationService().translate(
+                  'home_delivery_desc',
+                ),
+                value:
+                    (branch['allow_delivery'] == 1 ||
+                    branch['allow_delivery'] == true),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'allow_delivery': val ? 1 : 0,
+                }),
               ),
               SettingToggle(
                 label: LocalizationService().translate('customer_pickup'),
-                description: LocalizationService().translate('customer_pickup_desc'),
-                value: (branch['allow_pickup'] == 1 || branch['allow_pickup'] == true),
-                onChanged: (val) => widget.onUpdateSetting('branch', {'allow_pickup': val ? 1 : 0}),
+                description: LocalizationService().translate(
+                  'customer_pickup_desc',
+                ),
+                value:
+                    (branch['allow_pickup'] == 1 ||
+                    branch['allow_pickup'] == true),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'allow_pickup': val ? 1 : 0,
+                }),
               ),
             ],
           ),
@@ -342,14 +486,20 @@ class _SettingsViewState extends State<SettingsView> {
               SettingToggle(
                 label: LocalizationService().translate('enable_booking_fee'),
                 description: 'Charge a fee for table bookings',
-                value: (branch['is_booking_fee_enabled'] == 1 || branch['is_booking_fee_enabled'] == true),
-                onChanged: (val) => widget.onUpdateSetting('branch', {'is_booking_fee_enabled': val ? 1 : 0}),
+                value:
+                    (branch['is_booking_fee_enabled'] == 1 ||
+                    branch['is_booking_fee_enabled'] == true),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'is_booking_fee_enabled': val ? 1 : 0,
+                }),
               ),
               SettingInput(
                 label: LocalizationService().translate('booking_fee'),
                 description: 'Flat amount per reservation',
                 initialValue: branch['booking_fee_amount']?.toString() ?? '0',
-                onChanged: (val) => widget.onUpdateSetting('branch', {'booking_fee_amount': double.tryParse(val) ?? 0.0}),
+                onChanged: (val) => widget.onUpdateSetting('branch', {
+                  'booking_fee_amount': double.tryParse(val) ?? 0.0,
+                }),
                 isNumeric: true,
               ),
             ],
@@ -359,7 +509,13 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildBrandingSettings(Color text, Color card, Color border, Color primary, Color hint) {
+  Widget _buildBrandingSettings(
+    Color text,
+    Color card,
+    Color border,
+    Color primary,
+    Color hint,
+  ) {
     final tenant = widget.settings['tenant'] ?? {};
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
@@ -374,13 +530,46 @@ class _SettingsViewState extends State<SettingsView> {
           SettingsGridCard(
             title: 'Visual Identity',
             children: [
-              _buildImagePickerSetting('Primary Logo', 'Appears on login and headers', tenant['logo_url'] ?? '', 'logo_url', primary, card, border),
-              _buildImagePickerSetting('Secondary Logo', 'Used for dark themes/footers', tenant['secondary_logo_url'] ?? '', 'secondary_logo_url', primary, card, border),
-              _buildImagePickerSetting('Login Screen Background', 'High-quality image for POS & Website login', tenant['login_background_url'] ?? '', 'login_background_url', primary, card, border),
-              _buildImagePickerSetting('Website Hero Background', 'Large banner image for Website Home Page', tenant['hero_background_url'] ?? '', 'hero_background_url', primary, card, border),
+              _buildImagePickerSetting(
+                'Primary Logo',
+                'Appears on login and headers',
+                tenant['logo_url'] ?? '',
+                'logo_url',
+                primary,
+                card,
+                border,
+              ),
+              _buildImagePickerSetting(
+                'Secondary Logo',
+                'Used for dark themes/footers',
+                tenant['secondary_logo_url'] ?? '',
+                'secondary_logo_url',
+                primary,
+                card,
+                border,
+              ),
+              _buildImagePickerSetting(
+                'Login Screen Background',
+                'High-quality image for POS & Website login',
+                tenant['login_background_url'] ?? '',
+                'login_background_url',
+                primary,
+                card,
+                border,
+              ),
+              _buildImagePickerSetting(
+                'Website Hero Background',
+                'Large banner image for Website Home Page',
+                tenant['hero_background_url'] ?? '',
+                'hero_background_url',
+                primary,
+                card,
+                border,
+              ),
               SettingInput(
                 label: 'Restaurant Tagline',
-                description: 'A catchy slogan for your business (shown on login screen)',
+                description:
+                    'A catchy slogan for your business (shown on login screen)',
                 initialValue: tenant['tagline'] ?? '',
                 onChanged: (val) {
                   widget.onUpdateSetting('tenant', {'tagline': val});
@@ -389,12 +578,18 @@ class _SettingsViewState extends State<SettingsView> {
               ),
               SettingColorPicker(
                 label: 'Primary Accent Color',
-                description: 'This color will be used for buttons, icons, and highlights across the terminal.',
+                description:
+                    'This color will be used for buttons, icons, and highlights across the terminal.',
                 value: tenant['primary_accent_color'],
                 onChanged: (val) {
-                  widget.onUpdateSetting('tenant', {'primary_accent_color': val});
+                  widget.onUpdateSetting('tenant', {
+                    'primary_accent_color': val,
+                  });
                   // Apply immediately to the UI
-                  ThemeService().setFlavorFromString(tenant['theme_mode'], accentColorHex: val);
+                  ThemeService().setFlavorFromString(
+                    tenant['theme_mode'],
+                    accentColorHex: val,
+                  );
                 },
               ),
             ],
@@ -406,9 +601,13 @@ class _SettingsViewState extends State<SettingsView> {
               SettingInput(
                 label: 'Business Legal Name',
                 description: 'Full name for official documents',
-                initialValue: tenant['business_name'] ?? tenant['restaurant_name'] ?? '',
+                initialValue:
+                    tenant['business_name'] ?? tenant['restaurant_name'] ?? '',
                 onChanged: (val) {
-                  widget.onUpdateSetting('tenant', {'business_name': val, 'restaurant_name': val});
+                  widget.onUpdateSetting('tenant', {
+                    'business_name': val,
+                    'restaurant_name': val,
+                  });
                   ThemeService().updateBranding(restaurantName: val);
                 },
               ),
@@ -416,19 +615,22 @@ class _SettingsViewState extends State<SettingsView> {
                 label: 'Business Email',
                 description: 'Support/Contact email for customers',
                 initialValue: tenant['business_email'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('tenant', {'business_email': val}),
+                onChanged: (val) =>
+                    widget.onUpdateSetting('tenant', {'business_email': val}),
               ),
               SettingInput(
                 label: 'Business Phone #',
                 description: 'Contact number for orders/queries',
                 initialValue: tenant['business_phone'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('tenant', {'business_phone': val}),
+                onChanged: (val) =>
+                    widget.onUpdateSetting('tenant', {'business_phone': val}),
               ),
               SettingInput(
                 label: 'Business Address',
                 description: 'Full physical address',
                 initialValue: tenant['business_address'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('tenant', {'business_address': val}),
+                onChanged: (val) =>
+                    widget.onUpdateSetting('tenant', {'business_address': val}),
               ),
             ],
           ),
@@ -437,11 +639,22 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildImagePickerSetting(String label, String desc, String path, String key, Color primary, Color card, Color border) {
+  Widget _buildImagePickerSetting(
+    String label,
+    String desc,
+    String path,
+    String key,
+    Color primary,
+    Color card,
+    Color border,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         Text(desc, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
         const SizedBox(height: 12),
         Row(
@@ -449,19 +662,27 @@ class _SettingsViewState extends State<SettingsView> {
             Expanded(
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(8), border: Border.all(color: border)),
-                child: Text(path.isEmpty ? 'No image selected' : path, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: border),
+                ),
+                child: Text(
+                  path.isEmpty ? 'No image selected' : path,
+                  style: const TextStyle(fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
             const SizedBox(width: 12),
             ElevatedButton(
               onPressed: () async {
-                final newPath = await widget.onPickImage();
+                final newPath = await widget.onPickImage(target: key);
                 if (newPath != null) {
                   widget.onUpdateSetting('tenant', {key: newPath});
                   // Update theme service branding immediately
                   if (key == 'logo_url') {
-                    ThemeService().updateBranding(logoUrl: newPath); 
+                    ThemeService().updateBranding(logoUrl: newPath);
                   } else if (key == 'secondary_logo_url') {
                     ThemeService().updateBranding(secondaryLogoUrl: newPath);
                   } else if (key == 'login_background_url') {
@@ -469,8 +690,15 @@ class _SettingsViewState extends State<SettingsView> {
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(horizontal: 16)),
-              child: const Icon(Icons.upload_file_rounded, size: 18, color: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              child: const Icon(
+                Icons.upload_file_rounded,
+                size: 18,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
@@ -478,18 +706,33 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildCommunicationSettings(Color text, Color card, Color border, Color primary, Color hint) {
+  Widget _buildCommunicationSettings(
+    Color text,
+    Color card,
+    Color border,
+    Color primary,
+    Color hint,
+  ) {
     final messaging = widget.settings['messaging'] as List? ?? [];
     final email = widget.settings['email'] as List? ?? [];
 
     Map<String, dynamic> twilio = Map<String, dynamic>.from(
-      messaging.firstWhere((m) => m != null && m is Map && m['provider_name'] == 'Twilio', orElse: () => {})
+      messaging.firstWhere(
+        (m) => m != null && m is Map && m['provider_name'] == 'Twilio',
+        orElse: () => {},
+      ),
     );
     Map<String, dynamic> whatsappDirect = Map<String, dynamic>.from(
-      messaging.firstWhere((m) => m != null && m is Map && m['provider_name'] == 'WhatsApp Direct', orElse: () => {})
+      messaging.firstWhere(
+        (m) => m != null && m is Map && m['provider_name'] == 'WhatsApp Direct',
+        orElse: () => {},
+      ),
     );
     Map<String, dynamic> smtp = Map<String, dynamic>.from(
-      email.firstWhere((e) => e != null && e is Map && e['provider_name'] == 'SMTP', orElse: () => {})
+      email.firstWhere(
+        (e) => e != null && e is Map && e['provider_name'] == 'SMTP',
+        orElse: () => {},
+      ),
     );
 
     return SingleChildScrollView(
@@ -508,27 +751,40 @@ class _SettingsViewState extends State<SettingsView> {
               SettingToggle(
                 label: 'Enable Twilio',
                 description: 'Activate Twilio for automated notifications',
-                value: (twilio['is_active'] == 1 || twilio['is_active'] == true),
-                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'Twilio', 'is_active': val ? 1 : 0}),
+                value:
+                    (twilio['is_active'] == 1 || twilio['is_active'] == true),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {
+                  'provider_name': 'Twilio',
+                  'is_active': val ? 1 : 0,
+                }),
               ),
               SettingInput(
                 label: LocalizationService().translate('account_sid'),
                 description: 'Your Twilio API Account SID',
                 initialValue: twilio['account_sid'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'Twilio', 'account_sid': val}),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {
+                  'provider_name': 'Twilio',
+                  'account_sid': val,
+                }),
               ),
               SettingInput(
                 label: LocalizationService().translate('auth_token'),
                 description: 'Secret token for authentication',
                 initialValue: twilio['auth_token'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'Twilio', 'auth_token': val}),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {
+                  'provider_name': 'Twilio',
+                  'auth_token': val,
+                }),
                 isObscure: true,
               ),
               SettingInput(
                 label: LocalizationService().translate('sender_number'),
                 description: 'Twilio phone number or WhatsApp sender',
                 initialValue: twilio['sender_number'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'Twilio', 'sender_number': val}),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {
+                  'provider_name': 'Twilio',
+                  'sender_number': val,
+                }),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
@@ -538,8 +794,13 @@ class _SettingsViewState extends State<SettingsView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -551,20 +812,31 @@ class _SettingsViewState extends State<SettingsView> {
               SettingToggle(
                 label: 'Enable WhatsApp Direct',
                 description: 'Activate Meta WhatsApp Cloud API',
-                value: (whatsappDirect['is_active'] == 1 || whatsappDirect['is_active'] == true),
-                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'WhatsApp Direct', 'is_active': val ? 1 : 0}),
+                value:
+                    (whatsappDirect['is_active'] == 1 ||
+                    whatsappDirect['is_active'] == true),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {
+                  'provider_name': 'WhatsApp Direct',
+                  'is_active': val ? 1 : 0,
+                }),
               ),
               SettingInput(
                 label: 'Phone Number ID',
                 description: 'Meta WhatsApp Cloud API Phone Number ID',
                 initialValue: whatsappDirect['account_sid'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'WhatsApp Direct', 'account_sid': val}),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {
+                  'provider_name': 'WhatsApp Direct',
+                  'account_sid': val,
+                }),
               ),
               SettingInput(
                 label: 'Access Token',
                 description: 'System User Access Token',
                 initialValue: whatsappDirect['auth_token'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('messaging', {'provider_name': 'WhatsApp Direct', 'auth_token': val}),
+                onChanged: (val) => widget.onUpdateSetting('messaging', {
+                  'provider_name': 'WhatsApp Direct',
+                  'auth_token': val,
+                }),
                 isObscure: true,
               ),
               const SizedBox(height: 16),
@@ -575,8 +847,13 @@ class _SettingsViewState extends State<SettingsView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -589,45 +866,66 @@ class _SettingsViewState extends State<SettingsView> {
                 label: 'Enable SMTP',
                 description: 'Activate Email notifications',
                 value: (smtp['is_active'] == 1 || smtp['is_active'] == true),
-                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'is_active': val ? 1 : 0}),
+                onChanged: (val) => widget.onUpdateSetting('email', {
+                  'provider_name': 'SMTP',
+                  'is_active': val ? 1 : 0,
+                }),
               ),
               SettingInput(
                 label: LocalizationService().translate('smtp_host'),
                 description: 'Server address (e.g., smtp.gmail.com)',
                 initialValue: smtp['smtp_host'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'smtp_host': val}),
+                onChanged: (val) => widget.onUpdateSetting('email', {
+                  'provider_name': 'SMTP',
+                  'smtp_host': val,
+                }),
               ),
               SettingInput(
                 label: LocalizationService().translate('smtp_port'),
                 description: 'Common ports: 465, 587, 25',
                 initialValue: smtp['smtp_port']?.toString() ?? '',
-                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'smtp_port': int.tryParse(val)}),
+                onChanged: (val) => widget.onUpdateSetting('email', {
+                  'provider_name': 'SMTP',
+                  'smtp_port': int.tryParse(val),
+                }),
                 isNumeric: true,
               ),
               SettingInput(
                 label: LocalizationService().translate('smtp_user'),
                 description: 'Username for login',
                 initialValue: smtp['smtp_user'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'smtp_user': val}),
+                onChanged: (val) => widget.onUpdateSetting('email', {
+                  'provider_name': 'SMTP',
+                  'smtp_user': val,
+                }),
               ),
               SettingInput(
                 label: LocalizationService().translate('smtp_pass'),
                 description: 'Password or App Password',
                 initialValue: smtp['smtp_pass'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'smtp_pass': val}),
+                onChanged: (val) => widget.onUpdateSetting('email', {
+                  'provider_name': 'SMTP',
+                  'smtp_pass': val,
+                }),
                 isObscure: true,
               ),
               SettingInput(
                 label: LocalizationService().translate('from_email'),
                 description: 'Sender email address',
                 initialValue: smtp['from_email'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'from_email': val}),
+                onChanged: (val) => widget.onUpdateSetting('email', {
+                  'provider_name': 'SMTP',
+                  'from_email': val,
+                }),
               ),
               SettingInput(
                 label: LocalizationService().translate('from_name'),
                 description: 'Display name for sent emails',
                 initialValue: smtp['from_name'] ?? '',
-                onChanged: (val) => widget.onUpdateSetting('email', {'provider_name': 'SMTP', 'from_name': val}),
+                onChanged: (val) => widget.onUpdateSetting('email', {
+                  'provider_name': 'SMTP',
+                  'from_name': val,
+                }),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
@@ -637,8 +935,13 @@ class _SettingsViewState extends State<SettingsView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -648,13 +951,20 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-
-
-  Widget _buildPaymentGateways(Color text, Color card, Color border, Color primary, Color hint) {
+  Widget _buildPaymentGateways(
+    Color text,
+    Color card,
+    Color border,
+    Color primary,
+    Color hint,
+  ) {
     final gateways = widget.settings['payment_gateways'] as List? ?? [];
-    
+
     Map<String, dynamic> getGateway(String name) {
-      final gateway = gateways.firstWhere((g) => g != null && g is Map && g['gateway_name'] == name, orElse: () => null);
+      final gateway = gateways.firstWhere(
+        (g) => g != null && g is Map && g['gateway_name'] == name,
+        orElse: () => null,
+      );
       return gateway != null ? Map<String, dynamic>.from(gateway) : {};
     }
 
@@ -668,29 +978,64 @@ class _SettingsViewState extends State<SettingsView> {
             subtitle: 'Configure Stripe and PayPal integrations.',
           ),
           const SizedBox(height: 32),
-          _buildGatewayCard('Stripe', Icons.credit_card_rounded, getGateway('Stripe'), [
-            {'label': 'Public Key', 'key': 'stripe_public'},
-            {'label': 'Secret Key', 'key': 'stripe_secret'},
-            {'label': 'Webhook Secret', 'key': 'stripe_webhook'},
-          ], primary, card, text, border, hint),
+          _buildGatewayCard(
+            'Stripe',
+            Icons.credit_card_rounded,
+            getGateway('Stripe'),
+            [
+              {'label': 'Public Key', 'key': 'stripe_public'},
+              {'label': 'Secret Key', 'key': 'stripe_secret'},
+              {'label': 'Webhook Secret', 'key': 'stripe_webhook'},
+            ],
+            primary,
+            card,
+            text,
+            border,
+            hint,
+          ),
           const SizedBox(height: 32),
-          _buildGatewayCard('PayPal', Icons.account_balance_wallet_outlined, getGateway('PayPal'), [
-            {'label': 'Client ID', 'key': 'paypal_public'},
-            {'label': 'Secret Key', 'key': 'paypal_secret'},
-          ], primary, card, text, border, hint),
+          _buildGatewayCard(
+            'PayPal',
+            Icons.account_balance_wallet_outlined,
+            getGateway('PayPal'),
+            [
+              {'label': 'Client ID', 'key': 'paypal_public'},
+              {'label': 'Secret Key', 'key': 'paypal_secret'},
+            ],
+            primary,
+            card,
+            text,
+            border,
+            hint,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildGatewayCard(String name, IconData icon, Map<String, dynamic> data, List<Map<String, String>> fields, Color primary, Color card, Color text, Color border, Color hint) {
+  Widget _buildGatewayCard(
+    String name,
+    IconData icon,
+    Map<String, dynamic> data,
+    List<Map<String, String>> fields,
+    Color primary,
+    Color card,
+    Color text,
+    Color border,
+    Color hint,
+  ) {
     final dynamic activeVal = data['is_active'];
-    final bool isActive = activeVal == 1 || activeVal == true || activeVal.toString() == '1';
+    final bool isActive =
+        activeVal == 1 || activeVal == true || activeVal.toString() == '1';
     String env = data['environment']?.toString() ?? 'sandbox';
 
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -698,11 +1043,20 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               Icon(icon, color: primary, size: 28),
               const SizedBox(width: 16),
-              Text(name, style: TextStyle(color: text, fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(
+                name,
+                style: TextStyle(
+                  color: text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const Spacer(),
               Switch(
                 value: isActive,
-                onChanged: (val) => widget.onSaveGatewaySettings(name, {'is_active': val ? 1 : 0}),
+                onChanged: (val) => widget.onSaveGatewaySettings(name, {
+                  'is_active': val ? 1 : 0,
+                }),
                 activeThumbColor: primary,
               ),
             ],
@@ -710,29 +1064,60 @@ class _SettingsViewState extends State<SettingsView> {
           const Divider(height: 32),
           Row(
             children: [
-              Text('Environment:', style: TextStyle(color: text, fontWeight: FontWeight.w600)),
+              Text(
+                'Environment:',
+                style: TextStyle(color: text, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(width: 16),
-              _buildEnvChip(name, 'sandbox', env == 'sandbox', primary, card, text, border),
+              _buildEnvChip(
+                name,
+                'sandbox',
+                env == 'sandbox',
+                primary,
+                card,
+                text,
+                border,
+              ),
               const SizedBox(width: 8),
-              _buildEnvChip(name, 'production', env == 'production', primary, card, text, border),
+              _buildEnvChip(
+                name,
+                'production',
+                env == 'production',
+                primary,
+                card,
+                text,
+                border,
+              ),
             ],
           ),
           const SizedBox(height: 24),
-          ...fields.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: SettingInput(
-              label: f['label']!,
-              description: '',
-              initialValue: name == 'Stripe' 
-                  ? (f['key'] == 'stripe_public' ? (data['public_key']?.toString() ?? '') : f['key'] == 'stripe_secret' ? (data['secret_key']?.toString() ?? '') : (data['webhook_secret']?.toString() ?? ''))
-                  : (f['key'] == 'paypal_public' ? (data['public_key']?.toString() ?? '') : (data['secret_key']?.toString() ?? '')),
-              onChanged: (val) {
-                final dbKey = f['key']!.contains('public') ? 'public_key' : (f['key']!.contains('secret') ? 'secret_key' : 'webhook_secret');
-                widget.onSaveGatewaySettings(name, {dbKey: val});
-              },
-              isObscure: f['key']!.contains('secret'),
+          ...fields.map(
+            (f) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SettingInput(
+                label: f['label']!,
+                description: '',
+                initialValue: name == 'Stripe'
+                    ? (f['key'] == 'stripe_public'
+                          ? (data['public_key']?.toString() ?? '')
+                          : f['key'] == 'stripe_secret'
+                          ? (data['secret_key']?.toString() ?? '')
+                          : (data['webhook_secret']?.toString() ?? ''))
+                    : (f['key'] == 'paypal_public'
+                          ? (data['public_key']?.toString() ?? '')
+                          : (data['secret_key']?.toString() ?? '')),
+                onChanged: (val) {
+                  final dbKey = f['key']!.contains('public')
+                      ? 'public_key'
+                      : (f['key']!.contains('secret')
+                            ? 'secret_key'
+                            : 'webhook_secret');
+                  widget.onSaveGatewaySettings(name, {dbKey: val});
+                },
+                isObscure: f['key']!.contains('secret'),
+              ),
             ),
-          )),
+          ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () => widget.onTestPaymentGateway(name, data),
@@ -742,7 +1127,9 @@ class _SettingsViewState extends State<SettingsView> {
               backgroundColor: primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ],
@@ -750,9 +1137,18 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildEnvChip(String gateway, String value, bool isSelected, Color primary, Color card, Color text, Color border) {
+  Widget _buildEnvChip(
+    String gateway,
+    String value,
+    bool isSelected,
+    Color primary,
+    Color card,
+    Color text,
+    Color border,
+  ) {
     return GestureDetector(
-      onTap: () => widget.onSaveGatewaySettings(gateway, {'environment': value}),
+      onTap: () =>
+          widget.onSaveGatewaySettings(gateway, {'environment': value}),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
@@ -760,14 +1156,25 @@ class _SettingsViewState extends State<SettingsView> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: isSelected ? primary : border),
         ),
-        child: Text(value.toUpperCase(), style: TextStyle(color: isSelected ? Colors.white : text, fontSize: 11, fontWeight: FontWeight.bold)),
+        child: Text(
+          value.toUpperCase(),
+          style: TextStyle(
+            color: isSelected ? Colors.white : text,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
 
-
-
-  Widget _buildResetView(Color text, Color card, Color border, Color primary, Color hint) {
+  Widget _buildResetView(
+    Color text,
+    Color card,
+    Color border,
+    Color primary,
+    Color hint,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
       child: Column(
@@ -775,7 +1182,9 @@ class _SettingsViewState extends State<SettingsView> {
         children: [
           SettingsHeader(
             title: LocalizationService().translate('system_maintenance'),
-            subtitle: LocalizationService().translate('reset_transactional_data_desc'),
+            subtitle: LocalizationService().translate(
+              'reset_transactional_data_desc',
+            ),
           ),
           const SizedBox(height: 32),
           Container(
@@ -796,7 +1205,11 @@ class _SettingsViewState extends State<SettingsView> {
                         color: Colors.red.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 32),
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.red,
+                        size: 32,
+                      ),
                     ),
                     const SizedBox(width: 20),
                     Expanded(
@@ -805,11 +1218,17 @@ class _SettingsViewState extends State<SettingsView> {
                         children: [
                           Text(
                             LocalizationService().translate('danger_zone'),
-                            style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            LocalizationService().translate('reset_warning_text'),
+                            LocalizationService().translate(
+                              'reset_warning_text',
+                            ),
                             style: TextStyle(color: hint, fontSize: 14),
                           ),
                         ],
@@ -822,28 +1241,70 @@ class _SettingsViewState extends State<SettingsView> {
                 const SizedBox(height: 32),
                 Text(
                   LocalizationService().translate('data_impact_analysis'),
-                  style: TextStyle(color: text, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: text,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                _buildImpactRow(Icons.check_circle_outline, LocalizationService().translate('orders_payments_reservations'), true, hint),
-                _buildImpactRow(Icons.check_circle_outline, LocalizationService().translate('expenses_purchases'), true, hint),
-                _buildImpactRow(Icons.cancel_outlined, LocalizationService().translate('menu_items_categories'), false, hint),
-                _buildImpactRow(Icons.cancel_outlined, LocalizationService().translate('users_roles_permissions'), false, hint),
-                _buildImpactRow(Icons.cancel_outlined, LocalizationService().translate('table_layouts_settings'), false, hint),
+                _buildImpactRow(
+                  Icons.check_circle_outline,
+                  LocalizationService().translate(
+                    'orders_payments_reservations',
+                  ),
+                  true,
+                  hint,
+                ),
+                _buildImpactRow(
+                  Icons.check_circle_outline,
+                  LocalizationService().translate('expenses_purchases'),
+                  true,
+                  hint,
+                ),
+                _buildImpactRow(
+                  Icons.cancel_outlined,
+                  LocalizationService().translate('menu_items_categories'),
+                  false,
+                  hint,
+                ),
+                _buildImpactRow(
+                  Icons.cancel_outlined,
+                  LocalizationService().translate('users_roles_permissions'),
+                  false,
+                  hint,
+                ),
+                _buildImpactRow(
+                  Icons.cancel_outlined,
+                  LocalizationService().translate('table_layouts_settings'),
+                  false,
+                  hint,
+                ),
                 const SizedBox(height: 48),
                 SizedBox(
                   width: double.infinity,
                   height: 60,
                   child: ElevatedButton.icon(
                     onPressed: () => _confirmReset(context),
-                    icon: const Icon(Icons.delete_sweep_rounded, color: Colors.white),
+                    icon: const Icon(
+                      Icons.delete_sweep_rounded,
+                      color: Colors.white,
+                    ),
                     label: Text(
-                      LocalizationService().translate('reset_transactional_data').toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                      LocalizationService()
+                          .translate('reset_transactional_data')
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
                   ),
@@ -856,7 +1317,12 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildImpactRow(IconData icon, String label, bool isDeleted, Color hint) {
+  Widget _buildImpactRow(
+    IconData icon,
+    String label,
+    bool isDeleted,
+    Color hint,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -866,8 +1332,16 @@ class _SettingsViewState extends State<SettingsView> {
           Text(label, style: TextStyle(color: hint, fontSize: 14)),
           const Spacer(),
           Text(
-            isDeleted ? LocalizationService().translate('will_be_deleted') : LocalizationService().translate('will_be_preserved'),
-            style: TextStyle(color: isDeleted ? Colors.red.withValues(alpha: 0.7) : Colors.green.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.bold),
+            isDeleted
+                ? LocalizationService().translate('will_be_deleted')
+                : LocalizationService().translate('will_be_preserved'),
+            style: TextStyle(
+              color: isDeleted
+                  ? Colors.red.withValues(alpha: 0.7)
+                  : Colors.green.withValues(alpha: 0.7),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -881,11 +1355,20 @@ class _SettingsViewState extends State<SettingsView> {
         backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(LocalizationService().translate('are_you_sure')),
-        content: Text(LocalizationService().translate('reset_confirmation_detailed')),
+        content: Text(
+          LocalizationService().translate('reset_confirmation_detailed'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(LocalizationService().translate('cancel'), style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.5))),
+            child: Text(
+              LocalizationService().translate('cancel'),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -893,7 +1376,10 @@ class _SettingsViewState extends State<SettingsView> {
               widget.onResetTransactions();
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(LocalizationService().translate('confirm_reset'), style: const TextStyle(color: Colors.white)),
+            child: Text(
+              LocalizationService().translate('confirm_reset'),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

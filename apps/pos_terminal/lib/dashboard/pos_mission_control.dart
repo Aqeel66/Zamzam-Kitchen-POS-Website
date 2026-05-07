@@ -32,8 +32,7 @@ import '../services/reservation_service.dart';
 import '../utils/pos_utils.dart';
 import '../components/pos_widgets.dart';
 
- // Dynamic theme colors are accessed via ThemeService().themeData in _AdminDashboardState
-
+// Dynamic theme colors are accessed via ThemeService().themeData in _AdminDashboardState
 
 enum TableStatus { available, occupied, reserved, cleaning }
 
@@ -63,7 +62,8 @@ class POSMissionControl extends StatefulWidget {
   State<POSMissionControl> createState() => _POSMissionControlState();
 }
 
-class _POSMissionControlState extends State<POSMissionControl> with SingleTickerProviderStateMixin {
+class _POSMissionControlState extends State<POSMissionControl>
+    with SingleTickerProviderStateMixin {
   late AnimationController _loadingLogoController;
   late Animation<double> _loadingLogoAnimation;
 
@@ -149,7 +149,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   final Map<String, TextEditingController> _settingControllers = {};
 
   bool _hasPermission(String permission) {
-    if (widget.user == null) return true; // Default to allow if no user (dev mode)
+    if (widget.user == null)
+      return true; // Default to allow if no user (dev mode)
     final permissions = widget.user!['permissions'] as List<dynamic>? ?? [];
     return permissions.contains(permission);
   }
@@ -172,12 +173,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Color get themePrimaryAccent => _theme.primaryColor.withValues(alpha: 0.8);
   Color get themeBg => _theme.scaffoldBackgroundColor;
   Color get themeCard => _theme.cardColor;
-  Color get themeText => _theme.textTheme.bodyLarge?.color ?? (_isDarkMode ? Colors.white : const Color(0xFF0F172A));
+  Color get themeText =>
+      _theme.textTheme.bodyLarge?.color ??
+      (_isDarkMode ? Colors.white : const Color(0xFF0F172A));
   Color get themeHint => themeText.withValues(alpha: 0.6);
   Color get themeBorder => _theme.dividerColor.withValues(alpha: 0.15);
   Color get themeSecondary => _theme.colorScheme.secondary;
-
-
 
   @override
   void initState() {
@@ -204,7 +205,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
 
     _fetchTables();
-    
+
     // Fallback: Ensure loading screen clears eventually
     Future.delayed(const Duration(seconds: 15), () {
       if (mounted && _isLoading) {
@@ -219,7 +220,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       _fetchInventory();
       _fetchSummary();
       _fetchTables();
-      
+
       // Secondary data (only if we've reached a 5-min interval)
       final tickCount = (_refreshTimer?.tick ?? 0);
       if (tickCount % 5 == 0) {
@@ -239,7 +240,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchGlobalCustomers() async {
     try {
-      final res = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/customers'));
+      final res = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/customers'),
+      );
       if (res.statusCode == 200) {
         setState(() => _allCustomers = json.decode(res.body));
       }
@@ -250,15 +253,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   void _resetInactivityTimer() {
     _inactivityTimer?.cancel();
-    
+
     final autoLogout = _settings['tenant']?['auto_logout'] ?? 'Never';
     if (autoLogout == 'Never') return;
 
     int minutes = 0;
-    if (autoLogout == '5 Minutes') { minutes = 5; }
-    else if (autoLogout == '15 Minutes') { minutes = 15; }
-    else if (autoLogout == '30 Minutes') { minutes = 30; }
-    else if (autoLogout == '1 Hour') { minutes = 60; }
+    if (autoLogout == '5 Minutes') {
+      minutes = 5;
+    } else if (autoLogout == '15 Minutes') {
+      minutes = 15;
+    } else if (autoLogout == '30 Minutes') {
+      minutes = 30;
+    } else if (autoLogout == '1 Hour') {
+      minutes = 60;
+    }
 
     if (minutes > 0) {
       _inactivityTimer = Timer(Duration(minutes: minutes), () {
@@ -285,13 +293,32 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchSummary({DateTime? date}) async {
     final targetDate = date ?? _dashboardDate;
-    final dateStr = "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
-    
+    final dateStr =
+        "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
+
     try {
-      final summaryRes = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/orders/summary?startDate=$dateStr')).timeout(const Duration(seconds: 10));
-      final reportsRes = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/reports/financial?startDate=$dateStr&endDate=$dateStr')).timeout(const Duration(seconds: 10));
-      final opRes = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/reports/operational?startDate=$dateStr')).timeout(const Duration(seconds: 10));
-      
+      final summaryRes = await http
+          .get(
+            Uri.parse(
+              '${ThemeService.apiBaseUrl}/api/orders/summary?startDate=$dateStr',
+            ),
+          )
+          .timeout(const Duration(seconds: 10));
+      final reportsRes = await http
+          .get(
+            Uri.parse(
+              '${ThemeService.apiBaseUrl}/api/reports/financial?startDate=$dateStr&endDate=$dateStr',
+            ),
+          )
+          .timeout(const Duration(seconds: 10));
+      final opRes = await http
+          .get(
+            Uri.parse(
+              '${ThemeService.apiBaseUrl}/api/reports/operational?startDate=$dateStr',
+            ),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (summaryRes.statusCode == 200) {
         final data = json.decode(summaryRes.body);
         if (mounted && data is Map) {
@@ -332,7 +359,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     double amount = 0.0;
     String notes = '';
 
-    final List<String> categories = ['Supplies', 'Maintenance', 'Utilities', 'Operations', 'Miscellaneous'];
+    final List<String> categories = [
+      'Supplies',
+      'Maintenance',
+      'Utilities',
+      'Operations',
+      'Miscellaneous',
+    ];
 
     await showDialog(
       context: context,
@@ -351,7 +384,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     labelText: LocalizationService().translate('category'),
                     border: const OutlineInputBorder(),
                   ),
-                  items: categories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+                  items: categories
+                      .map(
+                        (cat) => DropdownMenuItem(value: cat, child: Text(cat)),
+                      )
+                      .toList(),
                   onChanged: (val) => selectedCategory = val!,
                 ),
                 const SizedBox(height: 16),
@@ -361,7 +398,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     prefixText: '\$ ',
                     border: const OutlineInputBorder(),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: (val) {
                     if (val == null || val.isEmpty) return 'Required';
                     if (double.tryParse(val) == null) return 'Invalid number';
@@ -392,32 +431,46 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               if (formKey.currentState!.validate()) {
                 formKey.currentState!.save();
                 try {
-                  final response = await http.post(
-                    Uri.parse('${ThemeService.apiBaseUrl}/api/expenses'),
-                    headers: {'Content-Type': 'application/json'},
-                    body: json.encode({
-                      'category': selectedCategory,
-                      'amount': amount,
-                      'notes': notes,
-                    }),
-                  ).timeout(const Duration(seconds: 10));
+                  final response = await http
+                      .post(
+                        Uri.parse('${ThemeService.apiBaseUrl}/api/expenses'),
+                        headers: {'Content-Type': 'application/json'},
+                        body: json.encode({
+                          'category': selectedCategory,
+                          'amount': amount,
+                          'notes': notes,
+                        }),
+                      )
+                      .timeout(const Duration(seconds: 10));
 
                   if (!ctx.mounted) return;
                   Navigator.pop(ctx);
 
                   if (response.statusCode == 201) {
                     if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('expense_logged'))));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          LocalizationService().translate('expense_logged'),
+                        ),
+                      ),
+                    );
                     _fetchSummary(); // Refresh dashboard data immediately
                   } else {
                     if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to log expense.')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to log expense.')),
+                    );
                   }
                 } catch (e) {
                   if (!ctx.mounted) return;
                   Navigator.pop(ctx);
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network error logging expense.')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Network error logging expense.'),
+                    ),
+                  );
                 }
               }
             },
@@ -430,14 +483,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchInventory() async {
     try {
-      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory')).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'))
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final List items = json.decode(response.body);
         if (mounted) {
           setState(() {
             _lowStockItems = items.where((item) {
-              double qty = double.tryParse(item['quantity']?.toString() ?? '0') ?? 0.0;
-              double threshold = double.tryParse(item['low_stock_threshold']?.toString() ?? '10') ?? 10.0;
+              double qty =
+                  double.tryParse(item['quantity']?.toString() ?? '0') ?? 0.0;
+              double threshold =
+                  double.tryParse(
+                    item['low_stock_threshold']?.toString() ?? '10',
+                  ) ??
+                  10.0;
               return qty <= threshold;
             }).toList();
           });
@@ -448,28 +508,31 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-
-  Future<void> _updateOrderStatus(dynamic orderId, String newStatus, {String? reason}) async {
+  Future<void> _updateOrderStatus(
+    dynamic orderId,
+    String newStatus, {
+    String? reason,
+  }) async {
     try {
       final response = await http.patch(
         Uri.parse('${ThemeService.apiBaseUrl}/api/orders/$orderId'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'status': newStatus,
-          'rejection_reason': reason,
-        }),
+        body: json.encode({'status': newStatus, 'rejection_reason': reason}),
       );
 
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${LocalizationService().translate('order_marked_status')} $newStatus'),
+              content: Text(
+                '${LocalizationService().translate('order_marked_status')} $newStatus',
+              ),
               backgroundColor: themePrimary,
             ),
           );
           // Sync local selection if applicable
-          if (_selectedOrderDetails != null && _selectedOrderDetails!['id'] == orderId) {
+          if (_selectedOrderDetails != null &&
+              _selectedOrderDetails!['id'] == orderId) {
             setState(() => _selectedOrderDetails!['status'] = newStatus);
           }
         }
@@ -479,7 +542,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${LocalizationService().translate('failed_update_status')}: ${response.statusCode}'),
+              content: Text(
+                '${LocalizationService().translate('failed_update_status')}: ${response.statusCode}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -499,17 +564,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   void _setCartFromOrder(Map<String, dynamic> order) {
     setState(() {
-      _cartItems = (order['items'] as List).map((item) => {
-        'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-        'name': item['name'],
-        'description': item['description'] ?? '',
-        'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                 ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-        'quantity': item['quantity'] ?? 1,
-        'notes': item['notes'],
-        'extras': item['extras'],
-        'variants': item['variants'],
-      }).toList();
+      _cartItems = (order['items'] as List)
+          .map(
+            (item) => {
+              'id': item['menu_item_id'] ?? 'custom-${item['id']}',
+              'name': item['name'],
+              'description': item['description'] ?? '',
+              'price':
+                  double.tryParse(item['unit_price']?.toString() ?? '') ??
+                  ((double.tryParse(item['subtotal'].toString()) ?? 0.0) /
+                      (item['quantity'] ?? 1)),
+              'quantity': item['quantity'] ?? 1,
+              'notes': item['notes'],
+              'extras': item['extras'],
+              'variants': item['variants'],
+            },
+          )
+          .toList();
       _editingOrderId = order['id'];
       _orderType = order['order_type'] ?? 'Dine-In';
       if (order['table_number'] != null) {
@@ -529,19 +600,24 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           final List<String> reasons = [
             'Too Busy',
             'Out Stock',
-            'Shift Time Ends'
+            'Shift Time Ends',
           ];
 
           return AlertDialog(
             backgroundColor: themeCard,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
                 const Icon(Icons.warning_amber_rounded, color: Colors.red),
                 const SizedBox(width: 12),
                 Text(
                   LocalizationService().translate('reject_order'),
-                  style: TextStyle(color: themeText, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: themeText,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -562,12 +638,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       child: SizedBox(
                         width: double.infinity,
                         child: InkWell(
-                          onTap: () => setDialogState(() => selectedReason = reason),
+                          onTap: () =>
+                              setDialogState(() => selectedReason = reason),
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 16,
+                            ),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.red.withValues(alpha: 0.08) : Colors.transparent,
+                              color: isSelected
+                                  ? Colors.red.withValues(alpha: 0.08)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isSelected ? Colors.red : themeBorder,
@@ -577,7 +659,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             child: Row(
                               children: [
                                 Icon(
-                                  isSelected ? Icons.check_circle : Icons.radio_button_off,
+                                  isSelected
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_off,
                                   color: isSelected ? Colors.red : themeHint,
                                   size: 20,
                                 ),
@@ -586,7 +670,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   reason,
                                   style: TextStyle(
                                     color: isSelected ? Colors.red : themeText,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                     fontSize: 15,
                                   ),
                                 ),
@@ -603,25 +689,39 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(LocalizationService().translate('cancel'), style: TextStyle(color: themeHint)),
+                child: Text(
+                  LocalizationService().translate('cancel'),
+                  style: TextStyle(color: themeHint),
+                ),
               ),
               ElevatedButton(
-                onPressed: selectedReason.isEmpty ? null : () {
-                  Navigator.pop(context);
-                  _updateOrderStatus(orderId, 'Rejected', reason: selectedReason);
-                },
+                onPressed: selectedReason.isEmpty
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        _updateOrderStatus(
+                          orderId,
+                          'Rejected',
+                          reason: selectedReason,
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   disabledBackgroundColor: Colors.red.withValues(alpha: 0.1),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: Text(
-                  LocalizationService().translate('confirm_rejection'), 
+                  LocalizationService().translate('confirm_rejection'),
                   style: TextStyle(
-                    color: selectedReason.isEmpty ? themeHint : Colors.white, 
-                    fontWeight: FontWeight.bold
-                  )
+                    color: selectedReason.isEmpty ? themeHint : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -634,31 +734,40 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _removeOrderItem(dynamic orderId, dynamic itemId) async {
     try {
       final response = await http.delete(
-        Uri.parse('${ThemeService.apiBaseUrl}/api/orders/$orderId/items/$itemId'),
+        Uri.parse(
+          '${ThemeService.apiBaseUrl}/api/orders/$orderId/items/$itemId',
+        ),
       );
 
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(LocalizationService().translate('item_removed_order')),
+              content: Text(
+                LocalizationService().translate('item_removed_order'),
+              ),
               backgroundColor: Colors.green,
             ),
           );
           // Sync local selection if applicable
-          if (_selectedOrderDetails != null && _selectedOrderDetails!['id'] == orderId) {
-             _selectedOrderDetails!['items'].removeWhere((item) => item['id'] == itemId);
-             if (_selectedOrderDetails!['items'].isEmpty) {
-                _selectedOrderDetails!['status'] = 'Cancelled';
-             } else {
-                // Re-calculate local total approximation
-                double newTotal = 0;
-                for(var i in _selectedOrderDetails!['items']) {
-                   newTotal += double.tryParse(i['subtotal'].toString()) ?? 0.0;
-                }
-                _selectedOrderDetails!['total_amount'] = newTotal.toStringAsFixed(2);
-             }
-             setState(() {});
+          if (_selectedOrderDetails != null &&
+              _selectedOrderDetails!['id'] == orderId) {
+            _selectedOrderDetails!['items'].removeWhere(
+              (item) => item['id'] == itemId,
+            );
+            if (_selectedOrderDetails!['items'].isEmpty) {
+              _selectedOrderDetails!['status'] = 'Cancelled';
+            } else {
+              // Re-calculate local total approximation
+              double newTotal = 0;
+              for (var i in _selectedOrderDetails!['items']) {
+                newTotal += double.tryParse(i['subtotal'].toString()) ?? 0.0;
+              }
+              _selectedOrderDetails!['total_amount'] = newTotal.toStringAsFixed(
+                2,
+              );
+            }
+            setState(() {});
           }
         }
         await _fetchOrders(); // Refresh lists
@@ -669,7 +778,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-  Future<String?> _pickImage() async {
+  Future<String?> _pickImage({String? target}) async {
     if (!kIsWeb) return null;
     try {
       final completer = Completer<String?>();
@@ -708,16 +817,32 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
           uploadInput.remove();
 
-          var request = http.MultipartRequest(
-            'POST',
-            Uri.parse('${ThemeService.apiBaseUrl}/api/upload'),
+          String uploadUrl = '${ThemeService.apiBaseUrl}/api/upload';
+          String fieldName = 'image';
+
+          if (target == 'logo_url') {
+            uploadUrl = '${ThemeService.apiBaseUrl}/api/upload/logo';
+            fieldName = 'logo';
+          } else if (target == 'secondary_logo_url') {
+            uploadUrl = '${ThemeService.apiBaseUrl}/api/upload/secondary-logo';
+            fieldName = 'logo';
+          } else if (target == 'login_background_url') {
+            uploadUrl = '${ThemeService.apiBaseUrl}/api/upload/login-bg';
+            fieldName = 'image';
+          } else if (target == 'hero_background_url') {
+            uploadUrl = '${ThemeService.apiBaseUrl}/api/upload/hero-bg';
+            fieldName = 'image';
+          }
+
+          var request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              fieldName,
+              bytes,
+              filename: fileName,
+              contentType: MediaType('image', ext),
+            ),
           );
-          request.files.add(http.MultipartFile.fromBytes(
-            'image',
-            bytes,
-            filename: fileName,
-            contentType: MediaType('image', ext),
-          ));
 
           try {
             final response = await request.send();
@@ -725,14 +850,41 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             if (response.statusCode == 200) {
               final data = json.decode(responseData.body);
               if (!completer.isCompleted) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Image uploaded successfully!'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
                 completer.complete(data['path'] as String?);
               }
             } else {
-              debugPrint('Upload failed: ${response.statusCode} ${responseData.body}');
+              debugPrint(
+                'Upload failed: ${response.statusCode} ${responseData.body}',
+              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Upload failed: ${response.statusCode}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
               if (!completer.isCompleted) completer.complete(null);
             }
           } catch (e) {
             debugPrint('Upload Error: $e');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Upload error: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
             if (!completer.isCompleted) completer.complete(null);
           }
         });
@@ -758,31 +910,51 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-  Future<void> _createCategory(String name, String description, String image) async {
+  Future<void> _createCategory(
+    String name,
+    String description,
+    String image,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('${ThemeService.apiBaseUrl}/api/menu/categories'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'name': name, 'description': description, 'image': image}),
+        body: json.encode({
+          'name': name,
+          'description': description,
+          'image': image,
+        }),
       );
       if (response.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(LocalizationService().translate('category_created_success')), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('category_created_success'),
+              ),
+              backgroundColor: Colors.green,
+            ),
           );
         }
         await _fetchMenu();
       } else {
-        String errorMsg = LocalizationService().translate('category_failed_create');
+        String errorMsg = LocalizationService().translate(
+          'category_failed_create',
+        );
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null) errorMsg = errJson['error'];
-          else if (errJson['message'] != null) errorMsg = errJson['message'];
+          if (errJson['error'] != null)
+            errorMsg = errJson['error'];
+          else if (errJson['message'] != null)
+            errorMsg = errJson['message'];
         } catch (_) {}
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$errorMsg (${response.statusCode})'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('$errorMsg (${response.statusCode})'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -795,17 +967,31 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-  Future<void> _updateCategory(dynamic id, String name, String description, String image) async {
+  Future<void> _updateCategory(
+    dynamic id,
+    String name,
+    String description,
+    String image,
+  ) async {
     try {
       final response = await http.patch(
         Uri.parse('${ThemeService.apiBaseUrl}/api/menu/categories/$id'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'name': name, 'description': description, 'image': image}),
+        body: json.encode({
+          'name': name,
+          'description': description,
+          'image': image,
+        }),
       );
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(LocalizationService().translate('category_updated_success')), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('category_updated_success'),
+              ),
+              backgroundColor: Colors.green,
+            ),
           );
         }
         await _fetchMenu();
@@ -817,11 +1003,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _deleteCategory(dynamic id) async {
     try {
-      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/menu/categories/$id'));
+      final response = await http.delete(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/menu/categories/$id'),
+      );
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(LocalizationService().translate('category_deleted_success')), backgroundColor: Colors.orange),
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('category_deleted_success'),
+              ),
+              backgroundColor: Colors.orange,
+            ),
           );
         }
         await _fetchMenu();
@@ -841,7 +1034,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       if (response.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(LocalizationService().translate('menu_item_created_success')), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('menu_item_created_success'),
+              ),
+              backgroundColor: Colors.green,
+            ),
           );
         }
         await _fetchMenu();
@@ -849,22 +1047,30 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         String errorMsg = 'Failed to create menu item';
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null) errorMsg = errJson['error'];
-          else if (errJson['message'] != null) errorMsg = errJson['message'];
+          if (errJson['error'] != null)
+            errorMsg = errJson['error'];
+          else if (errJson['message'] != null)
+            errorMsg = errJson['message'];
         } catch (_) {}
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$errorMsg (${response.statusCode})'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('$errorMsg (${response.statusCode})'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
-       debugPrint('Create Item Error: $e');
+      debugPrint('Create Item Error: $e');
     }
   }
 
-  Future<void> _updateMenuItem(dynamic id, Map<String, dynamic> itemData) async {
+  Future<void> _updateMenuItem(
+    dynamic id,
+    Map<String, dynamic> itemData,
+  ) async {
     try {
       final response = await http.patch(
         Uri.parse('${ThemeService.apiBaseUrl}/api/menu/items/$id'),
@@ -874,7 +1080,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(LocalizationService().translate('menu_item_updated_success')), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('menu_item_updated_success'),
+              ),
+              backgroundColor: Colors.green,
+            ),
           );
         }
         await _fetchMenu();
@@ -882,13 +1093,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         String errorMsg = 'Failed to update menu item';
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null) errorMsg = errJson['error'];
-          else if (errJson['message'] != null) errorMsg = errJson['message'];
+          if (errJson['error'] != null)
+            errorMsg = errJson['error'];
+          else if (errJson['message'] != null)
+            errorMsg = errJson['message'];
         } catch (_) {}
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$errorMsg (${response.statusCode})'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('$errorMsg (${response.statusCode})'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -900,12 +1116,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _deleteMenuItem(dynamic id) async {
     debugPrint('Attempting to delete menu item with ID: $id');
     try {
-      final response = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/menu/items/$id'));
+      final response = await http.delete(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/menu/items/$id'),
+      );
       debugPrint('Delete response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(LocalizationService().translate('menu_item_deleted_success')), backgroundColor: Colors.orange),
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('menu_item_deleted_success'),
+              ),
+              backgroundColor: Colors.orange,
+            ),
           );
         }
         await _fetchMenu();
@@ -913,13 +1136,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         String errorMsg = 'Failed to update category';
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null) errorMsg = errJson['error'];
-          else if (errJson['message'] != null) errorMsg = errJson['message'];
+          if (errJson['error'] != null)
+            errorMsg = errJson['error'];
+          else if (errJson['message'] != null)
+            errorMsg = errJson['message'];
         } catch (_) {}
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$errorMsg (${response.statusCode})'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('$errorMsg (${response.statusCode})'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -933,30 +1161,34 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-
   Future<void> _fetchReservations({DateTime? date}) async {
     final targetDate = date ?? _dashboardDate;
-    
+
     // We fetch a range: from start of current month to end of next month
     // to ensure we see upcoming bookings in the Reservations tab
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month, 1);
     final lastDay = DateTime(now.year, now.month + 2, 0); // End of next month
-    
-    final startStr = "${firstDay.year}-${firstDay.month.toString().padLeft(2, '0')}-${firstDay.day.toString().padLeft(2, '0')}";
-    final endStr = "${lastDay.year}-${lastDay.month.toString().padLeft(2, '0')}-${lastDay.day.toString().padLeft(2, '0')}";
+
+    final startStr =
+        "${firstDay.year}-${firstDay.month.toString().padLeft(2, '0')}-${firstDay.day.toString().padLeft(2, '0')}";
+    final endStr =
+        "${lastDay.year}-${lastDay.month.toString().padLeft(2, '0')}-${lastDay.day.toString().padLeft(2, '0')}";
 
     try {
       final response = await http.get(
-        Uri.parse('${ThemeService.apiBaseUrl}/api/reservations?startDate=$startStr&endDate=$endStr'),
+        Uri.parse(
+          '${ThemeService.apiBaseUrl}/api/reservations?startDate=$startStr&endDate=$endStr',
+        ),
       );
       if (response.statusCode == 200) {
         if (mounted) {
           final data = json.decode(response.body) as List;
-          
+
           // Local fallback: Ensure table numbers are populated from local cache if missing from API
           for (var res in data) {
-            if (res['assigned_table_number'] == null && res['table_id'] != null) {
+            if (res['assigned_table_number'] == null &&
+                res['table_id'] != null) {
               final String tid = res['table_id'].toString();
               try {
                 final localTable = _restaurantTables?.firstWhere(
@@ -989,20 +1221,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       final id = res['id'].toString();
       final status = res['status']?.toString().toLowerCase();
       // Notify for both Pending and Confirmed (from website) if not yet notified
-      if ((status == 'pending' || status == 'confirmed') && !_notifiedReservationIds.contains(id)) {
+      if ((status == 'pending' || status == 'confirmed') &&
+          !_notifiedReservationIds.contains(id)) {
         _notifiedReservationIds.add(id);
-        
+
         final String firstName = res['first_name'] ?? '';
         final String lastName = res['last_name'] ?? '';
         final String fullName = '$firstName $lastName'.trim();
-        final String customerDisplay = fullName.isNotEmpty ? fullName : (res['customer_name'] ?? 'Guest');
+        final String customerDisplay = fullName.isNotEmpty
+            ? fullName
+            : (res['customer_name'] ?? 'Guest');
 
         _addNotification({
           'id': 'res_$id',
           'type': 'reservation',
-          'title': status == 'confirmed' 
-            ? LocalizationService().translate('confirmed_reservation') 
-            : LocalizationService().translate('new_reservation'),
+          'title': status == 'confirmed'
+              ? LocalizationService().translate('confirmed_reservation')
+              : LocalizationService().translate('new_reservation'),
           'subtitle': '$customerDisplay - ${res['reservation_time']}',
           'time': DateTime.now().toIso8601String(),
           'icon': Icons.event_available,
@@ -1018,11 +1253,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchOrders({DateTime? date}) async {
     final targetDate = date ?? _dashboardDate;
-    final dateStr = "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
+    final dateStr =
+        "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
     try {
-      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/orders?startDate=$dateStr&endDate=$dateStr&kds=true'))
+      final response = await http
+          .get(
+            Uri.parse(
+              '${ThemeService.apiBaseUrl}/api/orders?startDate=$dateStr&endDate=$dateStr&kds=true',
+            ),
+          )
           .timeout(const Duration(seconds: 10));
-          
+
       if (response.statusCode == 200) {
         if (mounted) {
           final data = json.decode(response.body) as List;
@@ -1043,22 +1284,36 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     for (var order in orders) {
       final id = order['id'].toString();
       final status = (order['status']?.toString() ?? '').toLowerCase();
-      final paymentStatus = (order['payment_status']?.toString() ?? '').toLowerCase();
-      
+      final paymentStatus = (order['payment_status']?.toString() ?? '')
+          .toLowerCase();
+
       if (kDebugMode) {
-        debugPrint('Processing order #$id: status=$status, payment=$paymentStatus');
+        debugPrint(
+          'Processing order #$id: status=$status, payment=$paymentStatus',
+        );
       }
-      
+
       // Consistency with UI payment badge logic
       final pMethod = (order['payment_method']?.toString() ?? '');
-      bool isPaid = status == 'paid' || paymentStatus == 'paid' || order['payment'] != null || pMethod.isNotEmpty;
+      bool isPaid =
+          status == 'paid' ||
+          paymentStatus == 'paid' ||
+          order['payment'] != null ||
+          pMethod.isNotEmpty;
       bool isUnpaid = !isPaid && status != 'cancelled' && status != 'rejected';
 
       // Notify for new Pending/Active orders - matches KDS 'Pending' tab filters
-      bool isPending = status == 'pending' || status == 'ordered' || status == 'preparing' || status == 'paid' || status == 'partially paid';
-      
+      bool isPending =
+          status == 'pending' ||
+          status == 'ordered' ||
+          status == 'preparing' ||
+          status == 'paid' ||
+          status == 'partially paid';
+
       if (kDebugMode) {
-        debugPrint('Processing Order #$id: isPending=$isPending, isUnpaid=$isUnpaid, status=$status');
+        debugPrint(
+          'Processing Order #$id: isPending=$isPending, isUnpaid=$isUnpaid, status=$status',
+        );
       }
 
       if (isPending && !_notifiedOrderIds.contains(id)) {
@@ -1067,7 +1322,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           'id': 'order_$id',
           'type': 'order',
           'title': LocalizationService().translate('new_order_received'),
-          'subtitle': '${LocalizationService().translate('order_id')}#${order['order_number'] ?? id} - ${order['order_type']}',
+          'subtitle':
+              '${LocalizationService().translate('order_id')}#${order['order_number'] ?? id} - ${order['order_type']}',
           'time': DateTime.now().toIso8601String(),
           'icon': Icons.receipt_long,
           'color': Colors.green,
@@ -1091,7 +1347,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       }
 
       // Delayed Order check (> 20 mins)
-      if ((status == 'pending' || status == 'preparing') && !_notifiedOrderIds.contains('delayed_$id')) {
+      if ((status == 'pending' || status == 'preparing') &&
+          !_notifiedOrderIds.contains('delayed_$id')) {
         try {
           DateTime orderTime = DateTime.parse(order['order_time']).toLocal();
           if (DateTime.now().difference(orderTime).inMinutes > 20) {
@@ -1100,7 +1357,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               'id': 'delayed_$id',
               'type': 'order',
               'title': 'Delayed Order Alert',
-              'subtitle': 'Order #${order['order_number'] ?? id} has been active for >20 mins.',
+              'subtitle':
+                  'Order #${order['order_number'] ?? id} has been active for >20 mins.',
               'time': DateTime.now().toIso8601String(),
               'icon': Icons.timer_outlined,
               'color': Colors.redAccent,
@@ -1110,20 +1368,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         } catch (_) {}
       }
     }
-    
+
     // Also check for low stock if we have that data
-    if (_lowStockItems.isNotEmpty && !_notifiedOrderIds.contains('low_stock_today')) {
-       _notifiedOrderIds.add('low_stock_today');
-       _addNotification({
-          'id': 'low_stock_today',
-          'type': 'inventory',
-          'title': LocalizationService().translate('low_stock_alert'),
-          'subtitle': '${_lowStockItems.length} items are running low on stock.',
-          'time': DateTime.now().toIso8601String(),
-          'icon': Icons.inventory_2,
-          'color': Colors.red,
-        });
-        hasNew = true;
+    if (_lowStockItems.isNotEmpty &&
+        !_notifiedOrderIds.contains('low_stock_today')) {
+      _notifiedOrderIds.add('low_stock_today');
+      _addNotification({
+        'id': 'low_stock_today',
+        'type': 'inventory',
+        'title': LocalizationService().translate('low_stock_alert'),
+        'subtitle': '${_lowStockItems.length} items are running low on stock.',
+        'time': DateTime.now().toIso8601String(),
+        'icon': Icons.inventory_2,
+        'color': Colors.red,
+      });
+      hasNew = true;
     }
 
     if (hasNew && SoundService().enabled) {
@@ -1143,10 +1402,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchMenu() async {
     try {
-      final response = await http.get(
-        Uri.parse('${ThemeService.apiBaseUrl}/api/menu'),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(Uri.parse('${ThemeService.apiBaseUrl}/api/menu'))
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final List<dynamic> categories = json.decode(response.body);
         final List<dynamic> flatMenu = [];
@@ -1202,12 +1461,55 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   List<dynamic> _getSampleMenu() {
     return [
-      {'id': 's1', 'name': 'Supreme Zamzam Pizza', 'price': 18.50, 'category': 'PIZZA', 'description': 'Double pepperoni, olives, bell peppers and special sauce', 'image': null},
-      {'id': 's2', 'name': 'Classic Margherita', 'price': 14.00, 'category': 'PIZZA', 'description': 'Fresh mozzarella and basil', 'image': null},
-      {'id': 's3', 'name': 'Double Smash Burger', 'price': 12.50, 'category': 'BURGERS', 'description': 'Two wagyu patties with caramelized onions', 'image': null},
-      {'id': 's4', 'name': 'Truffle Fries', 'price': 6.50, 'category': 'APPETIZERS', 'description': 'Thick cut fries with parmesan and truffle oil', 'image': null},
-      {'id': 's5', 'name': 'Signature Lamb Platter', 'price': 24.99, 'category': 'PLATTERS', 'description': 'Slow-roasted lamb with saffron rice', 'image': null},
-      {'id': 's6', 'name': 'Mango Smoothie', 'price': 5.50, 'category': 'BEVERAGES', 'description': 'Fresh alphonso mangoes', 'image': null},
+      {
+        'id': 's1',
+        'name': 'Supreme Zamzam Pizza',
+        'price': 18.50,
+        'category': 'PIZZA',
+        'description':
+            'Double pepperoni, olives, bell peppers and special sauce',
+        'image': null,
+      },
+      {
+        'id': 's2',
+        'name': 'Classic Margherita',
+        'price': 14.00,
+        'category': 'PIZZA',
+        'description': 'Fresh mozzarella and basil',
+        'image': null,
+      },
+      {
+        'id': 's3',
+        'name': 'Double Smash Burger',
+        'price': 12.50,
+        'category': 'BURGERS',
+        'description': 'Two wagyu patties with caramelized onions',
+        'image': null,
+      },
+      {
+        'id': 's4',
+        'name': 'Truffle Fries',
+        'price': 6.50,
+        'category': 'APPETIZERS',
+        'description': 'Thick cut fries with parmesan and truffle oil',
+        'image': null,
+      },
+      {
+        'id': 's5',
+        'name': 'Signature Lamb Platter',
+        'price': 24.99,
+        'category': 'PLATTERS',
+        'description': 'Slow-roasted lamb with saffron rice',
+        'image': null,
+      },
+      {
+        'id': 's6',
+        'name': 'Mango Smoothie',
+        'price': 5.50,
+        'category': 'BEVERAGES',
+        'description': 'Fresh alphonso mangoes',
+        'image': null,
+      },
     ];
   }
 
@@ -1215,7 +1517,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _fetchUsers() async {
     setState(() => _isUsersLoading = true);
     try {
-      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/users'));
+      final resp = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/users'),
+      );
       if (resp.statusCode == 200) {
         setState(() => _users = json.decode(resp.body));
       }
@@ -1229,7 +1533,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _fetchRoles() async {
     setState(() => _isRolesLoading = true);
     try {
-      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/roles'));
+      final resp = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/roles'),
+      );
       if (resp.statusCode == 200) {
         setState(() => _roles = json.decode(resp.body));
       }
@@ -1249,7 +1555,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       );
       if (resp.statusCode == 200) {
         _fetchRoles();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Role created successfully'), backgroundColor: Colors.green));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Role created successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
       }
     } catch (e) {
       debugPrint('Error creating role: $e');
@@ -1265,7 +1577,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       );
       if (resp.statusCode == 200) {
         _fetchRoles();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Role updated successfully'), backgroundColor: Colors.green));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Role updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
       }
     } catch (e) {
       debugPrint('Error updating role: $e');
@@ -1274,10 +1592,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _deleteRole(dynamic id) async {
     try {
-      final resp = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/roles/$id'));
+      final resp = await http.delete(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/roles/$id'),
+      );
       if (resp.statusCode == 200) {
         _fetchRoles();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Role deleted successfully'), backgroundColor: Colors.orange));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Role deleted successfully'),
+              backgroundColor: Colors.orange,
+            ),
+          );
       }
     } catch (e) {
       debugPrint('Error deleting role: $e');
@@ -1286,7 +1612,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchPermissions() async {
     try {
-      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/permissions'));
+      final resp = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/permissions'),
+      );
       if (resp.statusCode == 200) {
         setState(() => _permissions = json.decode(resp.body));
       }
@@ -1298,7 +1626,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Future<void> _fetchShifts() async {
     setState(() => _isHRLoading = true);
     try {
-      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/hr/shifts'));
+      final resp = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/hr/shifts'),
+      );
       if (resp.statusCode == 200) {
         setState(() => _shifts = json.decode(resp.body));
         await _fetchHRStats(); // Keep analytics in sync
@@ -1312,9 +1642,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchHRStats() async {
     try {
-      final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/hr/stats'))
+      final resp = await http
+          .get(Uri.parse('${ThemeService.apiBaseUrl}/api/hr/stats'))
           .timeout(const Duration(seconds: 10));
-          
+
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body);
         if (mounted) {
@@ -1325,13 +1656,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               double hours = 0;
               double pay = 0;
               for (var row in data) {
-                hours += double.tryParse(row['total_hours']?.toString() ?? '0') ?? 0;
-                pay += double.tryParse(row['estimated_pay']?.toString() ?? '0') ?? 0;
+                hours +=
+                    double.tryParse(row['total_hours']?.toString() ?? '0') ?? 0;
+                pay +=
+                    double.tryParse(row['estimated_pay']?.toString() ?? '0') ??
+                    0;
               }
               _hrStats = {
                 'total_hours': hours,
                 'estimated_pay': pay,
-                'staff': data
+                'staff': data,
               };
             }
           });
@@ -1342,15 +1676,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-
   Future<void> _fetchSettings() async {
     setState(() => _isSettingsLoading = true);
     try {
       final url = '${ThemeService.apiBaseUrl}/api/settings';
       debugPrint('Fetching settings from: $url');
-      final resp = await http.get(Uri.parse(url))
+      final resp = await http
+          .get(Uri.parse(url))
           .timeout(const Duration(seconds: 10));
-      
+
       debugPrint('Settings status: ${resp.statusCode}');
       debugPrint('Settings body: ${resp.body}');
 
@@ -1359,30 +1693,35 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         if (mounted && decoded is Map) {
           setState(() {
             _settings = _deepCastMap(decoded);
-            
+
             // Validate current order type against new settings
             final branch = _settings['branch'] ?? {};
-            final allowPickup = branch['allow_pickup'] == true || branch['allow_pickup'] == 1;
-            final allowDelivery = branch['allow_delivery'] == true || branch['allow_delivery'] == 1;
+            final allowPickup =
+                branch['allow_pickup'] == true || branch['allow_pickup'] == 1;
+            final allowDelivery =
+                branch['allow_delivery'] == true ||
+                branch['allow_delivery'] == 1;
 
             if (_orderType == 'Pickup' && !allowPickup) {
               _orderType = 'Dine-In';
             } else if (_orderType == 'Delivery' && !allowDelivery) {
               _orderType = 'Dine-In';
             }
-            
+
             // Sync ThemeService with backend setting
             if (_settings['tenant'] != null) {
               final tenant = _settings['tenant'];
               final mode = tenant['theme_mode'];
               final accentColor = tenant['primary_accent_color'];
               final resName = tenant['restaurant_name'];
-              
-              debugPrint('POSMissionControl: Syncing theme with mode $mode, accent $accentColor, logo ${tenant['logo_url']}');
+
+              debugPrint(
+                'POSMissionControl: Syncing theme with mode $mode, accent $accentColor, logo ${tenant['logo_url']}',
+              );
               ThemeService().setFlavorFromString(
-                mode, 
+                mode,
                 accentColorHex: accentColor,
-                logoUrl: tenant['logo_url'], 
+                logoUrl: tenant['logo_url'],
                 secondaryLogoUrl: tenant['secondary_logo_url'],
                 restaurantName: resName,
                 tagline: tenant['tagline'],
@@ -1395,11 +1734,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             }
 
             // Sync LocalizationService
-            if (_settings['tenant'] != null && _settings['tenant']['language'] != null) {
-              LocalizationService().setLanguage(_settings['tenant']['language']);
+            if (_settings['tenant'] != null &&
+                _settings['tenant']['language'] != null) {
+              LocalizationService().setLanguage(
+                _settings['tenant']['language'],
+              );
             }
             // Sync Payment Policy
-            if (_settings['branch'] != null && _settings['branch']['payment_policy'] != null) {
+            if (_settings['branch'] != null &&
+                _settings['branch']['payment_policy'] != null) {
               _paymentPolicy = _settings['branch']['payment_policy'];
             }
             _resetInactivityTimer();
@@ -1420,7 +1763,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         if (type == 'messaging' || type == 'email') {
           final List list = List.from(_settings[type] ?? []);
           final providerName = data['provider_name'];
-          final index = list.indexWhere((e) => e != null && e is Map && e['provider_name'] == providerName);
+          final index = list.indexWhere(
+            (e) => e != null && e is Map && e['provider_name'] == providerName,
+          );
           if (index != -1) {
             list[index] = {...Map<String, dynamic>.from(list[index]), ...data};
           } else {
@@ -1428,7 +1773,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           }
           _settings[type] = list;
         } else {
-          final Map<String, dynamic> currentType = Map<String, dynamic>.from(_settings[type] ?? {});
+          final Map<String, dynamic> currentType = Map<String, dynamic>.from(
+            _settings[type] ?? {},
+          );
           currentType.addAll(data);
           _settings[type] = currentType;
         }
@@ -1447,24 +1794,26 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         method = 'POST';
       }
 
-      final resp = method == 'POST' 
-        ? await http.post(
-            Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(data),
-          )
-        : await http.patch(
-            Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(data),
-          );
+      final resp = method == 'POST'
+          ? await http.post(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode(data),
+            )
+          : await http.patch(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode(data),
+            );
 
       if (resp.statusCode == 200) {
         _fetchSettings();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(LocalizationService().translate('setting_updated_success')),
+              content: Text(
+                LocalizationService().translate('setting_updated_success'),
+              ),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 1),
             ),
@@ -1475,7 +1824,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to save: ${resp.statusCode}. Please restart the backend.'),
+              content: Text(
+                'Failed to save: ${resp.statusCode}. Please restart the backend.',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -1490,7 +1841,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _testTwilio(Map<String, dynamic> config) async {
     final TextEditingController phoneController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1498,7 +1849,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Enter a phone number to receive the test WhatsApp/SMS message:'),
+            Text(
+              'Enter a phone number to receive the test WhatsApp/SMS message:',
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: phoneController,
@@ -1512,38 +1865,59 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               final number = phoneController.text.trim();
               if (number.isEmpty) return;
               Navigator.pop(context);
-              
+
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(LocalizationService().translate('test_twilio_msg')))
+                SnackBar(
+                  content: Text(
+                    LocalizationService().translate('test_twilio_msg'),
+                  ),
+                ),
               );
 
               try {
                 final resp = await http.post(
-                  Uri.parse('${ThemeService.apiBaseUrl}/api/messaging-settings/test'),
+                  Uri.parse(
+                    '${ThemeService.apiBaseUrl}/api/messaging-settings/test',
+                  ),
                   headers: {'Content-Type': 'application/json'},
-                  body: json.encode({
-                    ...config,
-                    'test_number': number
-                  }),
+                  body: json.encode({...config, 'test_number': number}),
                 );
                 if (resp.statusCode == 200) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(LocalizationService().translate('test_success')), backgroundColor: Colors.green)
+                    SnackBar(
+                      content: Text(
+                        LocalizationService().translate('test_success'),
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${LocalizationService().translate('test_failed')}: ${resp.body}'), backgroundColor: Colors.red)
+                    SnackBar(
+                      content: Text(
+                        '${LocalizationService().translate('test_failed')}: ${resp.body}',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${LocalizationService().translate('test_failed')}: $e'), backgroundColor: Colors.red)
+                  SnackBar(
+                    content: Text(
+                      '${LocalizationService().translate('test_failed')}: $e',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               }
             },
@@ -1555,8 +1929,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   }
 
   Future<void> _testSMTP(Map<String, dynamic> config) async {
-    final TextEditingController emailController = TextEditingController(text: config['from_email'] ?? '');
-    
+    final TextEditingController emailController = TextEditingController(
+      text: config['from_email'] ?? '',
+    );
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1578,38 +1954,59 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               final email = emailController.text.trim();
               if (email.isEmpty) return;
               Navigator.pop(context);
-              
+
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(LocalizationService().translate('test_smtp_msg')))
+                SnackBar(
+                  content: Text(
+                    LocalizationService().translate('test_smtp_msg'),
+                  ),
+                ),
               );
 
               try {
                 final resp = await http.post(
-                  Uri.parse('${ThemeService.apiBaseUrl}/api/email-settings/test'),
+                  Uri.parse(
+                    '${ThemeService.apiBaseUrl}/api/email-settings/test',
+                  ),
                   headers: {'Content-Type': 'application/json'},
-                  body: json.encode({
-                    ...config,
-                    'test_email': email
-                  }),
+                  body: json.encode({...config, 'test_email': email}),
                 );
                 if (resp.statusCode == 200) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(LocalizationService().translate('test_success')), backgroundColor: Colors.green)
+                    SnackBar(
+                      content: Text(
+                        LocalizationService().translate('test_success'),
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${LocalizationService().translate('test_failed')}: ${resp.body}'), backgroundColor: Colors.red)
+                    SnackBar(
+                      content: Text(
+                        '${LocalizationService().translate('test_failed')}: ${resp.body}',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${LocalizationService().translate('test_failed')}: $e'), backgroundColor: Colors.red)
+                  SnackBar(
+                    content: Text(
+                      '${LocalizationService().translate('test_failed')}: $e',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               }
             },
@@ -1620,19 +2017,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Future<void> _testPaymentGateway(String gatewayName, Map<String, dynamic> config) async {
+  Future<void> _testPaymentGateway(
+    String gatewayName,
+    Map<String, dynamic> config,
+  ) async {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Testing connection to $gatewayName...'), duration: const Duration(seconds: 2))
+      SnackBar(
+        content: Text('Testing connection to $gatewayName...'),
+        duration: const Duration(seconds: 2),
+      ),
     );
 
     try {
       final resp = await http.post(
         Uri.parse('${ThemeService.apiBaseUrl}/api/payment-gateways/test'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          ...config,
-          'gateway_name': gatewayName,
-        }),
+        body: json.encode({...config, 'gateway_name': gatewayName}),
       );
 
       final data = json.decode(resp.body);
@@ -1649,9 +2049,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 const Text('Connection Successful'),
               ],
             ),
-            content: Text(data['message'] ?? 'Successfully established connection to $gatewayName servers.'),
+            content: Text(
+              data['message'] ??
+                  'Successfully established connection to $gatewayName servers.',
+            ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Great')),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Great'),
+              ),
             ],
           ),
         );
@@ -1667,9 +2073,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 const Text('Connection Failed'),
               ],
             ),
-            content: Text(data['message'] ?? 'Failed to connect to $gatewayName. Please check your credentials.'),
+            content: Text(
+              data['message'] ??
+                  'Failed to connect to $gatewayName. Please check your credentials.',
+            ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Retry')),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Retry'),
+              ),
             ],
           ),
         );
@@ -1677,7 +2089,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Test Error: $e'), backgroundColor: Colors.red)
+        SnackBar(content: Text('Test Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -1693,7 +2105,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(LocalizationService().translate('transactional_reset_success')),
+              content: Text(
+                LocalizationService().translate('transactional_reset_success'),
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -1729,7 +2143,25 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       );
       if (resp.statusCode == 201) {
         _fetchUsers();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('user_created_success')), backgroundColor: Colors.green));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('user_created_success'),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+      } else {
+        if (mounted) {
+          final errorData = json.decode(resp.body);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${errorData['error'] ?? 'Failed to create user'}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Create User Error: $e');
@@ -1745,7 +2177,25 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       );
       if (resp.statusCode == 200) {
         _fetchUsers();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('user_updated_success')), backgroundColor: Colors.green));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('user_updated_success'),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+      } else {
+        if (mounted) {
+          final errorData = json.decode(resp.body);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${errorData['error'] ?? 'Failed to update user'}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Update User Error: $e');
@@ -1754,17 +2204,30 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _deleteUser(dynamic id) async {
     try {
-      final resp = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/users/$id'));
+      final resp = await http.delete(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/users/$id'),
+      );
       if (resp.statusCode == 200) {
         _fetchUsers();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('user_deleted_success')), backgroundColor: Colors.orange));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('user_deleted_success'),
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
       }
     } catch (e) {
       debugPrint('Delete User Error: $e');
     }
   }
 
-  Future<void> _updateRolePermissions(dynamic roleId, List<int> permissionIds) async {
+  Future<void> _updateRolePermissions(
+    dynamic roleId,
+    List<int> permissionIds,
+  ) async {
     try {
       final resp = await http.put(
         Uri.parse('${ThemeService.apiBaseUrl}/api/roles/$roleId/permissions'),
@@ -1773,7 +2236,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       );
       if (resp.statusCode == 200) {
         _fetchRoles();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('permissions_updated')), backgroundColor: Colors.green));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                LocalizationService().translate('permissions_updated'),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
       }
     } catch (e) {
       debugPrint('Update Role Permissions Error: $e');
@@ -1799,15 +2270,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         final currentVId = variant?['id'];
         if (vId != currentVId) return false;
 
-        final eIds = (i['extras'] as List<dynamic>? ?? []).map((e) => e['id']).toSet();
+        final eIds = (i['extras'] as List<dynamic>? ?? [])
+            .map((e) => e['id'])
+            .toSet();
         final currentEIds = extras.map((e) => e['id']).toSet();
-        if (eIds.length != currentEIds.length || !eIds.containsAll(currentEIds)) return false;
+        if (eIds.length != currentEIds.length || !eIds.containsAll(currentEIds))
+          return false;
 
         return true;
       });
 
       if (index >= 0) {
-        _cartItems[index]['quantity'] = (_cartItems[index]['quantity'] ?? 1) + 1;
+        _cartItems[index]['quantity'] =
+            (_cartItems[index]['quantity'] ?? 1) + 1;
       } else {
         _cartItems.add({
           ...item,
@@ -1819,7 +2294,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     });
   }
 
-  void _showCustomizationDialog(dynamic item, List<dynamic> variants, List<dynamic> extras) {
+  void _showCustomizationDialog(
+    dynamic item,
+    List<dynamic> variants,
+    List<dynamic> extras,
+  ) {
     dynamic selectedVariant = variants.isNotEmpty ? variants.first : null;
     final List<dynamic> selectedExtras = [];
 
@@ -1833,7 +2312,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
             return AlertDialog(
               backgroundColor: themeCard,
-              title: Text('${LocalizationService().translate('customize_item')}: ${item['name']}', style: TextStyle(color: themeText)),
+              title: Text(
+                '${LocalizationService().translate('customize_item')}: ${item['name']}',
+                style: TextStyle(color: themeText),
+              ),
               content: SizedBox(
                 width: 400,
                 child: SingleChildScrollView(
@@ -1842,26 +2324,47 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (variants.isNotEmpty) ...[
-                        Text(LocalizationService().translate('variant'), style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          LocalizationService().translate('variant'),
+                          style: TextStyle(
+                            color: themeText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         ...variants.map((v) {
                           return RadioListTile<dynamic>(
-                            title: Text('${v['name']} (+\$${v['price_adjustment']})', style: TextStyle(color: themeText)),
+                            title: Text(
+                              '${v['name']} (+\$${v['price_adjustment']})',
+                              style: TextStyle(color: themeText),
+                            ),
                             value: v,
                             groupValue: selectedVariant,
                             activeColor: themePrimary,
-                            onChanged: (val) => setDialogState(() => selectedVariant = val),
+                            onChanged: (val) =>
+                                setDialogState(() => selectedVariant = val),
                           );
                         }),
                         const Divider(),
                       ],
                       if (extras.isNotEmpty) ...[
-                        Text(LocalizationService().translate('extras_label'), style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          LocalizationService().translate('extras_label'),
+                          style: TextStyle(
+                            color: themeText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         ...extras.map((e) {
                           final isSelected = selectedExtras.contains(e);
                           return CheckboxListTile(
-                            title: Text('${e['name']} (+\$${e['price_adjustment']})', style: TextStyle(color: themeText)),
+                            title: Text(
+                              '${e['name']} (+\$${e['price_adjustment']})',
+                              style: TextStyle(color: themeText),
+                            ),
                             value: isSelected,
                             activeColor: themePrimary,
                             onChanged: (val) {
@@ -1883,15 +2386,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: Text(LocalizationService().translate('cancel'), style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    LocalizationService().translate('cancel'),
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: themePrimary,
+                  ),
                   onPressed: () {
                     Navigator.pop(ctx);
                     _finalizeAddToCart(item, selectedVariant, selectedExtras);
                   },
-                  child: Text(LocalizationService().translate('add_to_cart'), style: const TextStyle(color: Colors.white)),
+                  child: Text(
+                    LocalizationService().translate('add_to_cart'),
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             );
@@ -1928,30 +2439,31 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     _customerAddressController.clear();
   });
 
-  double get _subtotal => _cartItems.fold(
-    0,
-    (sum, item) {
-      double basePrice = double.tryParse(item['price'].toString()) ?? 0;
-      if (item['variant'] != null) {
-        basePrice += double.tryParse(item['variant']['price_adjustment'].toString()) ?? 0;
+  double get _subtotal => _cartItems.fold(0, (sum, item) {
+    double basePrice = double.tryParse(item['price'].toString()) ?? 0;
+    if (item['variant'] != null) {
+      basePrice +=
+          double.tryParse(item['variant']['price_adjustment'].toString()) ?? 0;
+    }
+    if (item['extras'] != null) {
+      for (var e in item['extras']) {
+        basePrice += double.tryParse(e['price_adjustment'].toString()) ?? 0;
       }
-      if (item['extras'] != null) {
-        for (var e in item['extras']) {
-          basePrice += double.tryParse(e['price_adjustment'].toString()) ?? 0;
-        }
-      }
-      return sum + (basePrice * (item['quantity'] ?? 1));
-    },
-  );
+    }
+    return sum + (basePrice * (item['quantity'] ?? 1));
+  });
   bool get _isTaxEnabled {
     final branch = _settings['branch'] ?? {};
     return branch['is_tax_enabled'] == true || branch['is_tax_enabled'] == 1;
   }
+
   double get _taxRate {
     final branch = _settings['branch'] ?? {};
     return double.tryParse(branch['tax_rate']?.toString() ?? '0') ?? 0.0;
   }
-  double get _tax => _isTaxEnabled ? (_subtotal - _discount) * (_taxRate / 100) : 0.0;
+
+  double get _tax =>
+      _isTaxEnabled ? (_subtotal - _discount) * (_taxRate / 100) : 0.0;
   double get _total => (_subtotal - _discount) + _tax + _tip - _reservationFee;
   double get _payableAmount => _total * _splitMultiplier;
 
@@ -1969,7 +2481,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 color: Colors.orange.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
             Text(
@@ -1989,12 +2505,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               onPressed: () => Navigator.pop(ctx),
               style: ElevatedButton.styleFrom(
                 backgroundColor: themePrimary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               child: Text(
                 LocalizationService().translate('ok').toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -2005,28 +2526,38 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   bool _validateOrderData() {
     if (_cartItems.isEmpty) {
-      _showWarningDialog(LocalizationService().translate('add_items_to_cart_warning'));
+      _showWarningDialog(
+        LocalizationService().translate('add_items_to_cart_warning'),
+      );
       return false;
     }
-    
+
     if (_orderType == 'Dine-In') {
       if (_selectedTable == null) {
-        _showWarningDialog(LocalizationService().translate('select_table_warning'));
+        _showWarningDialog(
+          LocalizationService().translate('select_table_warning'),
+        );
         return false;
       }
       if (_selectedWaiter == null) {
-        _showWarningDialog(LocalizationService().translate('select_waiter_warning'));
+        _showWarningDialog(
+          LocalizationService().translate('select_waiter_warning'),
+        );
         return false;
       }
     }
 
     if (_isNewGuestMode) {
       if (_customerFirstNameController.text.trim().isEmpty) {
-        _showWarningDialog(LocalizationService().translate('enter_guest_name_warning'));
+        _showWarningDialog(
+          LocalizationService().translate('enter_guest_name_warning'),
+        );
         return false;
       }
       if (_customerPhoneController.text.trim().isEmpty) {
-        _showWarningDialog(LocalizationService().translate('enter_guest_phone_warning'));
+        _showWarningDialog(
+          LocalizationService().translate('enter_guest_phone_warning'),
+        );
         return false;
       }
     }
@@ -2047,11 +2578,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final promo = data['promo'];
-        final double minSpend = double.tryParse(promo['min_spend'].toString()) ?? 0;
+        final double minSpend =
+            double.tryParse(promo['min_spend'].toString()) ?? 0;
 
         if (_subtotal < minSpend) {
           (setDialogState ?? setState)(() {
-            _promoError = 'Min. spend \$${minSpend.toStringAsFixed(2)} required (Current: \$${_subtotal.toStringAsFixed(2)})';
+            _promoError =
+                'Min. spend \$${minSpend.toStringAsFixed(2)} required (Current: \$${_subtotal.toStringAsFixed(2)})';
           });
           return;
         }
@@ -2059,7 +2592,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         (setDialogState ?? setState)(() {
           _appliedPromo = promo;
           _promoError = null;
-          final double discVal = double.tryParse(promo['discount_value'].toString()) ?? 0;
+          final double discVal =
+              double.tryParse(promo['discount_value'].toString()) ?? 0;
           if (promo['discount_type'] == 'Percentage') {
             _discount = _subtotal * (discVal / 100);
           } else {
@@ -2069,7 +2603,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Promo code applied successfully!'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Promo code applied successfully!'),
+              backgroundColor: Colors.green,
+            ),
           );
         }
       } else {
@@ -2099,7 +2636,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: themeCard,
-        title: Text(LocalizationService().translate('apply_promo_code') ?? 'Apply Promo Code', style: TextStyle(color: themeText)),
+        title: Text(
+          LocalizationService().translate('apply_promo_code') ??
+              'Apply Promo Code',
+          style: TextStyle(color: themeText),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -2107,9 +2648,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               controller: _promoCodeController,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: LocalizationService().translate('enter_code_hint') ?? 'Enter Code',
+                hintText:
+                    LocalizationService().translate('enter_code_hint') ??
+                    'Enter Code',
                 hintStyle: TextStyle(color: themeHint),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: themeBorder)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: themeBorder),
+                ),
               ),
               style: TextStyle(color: themeText),
               onSubmitted: (_) {
@@ -2133,7 +2678,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
-            child: Text(LocalizationService().translate('apply'), style: const TextStyle(color: Colors.white)),
+            child: Text(
+              LocalizationService().translate('apply'),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -2141,13 +2689,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   }
 
   Future<void> _placeOrder() async {
-
     if (_cartItems.isEmpty) return;
-    
+
     // Validate delivery address
-    if (_orderType == 'Delivery' && _customerAddressController.text.trim().isEmpty) {
+    if (_orderType == 'Delivery' &&
+        _customerAddressController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Delivery address is mandatory'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Delivery address is mandatory'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -2158,20 +2709,25 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       final sanitizedItems = _cartItems.map((item) {
         final id = item['id'].toString();
         final qty = item['quantity'] ?? 1;
-        
+
         double basePrice = double.tryParse(item['price'].toString()) ?? 0.0;
         if (item['variant'] != null) {
-          basePrice += double.tryParse(item['variant']['price_adjustment'].toString()) ?? 0.0;
+          basePrice +=
+              double.tryParse(item['variant']['price_adjustment'].toString()) ??
+              0.0;
         }
         if (item['extras'] != null) {
           for (var e in item['extras']) {
-            basePrice += double.tryParse(e['price_adjustment'].toString()) ?? 0.0;
+            basePrice +=
+                double.tryParse(e['price_adjustment'].toString()) ?? 0.0;
           }
         }
-        
+
         return {
           ...item,
-          'id': id.startsWith('s') ? null : id, // Convert demo IDs to null for DB
+          'id': id.startsWith('s')
+              ? null
+              : id, // Convert demo IDs to null for DB
           'subtotal': basePrice * qty,
           'variant': item['variant'],
           'extras': item['extras'],
@@ -2183,46 +2739,65 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         'total': _total,
         'payment_amount': _payableAmount,
         'order_type': _orderType,
-        'table_id': _selectedTable != null ? int.tryParse(_selectedTable!.id) : null,
-        'status': (
-              (_paymentPolicy == 'Pay First' || (_paymentPolicy == 'Pay All' && _paymentMethod != null)) 
-                ? (_isSplitActive ? 'Partially Paid' : 'Paid') 
-                : (_editingOrderId != null ? 'Ordered' : 'Ordered') // Default to Ordered for POS updates/creates
-            ),
-        'payment_method': (_paymentPolicy == 'Pay First' || (_paymentPolicy == 'Pay All' && _paymentMethod != null)) ? _paymentMethod : null,
+        'table_id': _selectedTable != null
+            ? int.tryParse(_selectedTable!.id)
+            : null,
+        'status':
+            ((_paymentPolicy == 'Pay First' ||
+                (_paymentPolicy == 'Pay All' && _paymentMethod != null))
+            ? (_isSplitActive ? 'Partially Paid' : 'Paid')
+            : (_editingOrderId != null
+                  ? 'Ordered'
+                  : 'Ordered') // Default to Ordered for POS updates/creates
+              ),
+        'payment_method':
+            (_paymentPolicy == 'Pay First' ||
+                (_paymentPolicy == 'Pay All' && _paymentMethod != null))
+            ? _paymentMethod
+            : null,
         'tip_amount': _tip,
         'discount_amount': _discount,
         'user_id': _selectedWaiter?['id'],
         'customer_id': _selectedCustomer?['id'],
-        'customer_details': _isNewGuestMode ? {
-          'first_name': _customerFirstNameController.text,
-          'phone': _customerPhoneController.text,
-          'email': _customerEmailController.text,
-          'address': _customerAddressController.text,
-        } : (_orderType == 'Delivery' ? {'address': _customerAddressController.text} : null),
+        'customer_details': _isNewGuestMode
+            ? {
+                'first_name': _customerFirstNameController.text,
+                'phone': _customerPhoneController.text,
+                'email': _customerEmailController.text,
+                'address': _customerAddressController.text,
+              }
+            : (_orderType == 'Delivery'
+                  ? {'address': _customerAddressController.text}
+                  : null),
         'shipping_address': _customerAddressController.text,
         'origin': 'In-Store',
         'party_size': _partySize,
       };
 
       final response = _editingOrderId != null
-        ? await http.put(
-            Uri.parse('${ThemeService.apiBaseUrl}/api/orders/$_editingOrderId'),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(body),
-          )
-        : await http.post(
-            Uri.parse('${ThemeService.apiBaseUrl}/api/orders'),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(body),
-          );
+          ? await http.put(
+              Uri.parse(
+                '${ThemeService.apiBaseUrl}/api/orders/$_editingOrderId',
+              ),
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode(body),
+            )
+          : await http.post(
+              Uri.parse('${ThemeService.apiBaseUrl}/api/orders'),
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode(body),
+            );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         _clearCart();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_editingOrderId != null ? LocalizationService().translate('order_updated_success') : LocalizationService().translate('order_placed_success')),
+              content: Text(
+                _editingOrderId != null
+                    ? LocalizationService().translate('order_updated_success')
+                    : LocalizationService().translate('order_placed_success'),
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -2237,10 +2812,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         String errorMsg = LocalizationService().translate('server_error_retry');
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null) errorMsg = errJson['error'];
-          else if (errJson['message'] != null) errorMsg = errJson['message'];
+          if (errJson['error'] != null)
+            errorMsg = errJson['error'];
+          else if (errJson['message'] != null)
+            errorMsg = errJson['message'];
         } catch (_) {}
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2265,7 +2842,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-  Future<void> _processCheckout(dynamic orderId, double totalAmount, String paymentMethod, double tipAmount) async {
+  Future<void> _processCheckout(
+    dynamic orderId,
+    double totalAmount,
+    String paymentMethod,
+    double tipAmount,
+  ) async {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
@@ -2282,7 +2864,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(LocalizationService().translate('payment_success_message')),
+              content: Text(
+                LocalizationService().translate('payment_success_message'),
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -2315,7 +2899,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   }
 
   void _showExistingOrderCheckoutDialog(Map<String, dynamic> order) {
-    final double total = double.tryParse(order['total_amount'].toString()) ?? 0.0;
+    final double total =
+        double.tryParse(order['total_amount'].toString()) ?? 0.0;
     String localPaymentMethod = 'Cash';
 
     showDialog(
@@ -2325,14 +2910,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: themeCard,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             title: Row(
               children: [
                 Icon(Icons.payment_rounded, color: themePrimary, size: 28),
                 const SizedBox(width: 12),
                 Text(
                   LocalizationService().translate('order_payment'),
-                  style: TextStyle(color: themeText, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: themeText,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const Spacer(),
                 IconButton(
@@ -2353,17 +2943,37 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   ),
                   child: Column(
                     children: [
-                      Text(LocalizationService().translate('amount_due'), style: TextStyle(color: themeHint, fontSize: 14)),
-                      Text('\$${total.toStringAsFixed(2)}', style: TextStyle(color: themePrimary, fontSize: 32, fontWeight: FontWeight.w900)),
+                      Text(
+                        LocalizationService().translate('amount_due'),
+                        style: TextStyle(color: themeHint, fontSize: 14),
+                      ),
+                      Text(
+                        '\$${total.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: themePrimary,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    _buildPaymentOptionSmall('Cash', Icons.money_rounded, localPaymentMethod == 'Cash', () => setDialogState(() => localPaymentMethod = 'Cash')),
+                    _buildPaymentOptionSmall(
+                      'Cash',
+                      Icons.money_rounded,
+                      localPaymentMethod == 'Cash',
+                      () => setDialogState(() => localPaymentMethod = 'Cash'),
+                    ),
                     const SizedBox(width: 12),
-                    _buildPaymentOptionSmall('Card', Icons.credit_card_rounded, localPaymentMethod == 'Card', () => setDialogState(() => localPaymentMethod = 'Card')),
+                    _buildPaymentOptionSmall(
+                      'Card',
+                      Icons.credit_card_rounded,
+                      localPaymentMethod == 'Card',
+                      () => setDialogState(() => localPaymentMethod = 'Card'),
+                    ),
                   ],
                 ),
               ],
@@ -2374,25 +2984,43 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    _processCheckout(order['id'], total, localPaymentMethod, 0.0);
+                    _processCheckout(
+                      order['id'],
+                      total,
+                      localPaymentMethod,
+                      0.0,
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: themePrimary,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: Text(LocalizationService().translate('confirm_payment'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text(
+                    LocalizationService().translate('confirm_payment'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
             ],
           );
-        }
+        },
       ),
     );
   }
 
-  Widget _buildPaymentOptionSmall(String label, IconData icon, bool isSelected, VoidCallback onTap) {
+  Widget _buildPaymentOptionSmall(
+    String label,
+    IconData icon,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -2401,13 +3029,27 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           decoration: BoxDecoration(
             color: isSelected ? themePrimary : themeBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isSelected ? themePrimary : themeBorder, width: 2),
+            border: Border.all(
+              color: isSelected ? themePrimary : themeBorder,
+              width: 2,
+            ),
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? Colors.white : themeHint, size: 24),
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : themeHint,
+                size: 24,
+              ),
               const SizedBox(height: 4),
-              Text(label, style: TextStyle(color: isSelected ? Colors.white : themeText, fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : themeText,
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
             ],
           ),
         ),
@@ -2426,7 +3068,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: themeCard,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             titlePadding: const EdgeInsets.all(24),
             contentPadding: const EdgeInsets.symmetric(horizontal: 24),
             title: Row(
@@ -2435,7 +3079,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 const SizedBox(width: 12),
                 Text(
                   LocalizationService().translate('checkout_payment'),
-                  style: TextStyle(color: themeText, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: themeText,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const Spacer(),
                 IconButton(
@@ -2455,15 +3102,30 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       decoration: BoxDecoration(
                         color: themePrimary.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: themePrimary.withOpacity(0.1)),
+                        border: Border.all(
+                          color: themePrimary.withOpacity(0.1),
+                        ),
                       ),
                       child: Column(
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(LocalizationService().translate('subtotal'), style: TextStyle(color: themeHint, fontSize: 16)),
-                              Text('\$${(_total + _discount).toStringAsFixed(2)}', style: TextStyle(color: themeText, fontSize: 16, fontWeight: FontWeight.bold)),
+                              Text(
+                                LocalizationService().translate('subtotal'),
+                                style: TextStyle(
+                                  color: themeHint,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                '\$${(_total + _discount).toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                           if (_discount > 0) ...[
@@ -2471,8 +3133,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(LocalizationService().translate('discount'), style: const TextStyle(color: Colors.red, fontSize: 16)),
-                                Text('-\$${_discount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)),
+                                Text(
+                                  LocalizationService().translate('discount'),
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Text(
+                                  '-\$${_discount.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -2481,19 +3156,36 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                _isSplitActive 
-                                  ? '${LocalizationService().translate('split_amount')} (${(_splitMultiplier * 100).toInt()}%)' 
-                                  : LocalizationService().translate('total_payable'), 
-                                style: TextStyle(color: themeText, fontSize: 20, fontWeight: FontWeight.bold)
+                                _isSplitActive
+                                    ? '${LocalizationService().translate('split_amount')} (${(_splitMultiplier * 100).toInt()}%)'
+                                    : LocalizationService().translate(
+                                        'total_payable',
+                                      ),
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                              Text('\$${_payableAmount.toStringAsFixed(2)}', style: TextStyle(color: themePrimary, fontSize: 24, fontWeight: FontWeight.w900)),
+                              Text(
+                                '\$${_payableAmount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: themePrimary,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                             ],
                           ),
                           if (_isSplitActive) ...[
                             const SizedBox(height: 4),
                             Text(
                               '${LocalizationService().translate('total_order_was')}: \$${_total.toStringAsFixed(2)}',
-                              style: TextStyle(color: themeHint, fontSize: 12, fontStyle: FontStyle.italic),
+                              style: TextStyle(
+                                color: themeHint,
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                           ],
                         ],
@@ -2503,16 +3195,30 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        LocalizationService().translate('select_payment_method'),
-                        style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16),
+                        LocalizationService().translate(
+                          'select_payment_method',
+                        ),
+                        style: TextStyle(
+                          color: themeText,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        _buildPaymentMethodOption('Cash', Icons.money_rounded, setDialogState),
+                        _buildPaymentMethodOption(
+                          'Cash',
+                          Icons.money_rounded,
+                          setDialogState,
+                        ),
                         const SizedBox(width: 12),
-                        _buildPaymentMethodOption('Card', Icons.credit_card_rounded, setDialogState),
+                        _buildPaymentMethodOption(
+                          'Card',
+                          Icons.credit_card_rounded,
+                          setDialogState,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -2532,12 +3238,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     backgroundColor: themePrimary,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     elevation: 0,
                   ),
                   child: Text(
                     LocalizationService().translate('complete_payment'),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
               ),
@@ -2548,7 +3260,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildPaymentMethodOption(String method, IconData icon, StateSetter setDialogState) {
+  Widget _buildPaymentMethodOption(
+    String method,
+    IconData icon,
+    StateSetter setDialogState,
+  ) {
     final isSelected = _paymentMethod == method;
     return Expanded(
       child: InkWell(
@@ -2561,12 +3277,27 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           decoration: BoxDecoration(
             color: isSelected ? themePrimary : themeBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isSelected ? themePrimary : themeBorder, width: 2),
-            boxShadow: isSelected ? [BoxShadow(color: themePrimary.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 4))] : null,
+            border: Border.all(
+              color: isSelected ? themePrimary : themeBorder,
+              width: 2,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: themePrimary.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? Colors.white : themeHint, size: 32),
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : themeHint,
+                size: 32,
+              ),
               const SizedBox(height: 8),
               Text(
                 method,
@@ -2590,7 +3321,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     final notesController = TextEditingController();
     final guestsController = TextEditingController(text: '2');
     DateTime selectedDate = DateTime.now();
-    TimeOfDay selectedTime = TimeOfDay(hour: DateTime.now().hour + 1, minute: 0);
+    TimeOfDay selectedTime = TimeOfDay(
+      hour: DateTime.now().hour + 1,
+      minute: 0,
+    );
     int currentStep = 1;
     List<dynamic> availableTables = [];
     dynamic selectedTable;
@@ -2603,7 +3337,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     // Get booking fee from settings
     final branch = _settings['branch'] ?? {};
     final bool feeEnabled = (branch['is_booking_fee_enabled'] ?? 1) == 1;
-    final double feeAmount = double.tryParse(branch['booking_fee_amount']?.toString() ?? '10.00') ?? 10.00;
+    final double feeAmount =
+        double.tryParse(branch['booking_fee_amount']?.toString() ?? '10.00') ??
+        10.00;
 
     showDialog(
       context: context,
@@ -2611,7 +3347,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           contentPadding: EdgeInsets.zero,
           content: SizedBox(
             width: 500,
@@ -2623,7 +3361,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: themePrimary.withValues(alpha: 0.05),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -2632,10 +3372,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         decoration: BoxDecoration(
                           color: themePrimary,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: themePrimary.withValues(alpha: 0.3), blurRadius: 8)],
+                          boxShadow: [
+                            BoxShadow(
+                              color: themePrimary.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                            ),
+                          ],
                         ),
                         child: Icon(
-                          currentStep == 1 ? Icons.schedule : (currentStep == 2 ? Icons.table_bar : (currentStep == 3 ? Icons.person : Icons.receipt_long)),
+                          currentStep == 1
+                              ? Icons.schedule
+                              : (currentStep == 2
+                                    ? Icons.table_bar
+                                    : (currentStep == 3
+                                          ? Icons.person
+                                          : Icons.receipt_long)),
                           color: Colors.white,
                           size: 24,
                         ),
@@ -2646,8 +3397,26 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              currentStep == 1 ? LocalizationService().translate('select_slot') : (currentStep == 2 ? LocalizationService().translate('choose_table') : (currentStep == 3 ? LocalizationService().translate('guest_details') : LocalizationService().translate('review_confirm'))),
-                              style: TextStyle(color: themeText, fontSize: 22, fontWeight: FontWeight.bold),
+                              currentStep == 1
+                                  ? LocalizationService().translate(
+                                      'select_slot',
+                                    )
+                                  : (currentStep == 2
+                                        ? LocalizationService().translate(
+                                            'choose_table',
+                                          )
+                                        : (currentStep == 3
+                                              ? LocalizationService().translate(
+                                                  'guest_details',
+                                                )
+                                              : LocalizationService().translate(
+                                                  'review_confirm',
+                                                ))),
+                              style: TextStyle(
+                                color: themeText,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
                               '${LocalizationService().translate('step_label')} $currentStep ${LocalizationService().translate('of_label')} 4',
@@ -2672,45 +3441,102 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       children: [
                         if (currentStep == 1) ...[
                           // Step 1: Slot Selection
-                          _buildReservationStepTitle(LocalizationService().translate('visit_time_prompt')),
+                          _buildReservationStepTitle(
+                            LocalizationService().translate(
+                              'visit_time_prompt',
+                            ),
+                          ),
                           const SizedBox(height: 16),
-                          _buildReservationDatePicker(selectedDate, (date) => setDialogState(() => selectedDate = date)),
+                          _buildReservationDatePicker(
+                            selectedDate,
+                            (date) => setDialogState(() => selectedDate = date),
+                          ),
                           const SizedBox(height: 16),
-                          _buildReservationTimePicker(selectedTime, (time) => setDialogState(() => selectedTime = time)),
+                          _buildReservationTimePicker(
+                            selectedTime,
+                            (time) => setDialogState(() => selectedTime = time),
+                          ),
                           const SizedBox(height: 16),
                           _buildReservationGuestInput(guestsController),
                         ] else if (currentStep == 2) ...[
                           // Step 2: Table Selection
-                          _buildReservationStepTitle(LocalizationService().translate('select_available_table')),
+                          _buildReservationStepTitle(
+                            LocalizationService().translate(
+                              'select_available_table',
+                            ),
+                          ),
                           const SizedBox(height: 16),
                           if (loadingTables)
-                            Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: themePrimary)))
+                            Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(40),
+                                child: CircularProgressIndicator(
+                                  color: themePrimary,
+                                ),
+                              ),
+                            )
                           else if (availableTables.isEmpty)
                             _buildNoTablesAvailable()
                           else
-                            _buildTableGrid(availableTables, selectedTable, (t) => setDialogState(() => selectedTable = t)),
+                            _buildTableGrid(
+                              availableTables,
+                              selectedTable,
+                              (t) => setDialogState(() => selectedTable = t),
+                            ),
                         ] else if (currentStep == 3) ...[
                           // Step 3: Guest Details
-                          _buildReservationStepTitle(LocalizationService().translate('guest_prompt')),
+                          _buildReservationStepTitle(
+                            LocalizationService().translate('guest_prompt'),
+                          ),
                           const SizedBox(height: 16),
-                          _buildReservationInput(nameController, LocalizationService().translate('full_name'), Icons.person_outline),
+                          _buildReservationInput(
+                            nameController,
+                            LocalizationService().translate('full_name'),
+                            Icons.person_outline,
+                          ),
                           const SizedBox(height: 12),
-                          _buildReservationInput(phoneController, LocalizationService().translate('whatsapp_phone'), Icons.phone_android, color: Colors.green),
+                          _buildReservationInput(
+                            phoneController,
+                            LocalizationService().translate('whatsapp_phone'),
+                            Icons.phone_android,
+                            color: Colors.green,
+                          ),
                           const SizedBox(height: 12),
-                          _buildReservationInput(emailController, LocalizationService().translate('email_address'), Icons.email_outlined, color: themePrimary),
+                          _buildReservationInput(
+                            emailController,
+                            LocalizationService().translate('email_address'),
+                            Icons.email_outlined,
+                            color: themePrimary,
+                          ),
                           const SizedBox(height: 12),
-                          _buildReservationInput(notesController, LocalizationService().translate('special_requests'), Icons.notes, maxLines: 2),
+                          _buildReservationInput(
+                            notesController,
+                            LocalizationService().translate('special_requests'),
+                            Icons.notes,
+                            maxLines: 2,
+                          ),
                         ] else if (currentStep == 4) ...[
                           // Step 4: Summary & Payment
-                          _buildReservationStepTitle(LocalizationService().translate('reservation_summary')),
+                          _buildReservationStepTitle(
+                            LocalizationService().translate(
+                              'reservation_summary',
+                            ),
+                          ),
                           const SizedBox(height: 16),
-                          _buildReservationSummaryCard(selectedDate, selectedTime, guestsController.text, selectedTable),
+                          _buildReservationSummaryCard(
+                            selectedDate,
+                            selectedTime,
+                            guestsController.text,
+                            selectedTable,
+                          ),
                           const SizedBox(height: 16),
                           if (feeEnabled)
                             _buildBookingFeeCard(
-                              feeAmount, 
-                              feePaymentMethod, 
-                              (method) => setDialogState(() => feePaymentMethod = method),
+                              feeAmount,
+                              feePaymentMethod,
+                              (method) => setDialogState(
+                                () => feePaymentMethod = method,
+                              ),
                             ),
                           // Card fields — visible only when Card is selected
                           if (feeEnabled && feePaymentMethod == 'Card') ...[
@@ -2720,36 +3546,76 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               decoration: BoxDecoration(
                                 color: themePrimary.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: themePrimary.withValues(alpha: 0.2)),
+                                border: Border.all(
+                                  color: themePrimary.withValues(alpha: 0.2),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.lock_outline, size: 14, color: themePrimary),
+                                      Icon(
+                                        Icons.lock_outline,
+                                        size: 14,
+                                        color: themePrimary,
+                                      ),
                                       const SizedBox(width: 6),
-                                      Text(LocalizationService().translate('card_details'), style: TextStyle(color: themePrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+                                      Text(
+                                        LocalizationService().translate(
+                                          'card_details',
+                                        ),
+                                        style: TextStyle(
+                                          color: themePrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       const Spacer(),
-                                      Text(LocalizationService().translate('powered_by_stripe'), style: TextStyle(color: themeHint, fontSize: 10)),
+                                      Text(
+                                        LocalizationService().translate(
+                                          'powered_by_stripe',
+                                        ),
+                                        style: TextStyle(
+                                          color: themeHint,
+                                          fontSize: 10,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 12),
                                   TextField(
                                     controller: cardNumberController,
-                                    style: TextStyle(color: themeText, fontSize: 14),
+                                    style: TextStyle(
+                                      color: themeText,
+                                      fontSize: 14,
+                                    ),
                                     keyboardType: TextInputType.number,
                                     maxLength: 19,
                                     decoration: InputDecoration(
                                       counterText: '',
-                                      labelText: LocalizationService().translate('card_number'),
-                                      labelStyle: TextStyle(color: themeHint, fontSize: 12),
+                                      labelText: LocalizationService()
+                                          .translate('card_number'),
+                                      labelStyle: TextStyle(
+                                        color: themeHint,
+                                        fontSize: 12,
+                                      ),
                                       hintText: '0000  0000  0000  0000',
-                                      hintStyle: TextStyle(color: themeHint, fontSize: 13),
-                                      prefixIcon: Icon(Icons.credit_card, color: themePrimary, size: 18),
+                                      hintStyle: TextStyle(
+                                        color: themeHint,
+                                        fontSize: 13,
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.credit_card,
+                                        color: themePrimary,
+                                        size: 18,
+                                      ),
                                       filled: true,
                                       fillColor: themeBg,
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
@@ -2758,19 +3624,37 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                       Expanded(
                                         child: TextField(
                                           controller: cardExpiryController,
-                                          style: TextStyle(color: themeText, fontSize: 14),
+                                          style: TextStyle(
+                                            color: themeText,
+                                            fontSize: 14,
+                                          ),
                                           keyboardType: TextInputType.number,
                                           maxLength: 5,
                                           decoration: InputDecoration(
                                             counterText: '',
-                                            labelText: LocalizationService().translate('expiry_date'),
-                                            labelStyle: TextStyle(color: themeHint, fontSize: 12),
+                                            labelText: LocalizationService()
+                                                .translate('expiry_date'),
+                                            labelStyle: TextStyle(
+                                              color: themeHint,
+                                              fontSize: 12,
+                                            ),
                                             hintText: 'MM / YY',
-                                            hintStyle: TextStyle(color: themeHint, fontSize: 13),
-                                            prefixIcon: Icon(Icons.calendar_today, color: themePrimary, size: 16),
+                                            hintStyle: TextStyle(
+                                              color: themeHint,
+                                              fontSize: 13,
+                                            ),
+                                            prefixIcon: Icon(
+                                              Icons.calendar_today,
+                                              color: themePrimary,
+                                              size: 16,
+                                            ),
                                             filled: true,
                                             fillColor: themeBg,
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: BorderSide.none,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -2778,20 +3662,38 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                       Expanded(
                                         child: TextField(
                                           controller: cardCvcController,
-                                          style: TextStyle(color: themeText, fontSize: 14),
+                                          style: TextStyle(
+                                            color: themeText,
+                                            fontSize: 14,
+                                          ),
                                           keyboardType: TextInputType.number,
                                           maxLength: 4,
                                           obscureText: true,
                                           decoration: InputDecoration(
                                             counterText: '',
-                                            labelText: LocalizationService().translate('cvc'),
-                                            labelStyle: TextStyle(color: themeHint, fontSize: 12),
+                                            labelText: LocalizationService()
+                                                .translate('cvc'),
+                                            labelStyle: TextStyle(
+                                              color: themeHint,
+                                              fontSize: 12,
+                                            ),
                                             hintText: '•••',
-                                            hintStyle: TextStyle(color: themeHint, fontSize: 13),
-                                            prefixIcon: Icon(Icons.shield_outlined, color: themePrimary, size: 16),
+                                            hintStyle: TextStyle(
+                                              color: themeHint,
+                                              fontSize: 13,
+                                            ),
+                                            prefixIcon: Icon(
+                                              Icons.shield_outlined,
+                                              color: themePrimary,
+                                              size: 16,
+                                            ),
                                             filled: true,
                                             fillColor: themeBg,
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: BorderSide.none,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -2821,10 +3723,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               side: BorderSide(color: themeBorder),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                            onPressed: () => setDialogState(() => currentStep--),
-                            child: Text(LocalizationService().translate('back_btn'), style: TextStyle(color: themeText, fontWeight: FontWeight.bold)),
+                            onPressed: () =>
+                                setDialogState(() => currentStep--),
+                            child: Text(
+                              LocalizationService().translate('back_btn'),
+                              style: TextStyle(
+                                color: themeText,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       if (currentStep > 1) const SizedBox(width: 16),
@@ -2833,7 +3744,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           style: ElevatedButton.styleFrom(
                             backgroundColor: themePrimary,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             elevation: 0,
                           ),
                           onPressed: () async {
@@ -2843,9 +3756,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                 currentStep = 2;
                               });
                               try {
-                                final dateStr = '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
-                                final timeStr = '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00';
-                                final resp = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/reservations/available-tables?date=$dateStr&time=$timeStr'));
+                                final dateStr =
+                                    '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+                                final timeStr =
+                                    '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00';
+                                final resp = await http.get(
+                                  Uri.parse(
+                                    '${ThemeService.apiBaseUrl}/api/reservations/available-tables?date=$dateStr&time=$timeStr',
+                                  ),
+                                );
                                 if (resp.statusCode == 200) {
                                   final data = json.decode(resp.body);
                                   setDialogState(() {
@@ -2854,21 +3773,34 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   });
                                 } else {
                                   setDialogState(() => loadingTables = false);
-                                  _showWarningDialog('Failed to fetch available tables: ${resp.reasonPhrase}');
+                                  _showWarningDialog(
+                                    'Failed to fetch available tables: ${resp.reasonPhrase}',
+                                  );
                                 }
                               } catch (e) {
                                 setDialogState(() => loadingTables = false);
-                                _showWarningDialog('Network error while fetching tables: $e');
+                                _showWarningDialog(
+                                  'Network error while fetching tables: $e',
+                                );
                               }
                             } else if (currentStep == 2) {
                               if (selectedTable == null) {
-                                _showWarningDialog(LocalizationService().translate('please_select_table'));
+                                _showWarningDialog(
+                                  LocalizationService().translate(
+                                    'please_select_table',
+                                  ),
+                                );
                                 return;
                               }
                               setDialogState(() => currentStep = 3);
                             } else if (currentStep == 3) {
-                              if (nameController.text.trim().isEmpty || phoneController.text.trim().isEmpty) {
-                                _showWarningDialog(LocalizationService().translate('fill_guest_details_warning'));
+                              if (nameController.text.trim().isEmpty ||
+                                  phoneController.text.trim().isEmpty) {
+                                _showWarningDialog(
+                                  LocalizationService().translate(
+                                    'fill_guest_details_warning',
+                                  ),
+                                );
                                 return;
                               }
                               setDialogState(() => currentStep = 4);
@@ -2878,20 +3810,27 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                 'name': nameController.text,
                                 'phone': phoneController.text,
                                 'email': emailController.text,
-                                'date': '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
-                                'time': '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00',
-                                'guests': int.tryParse(guestsController.text) ?? 2,
+                                'date':
+                                    '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                                'time':
+                                    '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00',
+                                'guests':
+                                    int.tryParse(guestsController.text) ?? 2,
                                 'notes': notesController.text,
                                 'tableId': selectedTable['id'],
                                 'branchId': 1,
                                 'bookingFee': feeEnabled ? feeAmount : 0,
-                                'paymentMethod': feeEnabled ? feePaymentMethod : 'Counter',
+                                'paymentMethod': feeEnabled
+                                    ? feePaymentMethod
+                                    : 'Counter',
                                 'origin': 'In-Store',
                               };
 
                               try {
                                 final resp = await http.post(
-                                  Uri.parse('${ThemeService.apiBaseUrl}/api/reservations'),
+                                  Uri.parse(
+                                    '${ThemeService.apiBaseUrl}/api/reservations',
+                                  ),
                                   headers: {'Content-Type': 'application/json'},
                                   body: json.encode(resBody),
                                 );
@@ -2901,20 +3840,40 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   if (!mounted) return;
                                   _fetchReservations();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(LocalizationService().translate('reservation_success')), backgroundColor: Colors.green),
+                                    SnackBar(
+                                      content: Text(
+                                        LocalizationService().translate(
+                                          'reservation_success',
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
                                   );
                                 }
                               } catch (e) {
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('${LocalizationService().translate('reservation_failed')}: $e'), backgroundColor: Colors.red),
+                                  SnackBar(
+                                    content: Text(
+                                      '${LocalizationService().translate('reservation_failed')}: $e',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
                                 );
                               }
                             }
                           },
                           child: Text(
-                            currentStep < 4 ? LocalizationService().translate('next_btn') : LocalizationService().translate('confirm_reservation'),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                            currentStep < 4
+                                ? LocalizationService().translate('next_btn')
+                                : LocalizationService().translate(
+                                    'confirm_reservation',
+                                  ),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       ),
@@ -2934,12 +3893,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       alignment: AlignmentDirectional.centerStart,
       child: Text(
         title,
-        style: TextStyle(color: themeText, fontSize: 16, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: themeText,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 
-  Widget _buildReservationDatePicker(DateTime selectedDate, Function(DateTime) onPicked) {
+  Widget _buildReservationDatePicker(
+    DateTime selectedDate,
+    Function(DateTime) onPicked,
+  ) {
     return InkWell(
       onTap: () async {
         final picked = await showDatePicker(
@@ -2964,10 +3930,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(LocalizationService().translate('date_btn'), style: TextStyle(color: themeHint, fontSize: 10, fontWeight: FontWeight.bold)),
+                Text(
+                  LocalizationService().translate('date_btn'),
+                  style: TextStyle(
+                    color: themeHint,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 Text(
                   '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
-                  style: TextStyle(color: themeText, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: themeText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -2977,10 +3954,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildReservationTimePicker(TimeOfDay selectedTime, Function(TimeOfDay) onPicked) {
+  Widget _buildReservationTimePicker(
+    TimeOfDay selectedTime,
+    Function(TimeOfDay) onPicked,
+  ) {
     return InkWell(
       onTap: () async {
-        final picked = await showTimePicker(context: context, initialTime: selectedTime);
+        final picked = await showTimePicker(
+          context: context,
+          initialTime: selectedTime,
+        );
         if (picked != null) onPicked(picked);
       },
       child: Container(
@@ -2997,10 +3980,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(LocalizationService().translate('time_btn'), style: TextStyle(color: themeHint, fontSize: 10, fontWeight: FontWeight.bold)),
+                Text(
+                  LocalizationService().translate('time_btn'),
+                  style: TextStyle(
+                    color: themeHint,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 Text(
                   selectedTime.format(context),
-                  style: TextStyle(color: themeText, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: themeText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -3026,11 +4020,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(LocalizationService().translate('guests_btn'), style: TextStyle(color: themeHint, fontSize: 10, fontWeight: FontWeight.bold)),
+                Text(
+                  LocalizationService().translate('guests_btn'),
+                  style: TextStyle(
+                    color: themeHint,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 TextField(
                   controller: controller,
                   keyboardType: TextInputType.number,
-                  style: TextStyle(color: themeText, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: themeText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                   decoration: const InputDecoration(
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 4),
@@ -3045,7 +4050,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildReservationInput(TextEditingController controller, String label, IconData icon, {Color? color, int maxLines = 1}) {
+  Widget _buildReservationInput(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    Color? color,
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -3056,9 +4067,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         prefixIcon: Icon(icon, color: color ?? themeHint, size: 20),
         filled: true,
         fillColor: themeBg,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeBorder)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themePrimary)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: themeBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: themeBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: themePrimary),
+        ),
       ),
     );
   }
@@ -3076,9 +4096,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         children: [
           Icon(Icons.event_busy, size: 48, color: Colors.red[300]),
           const SizedBox(height: 16),
-          Text(LocalizationService().translate('no_tables_available'), style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(
+            LocalizationService().translate('no_tables_available'),
+            style: TextStyle(
+              color: themeText,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(LocalizationService().translate('try_different_date'), style: TextStyle(color: themeHint, fontSize: 14), textAlign: TextAlign.center),
+          Text(
+            LocalizationService().translate('try_different_date'),
+            style: TextStyle(color: themeHint, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -3086,14 +4117,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   IconData _getIconForType(String? type) {
     switch (type) {
-      case 'Square': return Icons.crop_square;
-      case 'Round': return Icons.circle_outlined;
-      case 'Rectangular': return Icons.rectangle_outlined;
-      default: return Icons.table_bar_outlined;
+      case 'Square':
+        return Icons.crop_square;
+      case 'Round':
+        return Icons.circle_outlined;
+      case 'Rectangular':
+        return Icons.rectangle_outlined;
+      default:
+        return Icons.table_bar_outlined;
     }
   }
 
-  Widget _buildTableGrid(List<dynamic> tables, dynamic selected, Function(dynamic) onSelected) {
+  Widget _buildTableGrid(
+    List<dynamic> tables,
+    dynamic selected,
+    Function(dynamic) onSelected,
+  ) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -3113,37 +4152,85 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             decoration: BoxDecoration(
               color: isSel ? themePrimary : themeCard,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isSel ? themePrimary : themeBorder, width: 2),
-              boxShadow: isSel ? [BoxShadow(color: themePrimary.withValues(alpha: 0.3), blurRadius: 8)] : null,
+              border: Border.all(
+                color: isSel ? themePrimary : themeBorder,
+                width: 2,
+              ),
+              boxShadow: isSel
+                  ? [
+                      BoxShadow(
+                        color: themePrimary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : null,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(_getIconForType(t['table_type']), size: 22, color: isSel ? Colors.white.withValues(alpha: 0.7) : themeHint),
+                Icon(
+                  _getIconForType(t['table_type']),
+                  size: 22,
+                  color: isSel
+                      ? Colors.white.withValues(alpha: 0.7)
+                      : themeHint,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   '${LocalizationService().translate('table')} ${t['table_number']}',
-                  style: TextStyle(color: isSel ? Colors.white : themeText, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: isSel ? Colors.white : themeText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.chair_outlined, size: 14, color: isSel ? Colors.white.withValues(alpha: 0.7) : themeHint),
+                    Icon(
+                      Icons.chair_outlined,
+                      size: 14,
+                      color: isSel
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : themeHint,
+                    ),
                     const SizedBox(width: 4),
-                    Text('${t['capacity']}', style: TextStyle(color: isSel ? Colors.white.withValues(alpha: 0.7) : themeHint, fontSize: 12)),
+                    Text(
+                      '${t['capacity']}',
+                      style: TextStyle(
+                        color: isSel
+                            ? Colors.white.withValues(alpha: 0.7)
+                            : themeHint,
+                        fontSize: 12,
+                      ),
+                    ),
                     if (t['table_size'] != null) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: (isSel ? Colors.white : themePrimary).withValues(alpha: 0.1),
+                          color: (isSel ? Colors.white : themePrimary)
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: (isSel ? Colors.white : themePrimary).withValues(alpha: 0.2)),
+                          border: Border.all(
+                            color: (isSel ? Colors.white : themePrimary)
+                                .withValues(alpha: 0.2),
+                          ),
                         ),
                         child: Text(
-                          t['table_size'].toString().substring(0, 1).toUpperCase(),
-                          style: TextStyle(color: isSel ? Colors.white : themePrimary, fontSize: 9, fontWeight: FontWeight.bold),
+                          t['table_size']
+                              .toString()
+                              .substring(0, 1)
+                              .toUpperCase(),
+                          style: TextStyle(
+                            color: isSel ? Colors.white : themePrimary,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -3157,7 +4244,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildReservationSummaryCard(DateTime date, TimeOfDay time, String guests, dynamic table) {
+  Widget _buildReservationSummaryCard(
+    DateTime date,
+    TimeOfDay time,
+    String guests,
+    dynamic table,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -3167,13 +4259,29 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       ),
       child: Column(
         children: [
-          _buildSummaryRow(Icons.calendar_today, LocalizationService().translate('date_label'), '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'),
+          _buildSummaryRow(
+            Icons.calendar_today,
+            LocalizationService().translate('date_label'),
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+          ),
           const Divider(height: 24),
-          _buildSummaryRow(Icons.access_time, LocalizationService().translate('time_label'), time.format(context)),
+          _buildSummaryRow(
+            Icons.access_time,
+            LocalizationService().translate('time_label'),
+            time.format(context),
+          ),
           const Divider(height: 24),
-          _buildSummaryRow(Icons.group_outlined, LocalizationService().translate('guests_label'), '$guests ${LocalizationService().translate('people_label')}'),
+          _buildSummaryRow(
+            Icons.group_outlined,
+            LocalizationService().translate('guests_label'),
+            '$guests ${LocalizationService().translate('people_label')}',
+          ),
           const Divider(height: 24),
-          _buildSummaryRow(Icons.table_bar_outlined, LocalizationService().translate('table_label'), '${LocalizationService().translate('table')} ${table['table_number']} (${table['capacity']} ${LocalizationService().translate('seats_label')})'),
+          _buildSummaryRow(
+            Icons.table_bar_outlined,
+            LocalizationService().translate('table_label'),
+            '${LocalizationService().translate('table')} ${table['table_number']} (${table['capacity']} ${LocalizationService().translate('seats_label')})',
+          ),
         ],
       ),
     );
@@ -3186,14 +4294,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         const SizedBox(width: 12),
         Text(label, style: TextStyle(color: themeHint, fontSize: 14)),
         const Spacer(),
-        Text(value, style: TextStyle(color: themeText, fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: TextStyle(
+            color: themeText,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildBookingFeeCard(
-    double amount, 
-    String selectedMethod, 
+    double amount,
+    String selectedMethod,
     Function(String) onMethodChanged,
   ) {
     return Container(
@@ -3209,20 +4324,44 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: themePrimary, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.payments_outlined, color: Colors.white, size: 20),
+                decoration: BoxDecoration(
+                  color: themePrimary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.payments_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(LocalizationService().translate('advance_booking_fee'), style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 14)),
-                    Text(LocalizationService().translate('collect_at_counter'), style: TextStyle(color: themeHint, fontSize: 12)),
+                    Text(
+                      LocalizationService().translate('advance_booking_fee'),
+                      style: TextStyle(
+                        color: themePrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      LocalizationService().translate('collect_at_counter'),
+                      style: TextStyle(color: themeHint, fontSize: 12),
+                    ),
                   ],
                 ),
               ),
-              Text('\$${amount.toStringAsFixed(2)}', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 22)),
+              Text(
+                '\$${amount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: themeText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -3235,16 +4374,36 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: selectedMethod == 'Cash' ? themePrimary : Colors.transparent,
+                      color: selectedMethod == 'Cash'
+                          ? themePrimary
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: selectedMethod == 'Cash' ? themePrimary : themeBorder),
+                      border: Border.all(
+                        color: selectedMethod == 'Cash'
+                            ? themePrimary
+                            : themeBorder,
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.money, size: 18, color: selectedMethod == 'Cash' ? Colors.white : themeHint),
+                        Icon(
+                          Icons.money,
+                          size: 18,
+                          color: selectedMethod == 'Cash'
+                              ? Colors.white
+                              : themeHint,
+                        ),
                         const SizedBox(width: 8),
-                        Text(LocalizationService().translate('cash'), style: TextStyle(color: selectedMethod == 'Cash' ? Colors.white : themeHint, fontWeight: FontWeight.bold)),
+                        Text(
+                          LocalizationService().translate('cash'),
+                          style: TextStyle(
+                            color: selectedMethod == 'Cash'
+                                ? Colors.white
+                                : themeHint,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -3257,16 +4416,36 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: selectedMethod == 'Card' ? themePrimary : Colors.transparent,
+                      color: selectedMethod == 'Card'
+                          ? themePrimary
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: selectedMethod == 'Card' ? themePrimary : themeBorder),
+                      border: Border.all(
+                        color: selectedMethod == 'Card'
+                            ? themePrimary
+                            : themeBorder,
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.credit_card, size: 18, color: selectedMethod == 'Card' ? Colors.white : themeHint),
+                        Icon(
+                          Icons.credit_card,
+                          size: 18,
+                          color: selectedMethod == 'Card'
+                              ? Colors.white
+                              : themeHint,
+                        ),
                         const SizedBox(width: 8),
-                        Text(LocalizationService().translate('card'), style: TextStyle(color: selectedMethod == 'Card' ? Colors.white : themeHint, fontWeight: FontWeight.bold)),
+                        Text(
+                          LocalizationService().translate('card'),
+                          style: TextStyle(
+                            color: selectedMethod == 'Card'
+                                ? Colors.white
+                                : themeHint,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -3288,7 +4467,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 Expanded(
                   child: Text(
                     LocalizationService().translate('fee_policy_desc'),
-                    style: TextStyle(color: themeHint, fontSize: 10, fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                      color: themeHint,
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
               ],
@@ -3306,7 +4489,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          title: Text(LocalizationService().translate('split_bill_dialog'), style: TextStyle(color: themeText)),
+          title: Text(
+            LocalizationService().translate('split_bill_dialog'),
+            style: TextStyle(color: themeText),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -3327,7 +4513,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 onChanged: (v) => setDialogState(() => splitCount = v.toInt()),
               ),
               const Divider(),
-              _buildPriceRow(LocalizationService().translate('total_bill'), '\$${_total.toStringAsFixed(2)}'),
+              _buildPriceRow(
+                LocalizationService().translate('total_bill'),
+                '\$${_total.toStringAsFixed(2)}',
+              ),
               _buildPriceRow(
                 LocalizationService().translate('each_person'),
                 '\$${(_total / splitCount).toStringAsFixed(2)}',
@@ -3352,20 +4541,26 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       'full_total': _total,
                       'order_time': DateTime.now().toIso8601String(),
                       'order_type': _orderType,
-                      'customer_name': _isNewGuestMode ? _customerFirstNameController.text.trim() : (_selectedCustomer != null ? '${_selectedCustomer!['first_name']} ${_selectedCustomer!['last_name']}' : 'Counter'),
-                      'split_info': {
-                        'index': i,
-                        'total_splits': splitCount,
-                      }
+                      'customer_name': _isNewGuestMode
+                          ? _customerFirstNameController.text.trim()
+                          : (_selectedCustomer != null
+                                ? '${_selectedCustomer!['first_name']} ${_selectedCustomer!['last_name']}'
+                                : 'Counter'),
+                      'split_info': {'index': i, 'total_splits': splitCount},
                     };
-                    await ReceiptService.printReceipt(order: splitOrder, settings: _settings);
+                    await ReceiptService.printReceipt(
+                      order: splitOrder,
+                      settings: _settings,
+                    );
                   }
                 } finally {
                   if (mounted) setState(() => _isLoading = false);
                 }
               },
               icon: const Icon(Icons.print_rounded),
-              label: Text(LocalizationService().translate('print_all_receipts')),
+              label: Text(
+                LocalizationService().translate('print_all_receipts'),
+              ),
             ),
             if (_paymentPolicy == 'Pay Last') ...[
               const Spacer(),
@@ -3402,7 +4597,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             children: [
               Icon(Icons.merge_type_rounded, color: themePrimary),
               const SizedBox(width: 12),
-              Text(LocalizationService().translate('merge_bill'), style: TextStyle(color: themeText)),
+              Text(
+                LocalizationService().translate('merge_bill'),
+                style: TextStyle(color: themeText),
+              ),
             ],
           ),
           content: Column(
@@ -3424,14 +4622,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     value: targetTable,
                     isExpanded: true,
                     dropdownColor: themeCard,
-                    hint: Text(LocalizationService().translate('select_target_table'), style: TextStyle(color: themeHint)),
-                    items: _restaurantTables?.where((t) => t.id != _selectedTable?.id).map((t) {
-                      final avail = t.capacity - t.currentOccupancy;
-                      return DropdownMenuItem(
-                        value: t,
-                        child: Text('${LocalizationService().translate('table')} ${t.label} (${LocalizationService().translate('avail')}: $avail / ${t.capacity})'),
-                      );
-                    }).toList(),
+                    hint: Text(
+                      LocalizationService().translate('select_target_table'),
+                      style: TextStyle(color: themeHint),
+                    ),
+                    items: _restaurantTables
+                        ?.where((t) => t.id != _selectedTable?.id)
+                        .map((t) {
+                          final avail = t.capacity - t.currentOccupancy;
+                          return DropdownMenuItem(
+                            value: t,
+                            child: Text(
+                              '${LocalizationService().translate('table')} ${t.label} (${LocalizationService().translate('avail')}: $avail / ${t.capacity})',
+                            ),
+                          );
+                        })
+                        .toList(),
                     onChanged: (val) => setDialogState(() => targetTable = val),
                   ),
                 ),
@@ -3439,7 +4645,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               const SizedBox(height: 16),
               Text(
                 '${LocalizationService().translate('merge_warning')}',
-                style: TextStyle(color: Colors.orange, fontSize: 11, fontStyle: FontStyle.italic),
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 11,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ],
           ),
@@ -3449,20 +4659,29 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               child: Text(LocalizationService().translate('cancel')),
             ),
             ElevatedButton(
-              onPressed: targetTable == null ? null : () {
-                // Logic to merge cart into another table
-                // For simplicity, we just set the selected table and let the user add more items or place it
-                setState(() {
-                  _selectedTable = targetTable;
-                  _orderType = 'Dine-In';
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Items merged to Table ${targetTable.label}'))
-                );
-              },
+              onPressed: targetTable == null
+                  ? null
+                  : () {
+                      // Logic to merge cart into another table
+                      // For simplicity, we just set the selected table and let the user add more items or place it
+                      setState(() {
+                        _selectedTable = targetTable;
+                        _orderType = 'Dine-In';
+                      });
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Items merged to Table ${targetTable.label}',
+                          ),
+                        ),
+                      );
+                    },
               style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
-              child: Text(LocalizationService().translate('confirm_merge'), style: const TextStyle(color: Colors.white)),
+              child: Text(
+                LocalizationService().translate('confirm_merge'),
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -3538,7 +4757,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               const SizedBox(height: 32),
               Text(
                 LocalizationService().translate('thank_you_visiting'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               const Text(
                 'Rate us at www.zamzamkitchen.com',
@@ -3563,15 +4785,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 'full_total': _total,
                 'order_time': DateTime.now().toIso8601String(),
                 'order_type': _orderType,
-                'customer_name': _isNewGuestMode 
+                'customer_name': _isNewGuestMode
                     ? _customerFirstNameController.text.trim()
-                    : (_selectedCustomer != null ? '${_selectedCustomer!['first_name']} ${_selectedCustomer!['last_name']}' : 'Counter'),
-                'split_info': _isSplitActive ? {
-                  'index': 1,
-                  'total_splits': (1.0 / _splitMultiplier).toInt(),
-                } : null,
+                    : (_selectedCustomer != null
+                          ? '${_selectedCustomer!['first_name']} ${_selectedCustomer!['last_name']}'
+                          : 'Counter'),
+                'split_info': _isSplitActive
+                    ? {
+                        'index': 1,
+                        'total_splits': (1.0 / _splitMultiplier).toInt(),
+                      }
+                    : null,
               };
-              ReceiptService.printReceipt(order: tempOrder, settings: _settings);
+              ReceiptService.printReceipt(
+                order: tempOrder,
+                settings: _settings,
+              );
             },
             style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
             child: Text(
@@ -3584,7 +4813,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-
   String _formatDateTime(String? raw) {
     if (raw == null || raw.isEmpty) return '--:--';
     try {
@@ -3596,13 +4824,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       final minute = dt.minute.toString().padLeft(2, '0');
       return '$day/$month/$year $hour:$minute';
     } catch (_) {
-      return raw.toString().substring(0, raw.toString().length > 16 ? 16 : raw.toString().length);
+      return raw.toString().substring(
+        0,
+        raw.toString().length > 16 ? 16 : raw.toString().length,
+      );
     }
   }
 
-
-
-  void _updateReservationStatus(dynamic id, String status, [dynamic tableId]) async {
+  void _updateReservationStatus(
+    dynamic id,
+    String status, [
+    dynamic tableId,
+  ]) async {
     try {
       final body = <String, dynamic>{'status': status};
       if (tableId != null) body['table_id'] = tableId;
@@ -3617,7 +4850,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       if (status == 'Seated' && tableId != null) {
         final table = _restaurantTables?.firstWhere(
           (t) => t.id == tableId.toString(),
-          orElse: () => ui_kit.RestaurantTable(id: tableId.toString(), label: tableId.toString(), status: ui_kit.TableStatus.available, capacity: 4, x: 0, y: 0),
+          orElse: () => ui_kit.RestaurantTable(
+            id: tableId.toString(),
+            label: tableId.toString(),
+            status: ui_kit.TableStatus.available,
+            capacity: 4,
+            x: 0,
+            y: 0,
+          ),
         );
         if (table != null) {
           _updateTableStatus(table, 'Occupied');
@@ -3626,20 +4866,38 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
       // If marking as Confirmed and table is assigned, mark table as Reserved
       if (status == 'Confirmed' && tableId != null) {
-        final table = _restaurantTables?.firstWhere((t) => t.id == tableId.toString(), orElse: () => ui_kit.RestaurantTable(id: '', label: '', status: ui_kit.TableStatus.available, capacity: 0, x: 0, y: 0));
+        final table = _restaurantTables?.firstWhere(
+          (t) => t.id == tableId.toString(),
+          orElse: () => ui_kit.RestaurantTable(
+            id: '',
+            label: '',
+            status: ui_kit.TableStatus.available,
+            capacity: 0,
+            x: 0,
+            y: 0,
+          ),
+        );
         if (table != null && table.id.isNotEmpty) {
-           _updateTableStatus(table, 'Reserved');
+          _updateTableStatus(table, 'Reserved');
         }
       }
 
       _fetchReservations();
-      if (_selectedReservationDetails != null && _selectedReservationDetails!['id'] == id) {
+      if (_selectedReservationDetails != null &&
+          _selectedReservationDetails!['id'] == id) {
         // Find the table label for immediate UI update
         String? tableLabel;
         if (tableId != null) {
           final table = _restaurantTables?.firstWhere(
             (t) => t.id == tableId.toString(),
-            orElse: () => ui_kit.RestaurantTable(id: '', label: '', status: ui_kit.TableStatus.available, capacity: 0, x: 0, y: 0),
+            orElse: () => ui_kit.RestaurantTable(
+              id: '',
+              label: '',
+              status: ui_kit.TableStatus.available,
+              capacity: 0,
+              x: 0,
+              y: 0,
+            ),
           );
           if (table != null && table.label.isNotEmpty) {
             tableLabel = table.label;
@@ -3651,7 +4909,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           if (tableId != null) {
             _selectedReservationDetails!['table_id'] = tableId;
             if (tableLabel != null) {
-              _selectedReservationDetails!['assigned_table_number'] = tableLabel;
+              _selectedReservationDetails!['assigned_table_number'] =
+                  tableLabel;
             }
           }
         });
@@ -3670,14 +4929,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       context: context,
       builder: (ctx) {
         ui_kit.RestaurantTable? localSelected = _selectedTable;
-        
+
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final tables = _restaurantTables ?? [];
 
             return AlertDialog(
               backgroundColor: themeCard,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               contentPadding: EdgeInsets.zero,
               content: SizedBox(
                 width: 550,
@@ -3689,7 +4950,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: themePrimary.withValues(alpha: 0.05),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -3698,9 +4961,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             decoration: BoxDecoration(
                               color: themePrimary,
                               borderRadius: BorderRadius.circular(12),
-                              boxShadow: [BoxShadow(color: themePrimary.withValues(alpha: 0.3), blurRadius: 8)],
+                              boxShadow: [
+                                BoxShadow(
+                                  color: themePrimary.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                ),
+                              ],
                             ),
-                            child: const Icon(Icons.table_bar, color: Colors.white, size: 24),
+                            child: const Icon(
+                              Icons.table_bar,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -3708,12 +4980,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  LocalizationService().translate('choose_table'),
-                                  style: TextStyle(color: themeText, fontSize: 22, fontWeight: FontWeight.bold),
+                                  LocalizationService().translate(
+                                    'choose_table',
+                                  ),
+                                  style: TextStyle(
+                                    color: themeText,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 Text(
-                                  LocalizationService().translate('select_available_table'),
-                                  style: TextStyle(color: themeHint, fontSize: 13),
+                                  LocalizationService().translate(
+                                    'select_available_table',
+                                  ),
+                                  style: TextStyle(
+                                    color: themeHint,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ],
                             ),
@@ -3733,19 +5016,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         child: GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.85,
-                          ),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.85,
+                              ),
                           itemCount: tables.length,
                           itemBuilder: (context, index) {
                             final t = tables[index];
                             final isSel = localSelected?.id == t.id;
-                            
+
                             return InkWell(
-                              onTap: () => setDialogState(() => localSelected = t),
+                              onTap: () =>
+                                  setDialogState(() => localSelected = t),
                               borderRadius: BorderRadius.circular(16),
                               child: Container(
                                 decoration: BoxDecoration(
@@ -3755,7 +5040,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     color: isSel ? themePrimary : themeBorder,
                                     width: 2,
                                   ),
-                                  boxShadow: isSel ? [BoxShadow(color: themePrimary.withValues(alpha: 0.3), blurRadius: 8)] : null,
+                                  boxShadow: isSel
+                                      ? [
+                                          BoxShadow(
+                                            color: themePrimary.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                            blurRadius: 8,
+                                          ),
+                                        ]
+                                      : null,
                                 ),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -3776,18 +5070,25 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     ),
                                     const SizedBox(height: 6),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.people_outline,
                                           size: 14,
-                                          color: isSel ? Colors.white.withValues(alpha: 0.7) : themeHint,
+                                          color: isSel
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.7,
+                                                )
+                                              : themeHint,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${t.capacity - t.currentOccupancy} / ${t.capacity}',
                                           style: TextStyle(
-                                            color: isSel ? Colors.white : themeText,
+                                            color: isSel
+                                                ? Colors.white
+                                                : themeText,
                                             fontSize: 13,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -3797,7 +5098,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     Text(
                                       '${LocalizationService().translate('avail').toUpperCase()}',
                                       style: TextStyle(
-                                        color: isSel ? Colors.white.withValues(alpha: 0.7) : themeHint,
+                                        color: isSel
+                                            ? Colors.white.withValues(
+                                                alpha: 0.7,
+                                              )
+                                            : themeHint,
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -3823,32 +5128,52 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                 Navigator.pop(ctx);
                               },
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 side: BorderSide(color: themeBorder),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               child: Text(
-                                LocalizationService().translate('clear_takeaway').toUpperCase(),
-                                style: TextStyle(color: themeText, fontWeight: FontWeight.bold),
+                                LocalizationService()
+                                    .translate('clear_takeaway')
+                                    .toUpperCase(),
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: localSelected == null ? null : () {
-                                _startOrderFromTable(localSelected!);
-                                Navigator.pop(ctx);
-                              },
+                              onPressed: localSelected == null
+                                  ? null
+                                  : () {
+                                      _startOrderFromTable(localSelected!);
+                                      Navigator.pop(ctx);
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: themePrimary,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
                               child: Text(
-                                LocalizationService().translate('confirm_label').toUpperCase(),
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                LocalizationService()
+                                    .translate('confirm_label')
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -3865,8 +5190,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-
-
   void _showAddTableDialog() {
     final numberController = TextEditingController();
     final capacityController = TextEditingController(text: '4');
@@ -3879,12 +5202,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         builder: (context, setState) {
           return AlertDialog(
             backgroundColor: themeCard,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
                 Icon(Icons.table_restaurant, color: themePrimary),
                 const SizedBox(width: 12),
-                Text(LocalizationService().translate('add_new_table'), style: TextStyle(color: themeText, fontWeight: FontWeight.bold)),
+                Text(
+                  LocalizationService().translate('add_new_table'),
+                  style: TextStyle(
+                    color: themeText,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             content: SingleChildScrollView(
@@ -3896,16 +5227,31 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     controller: numberController,
                     style: TextStyle(color: themeText),
                     decoration: InputDecoration(
-                      labelText: LocalizationService().translate('table_number_hint'),
+                      labelText: LocalizationService().translate(
+                        'table_number_hint',
+                      ),
                       labelStyle: TextStyle(color: themeHint),
-                      prefixIcon: Icon(Icons.tag, color: themePrimary, size: 20),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: themeBorder)),
+                      prefixIcon: Icon(
+                        Icons.tag,
+                        color: themePrimary,
+                        size: 20,
+                      ),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: themeBorder),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Table Type
-                  Text(LocalizationService().translate('table_type'), style: TextStyle(color: themeHint, fontSize: 13, fontWeight: FontWeight.w500)),
+                  Text(
+                    LocalizationService().translate('table_type'),
+                    style: TextStyle(
+                      color: themeHint,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -3926,14 +5272,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         label: 'Rectangular',
                         icon: Icons.rectangle_outlined,
                         isSelected: selectedType == 'Rectangular',
-                        onTap: () => setState(() => selectedType = 'Rectangular'),
+                        onTap: () =>
+                            setState(() => selectedType = 'Rectangular'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
 
                   // Table Size
-                  Text(LocalizationService().translate('table_size'), style: TextStyle(color: themeHint, fontSize: 13, fontWeight: FontWeight.w500)),
+                  Text(
+                    LocalizationService().translate('table_size'),
+                    style: TextStyle(
+                      color: themeHint,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -3965,10 +5319,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     keyboardType: TextInputType.number,
                     style: TextStyle(color: themeText),
                     decoration: InputDecoration(
-                      labelText: LocalizationService().translate('chairs_count'),
+                      labelText: LocalizationService().translate(
+                        'chairs_count',
+                      ),
                       labelStyle: TextStyle(color: themeHint),
-                      prefixIcon: Icon(Icons.chair_outlined, color: themePrimary, size: 20),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: themeBorder)),
+                      prefixIcon: Icon(
+                        Icons.chair_outlined,
+                        color: themePrimary,
+                        size: 20,
+                      ),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: themeBorder),
+                      ),
                     ),
                   ),
                 ],
@@ -3977,19 +5339,28 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(LocalizationService().translate('cancel').toUpperCase(), style: TextStyle(color: themeHint)),
+                child: Text(
+                  LocalizationService().translate('cancel').toUpperCase(),
+                  style: TextStyle(color: themeHint),
+                ),
               ),
               ElevatedButton(
                 onPressed: () async {
                   if (numberController.text.trim().isEmpty) {
-                    _showWarningDialog(LocalizationService().translate('enter_table_number_warning'));
+                    _showWarningDialog(
+                      LocalizationService().translate(
+                        'enter_table_number_warning',
+                      ),
+                    );
                     return;
                   }
                   if (capacityController.text.trim().isEmpty) {
-                    _showWarningDialog(LocalizationService().translate('enter_capacity_warning'));
+                    _showWarningDialog(
+                      LocalizationService().translate('enter_capacity_warning'),
+                    );
                     return;
                   }
-                  
+
                   final tableBody = {
                     'table_number': numberController.text,
                     'capacity': int.tryParse(capacityController.text) ?? 4,
@@ -4007,24 +5378,44 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       headers: {'Content-Type': 'application/json'},
                       body: json.encode(tableBody),
                     );
-                    
+
                     if (resp.statusCode == 201) {
                       if (!ctx.mounted) return;
                       Navigator.pop(ctx);
                       if (!mounted) return;
                       _fetchTables();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('table_added_floor')), backgroundColor: Colors.green));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            LocalizationService().translate(
+                              'table_added_floor',
+                            ),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
                     }
                   } catch (e) {
-                     debugPrint('Error adding table: $e');
+                    debugPrint('Error adding table: $e');
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
-                child: Text(LocalizationService().translate('add_table'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text(
+                  LocalizationService().translate('add_table'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           );
@@ -4045,15 +5436,27 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         width: 100,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? themePrimary.withValues(alpha: 0.1) : Colors.transparent,
+          color: isSelected
+              ? themePrimary.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? themePrimary : themeBorder, width: 1.5),
+          border: Border.all(
+            color: isSelected ? themePrimary : themeBorder,
+            width: 1.5,
+          ),
         ),
         child: Column(
           children: [
             Icon(icon, color: isSelected ? themePrimary : themeHint, size: 24),
             const SizedBox(height: 8),
-            Text(label, style: TextStyle(color: isSelected ? themePrimary : themeHint, fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? themePrimary : themeHint,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
           ],
         ),
       ),
@@ -4066,7 +5469,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: themeCard,
-        title: Text(LocalizationService().translate('user_profile'), style: TextStyle(color: themeText)),
+        title: Text(
+          LocalizationService().translate('user_profile'),
+          style: TextStyle(color: themeText),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -4085,7 +5491,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             const SizedBox(height: 16),
             Text(
               'Aqeel Admin',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: themeText),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: themeText,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -4115,14 +5525,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(LocalizationService().translate('logout_not_connected')),
+                    content: Text(
+                      LocalizationService().translate('logout_not_connected'),
+                    ),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(LocalizationService().translate('logout'), style: const TextStyle(color: Colors.white)),
+            child: Text(
+              LocalizationService().translate('logout'),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -4135,24 +5550,37 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          title: Text(LocalizationService().translate('settings'), style: TextStyle(color: themeText)),
+          title: Text(
+            LocalizationService().translate('settings'),
+            style: TextStyle(color: themeText),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Dark Mode Toggle
               SwitchListTile(
-                title: Text(LocalizationService().translate('dark_mode'), style: TextStyle(color: themeText)),
-                subtitle: Text(LocalizationService().translate('dark_mode_desc'), style: TextStyle(color: themeHint)),
+                title: Text(
+                  LocalizationService().translate('dark_mode'),
+                  style: TextStyle(color: themeText),
+                ),
+                subtitle: Text(
+                  LocalizationService().translate('dark_mode_desc'),
+                  style: TextStyle(color: themeHint),
+                ),
                 value: _isDarkMode,
                 onChanged: (value) async {
-                  final newFlavor = value ? AppThemeFlavor.dark : AppThemeFlavor.light;
+                  final newFlavor = value
+                      ? AppThemeFlavor.dark
+                      : AppThemeFlavor.light;
                   ThemeService().setFlavor(newFlavor);
                   setDialogState(() {});
                   setState(() {}); // Update the main UI
-                  
+
                   // Persist to backend without blocking UI
                   try {
-                    await _updateSetting('tenant', {'theme_mode': value ? 'Dark' : 'Light'});
+                    await _updateSetting('tenant', {
+                      'theme_mode': value ? 'Dark' : 'Light',
+                    });
                   } catch (e) {
                     debugPrint('Failed to persist theme setting: $e');
                   }
@@ -4161,27 +5589,67 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               ),
               const Divider(),
               ListTile(
-                title: Text(LocalizationService().translate('printer_settings'), style: TextStyle(color: themeText)),
-                subtitle: Text(LocalizationService().translate('printer_desc'), style: TextStyle(color: themeHint)),
-                trailing: Icon(Icons.arrow_forward_ios, size: 16, color: themeHint),
+                title: Text(
+                  LocalizationService().translate('printer_settings'),
+                  style: TextStyle(color: themeText),
+                ),
+                subtitle: Text(
+                  LocalizationService().translate('printer_desc'),
+                  style: TextStyle(color: themeHint),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: themeHint,
+                ),
                 onTap: () => _showPrinterSettings(),
               ),
               ListTile(
-                title: Text(LocalizationService().translate('sound_settings'), style: TextStyle(color: themeText)),
-                subtitle: Text(LocalizationService().translate('sound_desc'), style: TextStyle(color: themeHint)),
-                trailing: Icon(Icons.arrow_forward_ios, size: 16, color: themeHint),
+                title: Text(
+                  LocalizationService().translate('sound_settings'),
+                  style: TextStyle(color: themeText),
+                ),
+                subtitle: Text(
+                  LocalizationService().translate('sound_desc'),
+                  style: TextStyle(color: themeHint),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: themeHint,
+                ),
                 onTap: () => _showSoundSettings(),
               ),
               ListTile(
-                title: Text(LocalizationService().translate('auto_logout'), style: TextStyle(color: themeText)),
-                subtitle: Text(LocalizationService().translate('logout_desc'), style: TextStyle(color: themeHint)),
-                trailing: Icon(Icons.arrow_forward_ios, size: 16, color: themeHint),
+                title: Text(
+                  LocalizationService().translate('auto_logout'),
+                  style: TextStyle(color: themeText),
+                ),
+                subtitle: Text(
+                  LocalizationService().translate('logout_desc'),
+                  style: TextStyle(color: themeHint),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: themeHint,
+                ),
                 onTap: () => _showAutoLogoutSettings(),
               ),
               ListTile(
-                title: Text(LocalizationService().translate('language'), style: TextStyle(color: themeText)),
-                subtitle: Text(LocalizationService().translate('lang_desc'), style: TextStyle(color: themeHint)),
-                trailing: Icon(Icons.arrow_forward_ios, size: 16, color: themeHint),
+                title: Text(
+                  LocalizationService().translate('language'),
+                  style: TextStyle(color: themeText),
+                ),
+                subtitle: Text(
+                  LocalizationService().translate('lang_desc'),
+                  style: TextStyle(color: themeHint),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: themeHint,
+                ),
                 onTap: () => _showLanguageSettings(),
               ),
             ],
@@ -4198,15 +5666,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   }
 
   void _showPrinterSettings() {
-    String connectionType = _settings['branch']?['printer_connection_type'] ?? 'Network';
-    final ipController = TextEditingController(text: _settings['branch']?['printer_ip'] ?? '');
-    
+    String connectionType =
+        _settings['branch']?['printer_connection_type'] ?? 'Network';
+    final ipController = TextEditingController(
+      text: _settings['branch']?['printer_ip'] ?? '',
+    );
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          title: Text(LocalizationService().translate('printer_settings'), style: TextStyle(color: themeText)),
+          title: Text(
+            LocalizationService().translate('printer_settings'),
+            style: TextStyle(color: themeText),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -4217,10 +5691,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 ),
                 dropdownColor: themeCard,
                 initialValue: connectionType,
-                items: ['Network', 'Bluetooth', 'USB'].map((type) => DropdownMenuItem(
-                  value: type, 
-                  child: Text(LocalizationService().translate(type.toLowerCase()), style: TextStyle(color: themeText))
-                )).toList(),
+                items: ['Network', 'Bluetooth', 'USB']
+                    .map(
+                      (type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(
+                          LocalizationService().translate(type.toLowerCase()),
+                          style: TextStyle(color: themeText),
+                        ),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (val) {
                   if (val != null) {
                     setDialogState(() => connectionType = val);
@@ -4236,20 +5717,34 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     labelText: LocalizationService().translate('printer_ip'),
                     labelStyle: TextStyle(color: themeHint),
                     hintText: '192.168.1.100',
-                    hintStyle: TextStyle(color: themeHint.withValues(alpha: 0.5)),
+                    hintStyle: TextStyle(
+                      color: themeHint.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
               ],
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('test_print_sent')))),
-                style: ElevatedButton.styleFrom(backgroundColor: themePrimary, foregroundColor: Colors.white),
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      LocalizationService().translate('test_print_sent'),
+                    ),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: themePrimary,
+                  foregroundColor: Colors.white,
+                ),
                 child: Text(LocalizationService().translate('send_test_print')),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(LocalizationService().translate('close'))),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(LocalizationService().translate('close')),
+            ),
             ElevatedButton(
               onPressed: () {
                 if (connectionType == 'Network') {
@@ -4257,19 +5752,28 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   final ipRegex = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
                   if (!ipRegex.hasMatch(ip)) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(LocalizationService().translate('invalid_ip_format'))),
+                      SnackBar(
+                        content: Text(
+                          LocalizationService().translate('invalid_ip_format'),
+                        ),
+                      ),
                     );
                     return;
                   }
                 }
-                
+
                 _updateSetting('branch', {
                   'printer_connection_type': connectionType,
-                  'printer_ip': connectionType == 'Network' ? ipController.text.trim() : '',
+                  'printer_ip': connectionType == 'Network'
+                      ? ipController.text.trim()
+                      : '',
                 });
                 Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: themePrimary, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: themePrimary,
+                foregroundColor: Colors.white,
+              ),
               child: Text(LocalizationService().translate('save_settings')),
             ),
           ],
@@ -4285,14 +5789,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          title: Text(LocalizationService().translate('sound_settings'), style: TextStyle(color: themeText)),
+          title: Text(
+            LocalizationService().translate('sound_settings'),
+            style: TextStyle(color: themeText),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SwitchListTile(
-                title: Text(LocalizationService().translate('order_notifications'), style: TextStyle(color: themeText)),
-                subtitle: Text(LocalizationService().translate('order_notifications_desc'), style: TextStyle(color: themeHint)),
+                title: Text(
+                  LocalizationService().translate('order_notifications'),
+                  style: TextStyle(color: themeText),
+                ),
+                subtitle: Text(
+                  LocalizationService().translate('order_notifications_desc'),
+                  style: TextStyle(color: themeHint),
+                ),
                 value: sound.enabled,
                 activeThumbColor: themePrimary,
                 onChanged: (val) {
@@ -4303,7 +5816,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               const Divider(),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(LocalizationService().translate('notification_volume'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: themeText)),
+                child: Text(
+                  LocalizationService().translate('notification_volume'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: themeText,
+                  ),
+                ),
               ),
               Slider(
                 value: sound.volume,
@@ -4318,34 +5838,51 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               const Divider(),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(LocalizationService().translate('select_sound'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: themeText)),
+                child: Text(
+                  LocalizationService().translate('select_sound'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: themeText,
+                  ),
+                ),
               ),
-              ...sound.availableSounds.map((s) => RadioListTile<String>(
-                title: Text(s, style: TextStyle(color: themeText)),
-                value: s,
-                groupValue: sound.selectedSound,
-                activeColor: themePrimary,
-                onChanged: (val) {
-                  if (val != null) {
-                    setDialogState(() => sound.setSound(val));
-                    _updateSetting('tenant', {'notification_sound_name': val});
-                    sound.play(val); // Preview sound
-                  }
-                },
-              )),
+              ...sound.availableSounds.map(
+                (s) => RadioListTile<String>(
+                  title: Text(s, style: TextStyle(color: themeText)),
+                  value: s,
+                  groupValue: sound.selectedSound,
+                  activeColor: themePrimary,
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() => sound.setSound(val));
+                      _updateSetting('tenant', {
+                        'notification_sound_name': val,
+                      });
+                      sound.play(val); // Preview sound
+                    }
+                  },
+                ),
+              ),
               const SizedBox(height: 16),
               Center(
                 child: ElevatedButton.icon(
                   onPressed: () => SoundService().playNotification(),
                   icon: const Icon(Icons.play_arrow),
                   label: Text(LocalizationService().translate('test_sound')),
-                  style: ElevatedButton.styleFrom(backgroundColor: themePrimary, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: themePrimary,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(LocalizationService().translate('close'))),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(LocalizationService().translate('close')),
+            ),
           ],
         ),
       ),
@@ -4360,34 +5897,44 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           String selectedTime = _settings['tenant']?['auto_logout'] ?? 'Never';
           return AlertDialog(
             backgroundColor: themeCard,
-            title: Text(LocalizationService().translate('auto_logout'), style: TextStyle(color: themeText)),
+            title: Text(
+              LocalizationService().translate('auto_logout'),
+              style: TextStyle(color: themeText),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                {'key': 'never', 'label': 'Never'},
-                {'key': '5_mins', 'label': '5 Minutes'},
-                {'key': '15_mins', 'label': '15 Minutes'},
-                {'key': '30_mins', 'label': '30 Minutes'},
-                {'key': '1_hour', 'label': '1 Hour'},
-              ].map((time) {
-                return RadioListTile<String>(
-                  title: Text(LocalizationService().translate(time['key']!), style: TextStyle(color: themeText)),
-                  value: time['label']!,
-                  groupValue: selectedTime,
-                  activeColor: themePrimary,
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() {
-                      selectedTime = val;
-                      _updateSetting('tenant', {'auto_logout': val});
-                    });
-                    }
-                  },
-                );
-              }).toList(),
+              children:
+                  [
+                    {'key': 'never', 'label': 'Never'},
+                    {'key': '5_mins', 'label': '5 Minutes'},
+                    {'key': '15_mins', 'label': '15 Minutes'},
+                    {'key': '30_mins', 'label': '30 Minutes'},
+                    {'key': '1_hour', 'label': '1 Hour'},
+                  ].map((time) {
+                    return RadioListTile<String>(
+                      title: Text(
+                        LocalizationService().translate(time['key']!),
+                        style: TextStyle(color: themeText),
+                      ),
+                      value: time['label']!,
+                      groupValue: selectedTime,
+                      activeColor: themePrimary,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedTime = val;
+                            _updateSetting('tenant', {'auto_logout': val});
+                          });
+                        }
+                      },
+                    );
+                  }).toList(),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: Text(LocalizationService().translate('close'))),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(LocalizationService().translate('close')),
+              ),
             ],
           );
         },
@@ -4402,31 +5949,41 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: themeCard,
-          title: Text(loc.translate('lang_settings'), style: TextStyle(color: themeText)),
+          title: Text(
+            loc.translate('lang_settings'),
+            style: TextStyle(color: themeText),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              { 'name': 'English', 'flag': '🇺🇸' },
-              { 'name': 'Arabic', 'flag': '🇸🇦' },
-              { 'name': 'Urdu', 'flag': '🇵🇰' },
-            ].map((lang) {
-              return RadioListTile<String>(
-                title: Text('${lang['flag']} ${lang['name']}', style: TextStyle(color: themeText)),
-                value: lang['name']!,
-                groupValue: loc.currentLanguage,
-                activeColor: themePrimary,
-                onChanged: (val) {
-                  if (val != null) {
-                    setDialogState(() {});
-                    loc.setLanguage(val);
-                    _updateSetting('tenant', {'language': val});
-                  }
-                },
-              );
-            }).toList(),
+            children:
+                [
+                  {'name': 'English', 'flag': '🇺🇸'},
+                  {'name': 'Arabic', 'flag': '🇸🇦'},
+                  {'name': 'Urdu', 'flag': '🇵🇰'},
+                ].map((lang) {
+                  return RadioListTile<String>(
+                    title: Text(
+                      '${lang['flag']} ${lang['name']}',
+                      style: TextStyle(color: themeText),
+                    ),
+                    value: lang['name']!,
+                    groupValue: loc.currentLanguage,
+                    activeColor: themePrimary,
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {});
+                        loc.setLanguage(val);
+                        _updateSetting('tenant', {'language': val});
+                      }
+                    },
+                  );
+                }).toList(),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.translate('close'))),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(loc.translate('close')),
+            ),
           ],
         ),
       ),
@@ -4442,85 +5999,122 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           children: [
             Icon(Icons.notifications_active_outlined, color: themePrimary),
             const SizedBox(width: 12),
-            Text(LocalizationService().translate('notifications'), style: TextStyle(color: themeText)),
+            Text(
+              LocalizationService().translate('notifications'),
+              style: TextStyle(color: themeText),
+            ),
           ],
         ),
         content: SizedBox(
           width: 450,
           height: 400,
-          child: _notifications.isEmpty 
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.notifications_off_outlined, size: 64, color: themeHint.withValues(alpha: 0.2)),
-                    const SizedBox(height: 16),
-                    Text('No active notifications', style: TextStyle(color: themeHint)),
-                  ],
-                ),
-              )
-            : ListView.separated(
-                itemCount: _notifications.length,
-                separatorBuilder: (context, index) => const Divider(),
-                itemBuilder: (context, index) {
-                  // Prioritize Payment (Unpaid) and then New Orders
-                  final sorted = List.from(_notifications);
-                  sorted.sort((a, b) {
-                    final aType = a['type']?.toString() ?? '';
-                    final bType = b['type']?.toString() ?? '';
-                    if (aType == 'payment' && bType != 'payment') return -1;
-                    if (aType != 'payment' && bType == 'payment') return 1;
-                    
-                    if (aType == 'order' && bType != 'order') return -1;
-                    if (aType != 'order' && bType == 'order') return 1;
-                    
-                    return (b['time'] ?? '').toString().compareTo((a['time'] ?? '').toString());
-                  });
-                  
-                  final n = sorted[index];
-                  final time = DateTime.tryParse(n['time'] ?? '') ?? DateTime.now();
-                  final timeAgo = _getLapseTime(time.toIso8601String());
-                  
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                    decoration: n['type'] == 'payment' ? BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
-                    ) : null,
-                    child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: (n['color'] as Color).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
+          child: _notifications.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.notifications_off_outlined,
+                        size: 64,
+                        color: themeHint.withValues(alpha: 0.2),
                       ),
-                      child: Icon(n['icon'] as IconData, color: n['color'] as Color, size: 20),
-                    ),
-                    title: Text(n['title'] ?? '', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text(n['subtitle'] ?? '', style: TextStyle(color: themeHint, fontSize: 12)),
-                    trailing: Text(timeAgo, style: TextStyle(color: themeHint, fontSize: 10)),
-                    onTap: () {
-                      // Navigate to appropriate tab based on type
-                      if (n['type'] == 'order' || n['type'] == 'payment') {
-                        setState(() => _selectedTabIndex = 3); // Orders tab
-                      } else if (n['type'] == 'reservation') {
-                        setState(() {
-                          _selectedTabIndex = 5; // Reservations tab
-                          _fetchReservations();
-                        });
-                      } else if (n['type'] == 'inventory') {
-                        setState(() {
-                          _selectedTabIndex = 1;
-                          _selectedDashboardTab = 18;
-                        });
-                      }
-                      Navigator.pop(context);
-                    },
+                      const SizedBox(height: 16),
+                      Text(
+                        'No active notifications',
+                        style: TextStyle(color: themeHint),
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                )
+              : ListView.separated(
+                  itemCount: _notifications.length,
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemBuilder: (context, index) {
+                    // Prioritize Payment (Unpaid) and then New Orders
+                    final sorted = List.from(_notifications);
+                    sorted.sort((a, b) {
+                      final aType = a['type']?.toString() ?? '';
+                      final bType = b['type']?.toString() ?? '';
+                      if (aType == 'payment' && bType != 'payment') return -1;
+                      if (aType != 'payment' && bType == 'payment') return 1;
+
+                      if (aType == 'order' && bType != 'order') return -1;
+                      if (aType != 'order' && bType == 'order') return 1;
+
+                      return (b['time'] ?? '').toString().compareTo(
+                        (a['time'] ?? '').toString(),
+                      );
+                    });
+
+                    final n = sorted[index];
+                    final time =
+                        DateTime.tryParse(n['time'] ?? '') ?? DateTime.now();
+                    final timeAgo = _getLapseTime(time.toIso8601String());
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 2,
+                        horizontal: 4,
+                      ),
+                      decoration: n['type'] == 'payment'
+                          ? BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.red.withValues(alpha: 0.2),
+                              ),
+                            )
+                          : null,
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: (n['color'] as Color).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            n['icon'] as IconData,
+                            color: n['color'] as Color,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          n['title'] ?? '',
+                          style: TextStyle(
+                            color: themeText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          n['subtitle'] ?? '',
+                          style: TextStyle(color: themeHint, fontSize: 12),
+                        ),
+                        trailing: Text(
+                          timeAgo,
+                          style: TextStyle(color: themeHint, fontSize: 10),
+                        ),
+                        onTap: () {
+                          // Navigate to appropriate tab based on type
+                          if (n['type'] == 'order' || n['type'] == 'payment') {
+                            setState(() => _selectedTabIndex = 3); // Orders tab
+                          } else if (n['type'] == 'reservation') {
+                            setState(() {
+                              _selectedTabIndex = 5; // Reservations tab
+                              _fetchReservations();
+                            });
+                          } else if (n['type'] == 'inventory') {
+                            setState(() {
+                              _selectedTabIndex = 1;
+                              _selectedDashboardTab = 18;
+                            });
+                          }
+                          Navigator.pop(context);
+                        },
+                      ),
+                    );
+                  },
+                ),
         ),
         actions: [
           TextButton(
@@ -4528,12 +6122,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               setState(() => _notifications.clear());
               Navigator.pop(context);
             },
-            child: Text(LocalizationService().translate('clear_all'), style: const TextStyle(color: Colors.red)),
+            child: Text(
+              LocalizationService().translate('clear_all'),
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
-            child: Text(LocalizationService().translate('close'), style: const TextStyle(color: Colors.white)),
+            child: Text(
+              LocalizationService().translate('close'),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -4549,7 +6149,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         return Theme(
           data: ThemeService().themeData,
           child: Directionality(
-            textDirection: (loc.currentLanguage == 'Arabic' || loc.currentLanguage == 'Urdu')
+            textDirection:
+                (loc.currentLanguage == 'Arabic' ||
+                    loc.currentLanguage == 'Urdu')
                 ? TextDirection.rtl
                 : TextDirection.ltr,
             child: Listener(
@@ -4582,19 +6184,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       child: Row(
         children: [
           // Logo Section (Official Branding)
-          
+
           // Tenant Branding (Custom Logos from Server)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (ThemeService().logoUrl != null && ThemeService().logoUrl!.isNotEmpty)
+              if (ThemeService().logoUrl != null &&
+                  ThemeService().logoUrl!.isNotEmpty)
                 Image(
                   image: ThemeService.getImage(ThemeService().logoUrl),
                   height: 55,
                   fit: BoxFit.contain,
                 ),
               const SizedBox(width: 12),
-              if (ThemeService().secondaryLogoUrl != null && ThemeService().secondaryLogoUrl!.isNotEmpty)
+              if (ThemeService().secondaryLogoUrl != null &&
+                  ThemeService().secondaryLogoUrl!.isNotEmpty)
                 Image(
                   image: ThemeService.getImage(ThemeService().secondaryLogoUrl),
                   height: 55,
@@ -4636,54 +6240,94 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildHeaderTab(0, LocalizationService().translate('pos'), Icons.point_of_sale_rounded),
-                  _buildHeaderTab(1, LocalizationService().translate('dashboard'), Icons.dashboard_customize_rounded),
                   _buildHeaderTab(
-                    2, 
-                    LocalizationService().translate('kds'), 
+                    0,
+                    LocalizationService().translate('pos'),
+                    Icons.point_of_sale_rounded,
+                  ),
+                  _buildHeaderTab(
+                    1,
+                    LocalizationService().translate('dashboard'),
+                    Icons.dashboard_customize_rounded,
+                    count: _lowStockItems.length,
+                  ),
+                  _buildHeaderTab(
+                    2,
+                    LocalizationService().translate('kds'),
                     Icons.kitchen_rounded,
                     count: _placedOrders.where((o) {
                       final s = o['status']?.toString().toLowerCase();
-                      return ['pending', 'ordered', 'preparing', 'ready', 'paid', 'partially paid'].contains(s);
-                    }).length
+                      return [
+                        'pending',
+                        'ordered',
+                        'preparing',
+                        'ready',
+                        'paid',
+                        'partially paid',
+                      ].contains(s);
+                    }).length,
                   ),
                   _buildHeaderTab(
-                    3, 
-                    LocalizationService().translate('orders'), 
+                    3,
+                    LocalizationService().translate('orders'),
                     Icons.receipt_long_rounded,
                     count: _placedOrders.where((o) {
                       final s = o['status'].toString().toLowerCase();
-                      return ['pending', 'ordered', 'preparing', 'ready', 'paid', 'partially paid'].contains(s);
-                    }).length
+                      return [
+                        'pending',
+                        'ordered',
+                        'preparing',
+                        'ready',
+                        'paid',
+                        'partially paid',
+                      ].contains(s);
+                    }).length,
                   ),
                   _buildHeaderTab(
-                    4, 
-                    LocalizationService().translate('waiting'), 
+                    4,
+                    LocalizationService().translate('waiting'),
                     Icons.watch_later_outlined,
                     count: _placedOrders.where((o) {
                       final s = o['status']?.toString().toLowerCase();
-                      return ['pending', 'ordered', 'preparing', 'ready', 'paid', 'partially paid'].contains(s);
-                    }).length
+                      return [
+                        'pending',
+                        'ordered',
+                        'preparing',
+                        'ready',
+                        'paid',
+                        'partially paid',
+                      ].contains(s);
+                    }).length,
                   ),
                   _buildHeaderTab(
-                    5, 
-                    LocalizationService().translate('reservation'), 
+                    5,
+                    LocalizationService().translate('reservation'),
                     Icons.event_available_rounded,
                     count: _reservations.where((r) {
-                      if (r['status'] == 'Cancelled' || r['status'] == 'Completed') return false;
+                      if (r['status'] == 'Cancelled' ||
+                          r['status'] == 'Completed')
+                        return false;
                       try {
-                        DateTime resDate = DateTime.parse(r['reservation_date']).toLocal();
+                        DateTime resDate = DateTime.parse(
+                          r['reservation_date'],
+                        ).toLocal();
                         DateTime today = DateTime.now();
-                        DateTime startOfToday = DateTime(today.year, today.month, today.day);
+                        DateTime startOfToday = DateTime(
+                          today.year,
+                          today.month,
+                          today.day,
+                        );
                         return !resDate.isBefore(startOfToday);
-                      } catch (_) { return true; }
-                    }).length
+                      } catch (_) {
+                        return true;
+                      }
+                    }).length,
                   ),
                   _buildHeaderTab(
-                    6, 
-                    LocalizationService().translate('tables'), 
+                    6,
+                    LocalizationService().translate('tables'),
                     Icons.grid_view_rounded,
-                    count: _restaurantTables?.length ?? 0
+                    count: _restaurantTables?.length ?? 0,
                   ),
                 ],
               ),
@@ -4716,7 +6360,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   _fetchReservations();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(LocalizationService().translate('data_refreshed')),
+                      content: Text(
+                        LocalizationService().translate('data_refreshed'),
+                      ),
                       backgroundColor: themePrimary,
                       duration: const Duration(seconds: 1),
                     ),
@@ -4779,13 +6425,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildHeaderTab(int index, String label, IconData icon, {int count = 0}) {
+  Widget _buildHeaderTab(
+    int index,
+    String label,
+    IconData icon, {
+    int count = 0,
+  }) {
     bool isSelected = _selectedTabIndex == index;
     return GestureDetector(
       onTap: () => setState(() {
         _selectedTabIndex = index;
-        if (index == 1) _selectedDashboardTab = 0; // Reset to Overview when clicking Dashboard tab
-        if (index == 5) _fetchReservations(); // Refresh when entering Reservations
+        if (index == 1)
+          _selectedDashboardTab =
+              0; // Reset to Overview when clicking Dashboard tab
+        if (index == 5)
+          _fetchReservations(); // Refresh when entering Reservations
       }),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -4813,7 +6467,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     label,
                     style: TextStyle(
                       color: isSelected ? themeText : themeHint,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
                       fontSize: 12,
                     ),
                   ),
@@ -4831,7 +6487,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     shape: BoxShape.circle,
                     border: Border.all(color: themeBg, width: 2),
                   ),
-                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  constraints: const BoxConstraints(
+                    minWidth: 20,
+                    minHeight: 20,
+                  ),
                   child: Center(
                     child: Text(
                       count.toString(),
@@ -4849,7 +6508,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       ),
     );
   }
-
 
   Widget _buildHeaderIcon(IconData icon, {VoidCallback? onTap, int count = 0}) {
     return GestureDetector(
@@ -4880,7 +6538,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 child: Center(
                   child: Text(
                     count > 9 ? '9+' : count.toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -4913,9 +6575,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       ),
                     ],
                   ),
-                  child: ThemeService().logoUrl != null && ThemeService().logoUrl!.isNotEmpty
-                    ? Image(image: ThemeService.getImage(ThemeService().logoUrl))
-                    : Image.asset('assets/images/logo.png'),
+                  child:
+                      ThemeService().logoUrl != null &&
+                          ThemeService().logoUrl!.isNotEmpty
+                      ? Image(
+                          image: ThemeService.getImage(ThemeService().logoUrl),
+                        )
+                      : Image.asset('assets/images/logo.png'),
                 ),
               ),
               const SizedBox(height: 32),
@@ -4937,9 +6603,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
 
     switch (_selectedTabIndex) {
-      case 0: return _buildPOSView();
-      case 1: return _buildDashboardView();
-      case 2: return KDSView(
+      case 0:
+        return _buildPOSView();
+      case 1:
+        return _buildDashboardView();
+      case 2:
+        return KDSView(
           placedOrders: _placedOrders,
           onUpdateStatus: _updateOrderStatus,
           onReject: _showRejectionDialog,
@@ -4947,7 +6616,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             _fetchOrders();
             _fetchSummary();
           },
-          orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+          orderSortDirection:
+              _settings['branch']?['order_sort_direction'] ?? 'Descending',
           themePrimary: themePrimary,
           themeBg: themeBg,
           themeText: themeText,
@@ -4955,7 +6625,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           themeCard: themeCard,
           themeBorder: themeBorder,
         );
-      case 3: return OrdersView(
+      case 3:
+        return OrdersView(
           placedOrders: _placedOrders,
           statusFilter: _orderStatusFilter,
           onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
@@ -4978,7 +6649,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           onViewDetails: _showOrderDetailsDialog,
           onDownloadPdf: _handlePdfDownload,
           settings: _settings,
-          orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+          orderSortDirection:
+              _settings['branch']?['order_sort_direction'] ?? 'Descending',
           themePrimary: themePrimary,
           themeBg: themeBg,
           themeText: themeText,
@@ -4986,8 +6658,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           themeCard: themeCard,
           themeBorder: themeBorder,
         );
-      case 4: return _buildWaitingView();
-      case 5: return ReservationsView(
+      case 4:
+        return _buildWaitingView();
+      case 5:
+        return ReservationsView(
           reservations: _reservations,
           statusFilter: _reservationStatusFilter,
           selectedReservation: _selectedReservationDetails,
@@ -4996,11 +6670,13 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             _reservationStatusFilter = f;
             _selectedReservationDetails = null;
           }),
-          onSelectReservation: (res) => setState(() => _selectedReservationDetails = res),
+          onSelectReservation: (res) =>
+              setState(() => _selectedReservationDetails = res),
           onAddReservation: _showNewReservationDialog,
           onRefresh: _fetchReservations,
           onUpdateStatus: _updateReservationStatus,
-          orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+          orderSortDirection:
+              _settings['branch']?['order_sort_direction'] ?? 'Descending',
           themePrimary: themePrimary,
           themeBg: themeBg,
           themeText: themeText,
@@ -5008,8 +6684,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           themeCard: themeCard,
           themeBorder: themeBorder,
         );
-      case 6: return _buildTablesView();
-      default: return _buildPOSView();
+      case 6:
+        return _buildTablesView();
+      default:
+        return _buildPOSView();
     }
   }
 
@@ -5017,20 +6695,21 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     return Row(
       children: [
         _buildDashboardSidebar(),
-        Expanded(
-          child: _getDashboardContent(),
-        ),
+        Expanded(child: _getDashboardContent()),
       ],
     );
   }
 
   Widget _getDashboardContent() {
-    if (kDebugMode) debugPrint('Dashboard switching to tab: $_selectedDashboardTab');
-    
+    if (kDebugMode)
+      debugPrint('Dashboard switching to tab: $_selectedDashboardTab');
+
     try {
       switch (_selectedDashboardTab) {
-        case 0: return _buildDashboardContent();
-        case 1: return OrdersView(
+        case 0:
+          return _buildDashboardContent();
+        case 1:
+          return OrdersView(
             placedOrders: _placedOrders,
             statusFilter: _orderStatusFilter,
             onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
@@ -5053,7 +6732,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onViewDetails: _showOrderDetailsDialog,
             onDownloadPdf: _handlePdfDownload,
             settings: _settings,
-            orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+            orderSortDirection:
+                _settings['branch']?['order_sort_direction'] ?? 'Descending',
             themePrimary: themePrimary,
             themeBg: themeBg,
             themeText: themeText,
@@ -5061,8 +6741,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             themeCard: themeCard,
             themeBorder: themeBorder,
           );
-        case 2: return PurchaseManagementView(isDarkMode: _isDarkMode);
-        case 3: return ReservationsView(
+        case 2:
+          return PurchaseManagementView(isDarkMode: _isDarkMode);
+        case 3:
+          return ReservationsView(
             reservations: _reservations,
             statusFilter: _reservationStatusFilter,
             selectedReservation: _selectedReservationDetails,
@@ -5071,7 +6753,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               _reservationStatusFilter = f;
               _selectedReservationDetails = null;
             }),
-            onSelectReservation: (res) => setState(() => _selectedReservationDetails = res),
+            onSelectReservation: (res) =>
+                setState(() => _selectedReservationDetails = res),
             onAddReservation: _showNewReservationDialog,
             onRefresh: _fetchReservations,
             onUpdateStatus: _updateReservationStatus,
@@ -5082,8 +6765,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             themeCard: themeCard,
             themeBorder: themeBorder,
           );
-        case 4: 
-        case 13: return CategoryManagementView(
+        case 4:
+        case 13:
+          return CategoryManagementView(
             isDarkMode: _isDarkMode,
             categories: _categories,
             onCreateCategory: _createCategory,
@@ -5091,7 +6775,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onDeleteCategory: _deleteCategory,
             onPickImage: _pickImage,
           );
-        case 14: return FoodItemManagementView(
+        case 14:
+          return FoodItemManagementView(
             isDarkMode: _isDarkMode,
             categories: _categories,
             items: _menuItems,
@@ -5101,7 +6786,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onPickImage: _pickImage,
             onRefreshMenu: _fetchMenu,
           );
-        case 5: return KDSView(
+        case 5:
+          return KDSView(
             placedOrders: _placedOrders,
             onUpdateStatus: _updateOrderStatus,
             onReject: _showRejectionDialog,
@@ -5116,7 +6802,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             themeCard: themeCard,
             themeBorder: themeBorder,
           );
-         case 6: return HumanResourceView(
+        case 6:
+          return HumanResourceView(
             shifts: _shifts,
             users: _users,
             hrStats: _hrStats,
@@ -5125,17 +6812,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onClockIn: _showClockInDialog,
             onRefresh: _fetchShifts,
           );
-        case 7: return ReportsView(
+        case 7:
+          return ReportsView(
             summaryData: _summaryData,
             financialData: _financialData,
             operationalData: _operationalData,
             placedOrders: _placedOrders,
             shifts: _shifts,
             isLoading: _isLoading,
-
           );
-        case 8: return _buildTableQRCodeView();
-        case 9: return UserManagementView(
+        case 8:
+          return _buildTableQRCodeView();
+        case 9:
+          return UserManagementView(
             users: _users,
             roles: _roles,
             permissions: _permissions,
@@ -5150,7 +6839,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onUpdateRolePermissions: _updateRolePermissions,
             initialSubTab: 0,
           );
-        case 10: return UserManagementView(
+        case 10:
+          return UserManagementView(
             users: _users,
             roles: _roles,
             permissions: _permissions,
@@ -5165,10 +6855,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onUpdateRolePermissions: _updateRolePermissions,
             initialSubTab: 1,
           );
-        case 12: 
+        case 12:
         case 15:
         case 16: // Settings UI extracted to settings_view.dart
-        case 17: return SettingsView(
+        case 17:
+          return SettingsView(
             settings: _settings,
             isLoading: _isSettingsLoading,
             userPermissions: widget.user?['permissions'] ?? [],
@@ -5181,10 +6872,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             onTestSMTP: _testSMTP,
             onTestPaymentGateway: _testPaymentGateway,
           );
-        case 18: return InventoryDashboard(isDarkMode: _isDarkMode);
-        case 19: return const CustomerManagementView();
-        case 20: return PromotionsView(isDarkMode: _isDarkMode, themePrimary: themePrimary);
-        default: return _buildDashboardContent();
+        case 18:
+          return InventoryDashboard(isDarkMode: _isDarkMode);
+        case 19:
+          return const CustomerManagementView();
+        case 20:
+          return PromotionsView(
+            isDarkMode: _isDarkMode,
+            themePrimary: themePrimary,
+          );
+        default:
+          return _buildDashboardContent();
       }
     } catch (e, stack) {
       if (kDebugMode) {
@@ -5198,11 +6896,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.red, size: 64),
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.red,
+                size: 64,
+              ),
               const SizedBox(height: 24),
               Text(
                 LocalizationService().translate('error_loading_page'),
-                style: TextStyle(color: themeText, fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: themeText,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -5214,11 +6920,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               ElevatedButton.icon(
                 onPressed: () => setState(() => _selectedDashboardTab = 0),
                 icon: const Icon(Icons.home_rounded),
-                label: Text(LocalizationService().translate('back_to_dashboard')),
+                label: Text(
+                  LocalizationService().translate('back_to_dashboard'),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -5228,15 +6939,33 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     context: context,
                     builder: (ctx) => AlertDialog(
                       backgroundColor: themeCard,
-                      title: Text(LocalizationService().translate('error_details'), style: TextStyle(color: themeText)),
-                      content: SingleChildScrollView(child: Text('$e\n\n$stack', style: TextStyle(color: themeText.withValues(alpha: 0.8)))),
+                      title: Text(
+                        LocalizationService().translate('error_details'),
+                        style: TextStyle(color: themeText),
+                      ),
+                      content: SingleChildScrollView(
+                        child: Text(
+                          '$e\n\n$stack',
+                          style: TextStyle(
+                            color: themeText.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(LocalizationService().translate('close_btn'))),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(
+                            LocalizationService().translate('close_btn'),
+                          ),
+                        ),
                       ],
                     ),
                   );
                 },
-                child: Text(LocalizationService().translate('show_details'), style: TextStyle(color: themePrimary)),
+                child: Text(
+                  LocalizationService().translate('show_details'),
+                  style: TextStyle(color: themePrimary),
+                ),
               ),
             ],
           ),
@@ -5244,7 +6973,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       );
     }
   }
-
 
   Widget _buildDashboardSidebar() {
     return Container(
@@ -5266,69 +6994,122 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             ),
           ),
           const SizedBox(height: 20),
-          if (_hasPermission('view_dashboard') || _hasPermission('view_analytics'))
-            _buildSidebarNav(0, LocalizationService().translate('analytics_overview'), Icons.analytics_outlined),
+          if (_hasPermission('view_dashboard') ||
+              _hasPermission('view_analytics'))
+            _buildSidebarNav(
+              0,
+              LocalizationService().translate('analytics_overview'),
+              Icons.analytics_outlined,
+            ),
           if (_hasPermission('manage_purchase'))
-            _buildSidebarNav(2, LocalizationService().translate('purchase_management'), Icons.shopping_cart_outlined),
+            _buildSidebarNav(
+              2,
+              LocalizationService().translate('purchase_management'),
+              Icons.shopping_cart_outlined,
+            ),
           if (_hasPermission('manage_inventory'))
-            _buildSidebarNav(18, LocalizationService().translate('inventory_management'), Icons.inventory_2_outlined),
+            _buildSidebarNav(
+              18,
+              LocalizationService().translate('inventory_management'),
+              Icons.inventory_2_outlined,
+              badgeCount: _lowStockItems.length,
+            ),
           if (_hasPermission('manage_menu'))
             _buildSidebarNav(
-            4, 
-            LocalizationService().translate('food_management'), 
-            Icons.fastfood_outlined, 
-            onTap: () => setState(() {
-              _isFoodManagementExpanded = !_isFoodManagementExpanded;
-              _isSecurityExpanded = false; // Close other submenus
-            }),
-            isExpanded: _isFoodManagementExpanded,
-            hasSubmenu: true,
-          ),
+              4,
+              LocalizationService().translate('food_management'),
+              Icons.fastfood_outlined,
+              onTap: () => setState(() {
+                _isFoodManagementExpanded = !_isFoodManagementExpanded;
+                _isSecurityExpanded = false; // Close other submenus
+              }),
+              isExpanded: _isFoodManagementExpanded,
+              hasSubmenu: true,
+            ),
           if (_isFoodManagementExpanded) ...[
-            _buildSidebarSubNav(13, LocalizationService().translate('categories')),
-            _buildSidebarSubNav(14, LocalizationService().translate('food_items')),
+            _buildSidebarSubNav(
+              13,
+              LocalizationService().translate('categories'),
+            ),
+            _buildSidebarSubNav(
+              14,
+              LocalizationService().translate('food_items'),
+            ),
           ],
           if (_hasPermission('manage_hr'))
-            _buildSidebarNav(6, LocalizationService().translate('human_resource'), Icons.people_outline_rounded),
+            _buildSidebarNav(
+              6,
+              LocalizationService().translate('human_resource'),
+              Icons.people_outline_rounded,
+            ),
           if (_hasPermission('manage_customers'))
-            _buildSidebarNav(19, LocalizationService().translate('customer_directory'), Icons.person_search_outlined),
+            _buildSidebarNav(
+              19,
+              LocalizationService().translate('customer_directory'),
+              Icons.person_search_outlined,
+            ),
           if (_hasPermission('view_reports'))
-            _buildSidebarNav(7, LocalizationService().translate('reports'), Icons.bar_chart_rounded),
-          if (_hasPermission('manage_settings_general')) // Reusing permission or adding 'manage_promotions'
-            _buildSidebarNav(20, LocalizationService().translate('promotions_coupons'), Icons.confirmation_number_outlined),
-          if (_hasPermission('manage_menu')) // Assuming QR codes are menu related
-            _buildSidebarNav(8, LocalizationService().translate('table_qr_codes'), Icons.qr_code_2_rounded),
+            _buildSidebarNav(
+              7,
+              LocalizationService().translate('reports'),
+              Icons.bar_chart_rounded,
+            ),
+          if (_hasPermission(
+            'manage_settings_general',
+          )) // Reusing permission or adding 'manage_promotions'
+            _buildSidebarNav(
+              20,
+              LocalizationService().translate('promotions_coupons'),
+              Icons.confirmation_number_outlined,
+            ),
+          if (_hasPermission(
+            'manage_menu',
+          )) // Assuming QR codes are menu related
+            _buildSidebarNav(
+              8,
+              LocalizationService().translate('table_qr_codes'),
+              Icons.qr_code_2_rounded,
+            ),
           if (_hasPermission('manage_users') || _hasPermission('manage_roles'))
             _buildSidebarNav(
-            9, 
-            LocalizationService().translate('security_access'), 
-            Icons.admin_panel_settings_outlined,
-            onTap: () => setState(() {
-              _isSecurityExpanded = !_isSecurityExpanded;
-              _isFoodManagementExpanded = false; // Close other submenus
-            }),
-            isExpanded: _isSecurityExpanded,
-            hasSubmenu: true,
-          ),
+              9,
+              LocalizationService().translate('security_access'),
+              Icons.admin_panel_settings_outlined,
+              onTap: () => setState(() {
+                _isSecurityExpanded = !_isSecurityExpanded;
+                _isFoodManagementExpanded = false; // Close other submenus
+              }),
+              isExpanded: _isSecurityExpanded,
+              hasSubmenu: true,
+            ),
           if (_isSecurityExpanded) ...[
-            _buildSidebarSubNav(9, LocalizationService().translate('user_management')),
-            _buildSidebarSubNav(10, LocalizationService().translate('role_permissions')),
+            _buildSidebarSubNav(
+              9,
+              LocalizationService().translate('user_management'),
+            ),
+            _buildSidebarSubNav(
+              10,
+              LocalizationService().translate('role_permissions'),
+            ),
           ],
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Divider(height: 1, color: themeBorder),
           ),
-          if (_hasPermission('manage_settings_general') || _hasPermission('manage_settings_operations') || 
-              _hasPermission('manage_settings_branding') || _hasPermission('manage_settings_payments') ||
-              _hasPermission('manage_settings_communications') || _hasPermission('manage_settings_reset'))
+          if (_hasPermission('manage_settings_general') ||
+              _hasPermission('manage_settings_operations') ||
+              _hasPermission('manage_settings_branding') ||
+              _hasPermission('manage_settings_payments') ||
+              _hasPermission('manage_settings_communications') ||
+              _hasPermission('manage_settings_reset'))
             _buildSidebarNav(
-              12, 
-              LocalizationService().translate('system_settings'), 
+              12,
+              LocalizationService().translate('system_settings'),
               Icons.settings_suggest_rounded,
               onTap: () {
                 setState(() {
                   _selectedDashboardTab = 12;
-                  _isFoodManagementExpanded = false; 
+                  _isFoodManagementExpanded = false;
                   _isSecurityExpanded = false; // Close submenus
                 });
                 _fetchSettings();
@@ -5339,14 +7120,25 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildSidebarNav(int index, String title, IconData icon, {VoidCallback? onTap, bool isExpanded = false, bool hasSubmenu = false}) {
+  Widget _buildSidebarNav(
+    int index,
+    String title,
+    IconData icon, {
+    VoidCallback? onTap,
+    bool isExpanded = false,
+    bool hasSubmenu = false,
+    int badgeCount = 0,
+  }) {
     bool isSelected = _selectedDashboardTab == index;
     return GestureDetector(
-      onTap: onTap ?? () => setState(() {
-        _selectedDashboardTab = index;
-        _isFoodManagementExpanded = false; 
-        _isSecurityExpanded = false; // Automatically close all submenus on navigation
-      }),
+      onTap:
+          onTap ??
+          () => setState(() {
+            _selectedDashboardTab = index;
+            _isFoodManagementExpanded = false;
+            _isSecurityExpanded =
+                false; // Automatically close all submenus on navigation
+          }),
       child: Container(
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -5358,12 +7150,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         ),
         child: Row(
           children: [
-            Icon(icon,
-                size: 20, color: isSelected ? themePrimary : themeHint),
+            Icon(icon, size: 20, color: isSelected ? themePrimary : themeHint),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                title.split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}' : w).join(' '),
+                title
+                    .split(' ')
+                    .map(
+                      (w) => w.isNotEmpty
+                          ? '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}'
+                          : w,
+                    )
+                    .join(' '),
                 style: TextStyle(
                   color: isSelected ? themePrimary : themeText,
                   fontSize: 14,
@@ -5371,6 +7169,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 ),
               ),
             ),
+            if (badgeCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             if (hasSubmenu)
               Icon(
                 isExpanded ? Icons.expand_more : Icons.chevron_right,
@@ -5423,18 +7237,28 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: themeCard,
-        title: Text(LocalizationService().translate('shift_label'), style: TextStyle(color: themeText)),
+        title: Text(
+          LocalizationService().translate('shift_label'),
+          style: TextStyle(color: themeText),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(LocalizationService().translate('quick_clock_in_test'), style: TextStyle(color: themeHint)),
+            Text(
+              LocalizationService().translate('quick_clock_in_test'),
+              style: TextStyle(color: themeHint),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
                 final resp = await http.post(
                   Uri.parse('${ThemeService.apiBaseUrl}/api/hr/clock-in'),
                   headers: {'Content-Type': 'application/json'},
-                  body: json.encode({'user_id': 1, 'branch_id': 1, 'hourly_rate': 25.0}),
+                  body: json.encode({
+                    'user_id': 1,
+                    'branch_id': 1,
+                    'hourly_rate': 25.0,
+                  }),
                 );
                 if (resp.statusCode == 201) {
                   if (!mounted) return;
@@ -5443,16 +7267,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 45)),
-              child: Text(LocalizationService().translate('clock_in_test'), style: const TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                minimumSize: const Size(double.infinity, 45),
+              ),
+              child: Text(
+                LocalizationService().translate('clock_in_test'),
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-
 
   Widget _buildTableQRCodeView() {
     final tables = _restaurantTables ?? [];
@@ -5464,12 +7292,31 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(LocalizationService().translate('table_qr_codes'), style: TextStyle(color: themeText, fontSize: 28, fontWeight: FontWeight.bold)),
+              Text(
+                LocalizationService().translate('table_qr_codes'),
+                style: TextStyle(
+                  color: themeText,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               ElevatedButton.icon(
                 onPressed: () {}, // Placeholder for Print All
                 icon: const Icon(Icons.print_rounded, color: Colors.white),
-                label: Text(LocalizationService().translate('print_all_qr'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(backgroundColor: themePrimary, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
+                label: Text(
+                  LocalizationService().translate('print_all_qr'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: themePrimary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
               ),
             ],
           ),
@@ -5486,13 +7333,15 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               itemBuilder: (context, index) {
                 final table = tables[index];
                 // URL that encodes into the QR code — matches the website route
-                final String websiteBaseUrl = kIsWeb 
-                    ? (html.window.location.origin.contains('localhost') || html.window.location.origin.contains('127.0.0.1')
-                        ? 'http://localhost:5173' 
-                        : html.window.location.origin)
+                final String websiteBaseUrl = kIsWeb
+                    ? (html.window.location.origin.contains('localhost') ||
+                              html.window.location.origin.contains('127.0.0.1')
+                          ? 'http://localhost:5173'
+                          : html.window.location.origin)
                     : 'https://zamzamkitchen.net';
-                final qrData = '$websiteBaseUrl/menu?table=${Uri.encodeComponent(table.label)}&tid=${table.id}';
-                
+                final qrData =
+                    '$websiteBaseUrl/menu?table=${Uri.encodeComponent(table.label)}&tid=${table.id}';
+
                 return Container(
                   decoration: BoxDecoration(
                     color: themeCard,
@@ -5509,21 +7358,38 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         children: [
                           Text(
                             '${LocalizationService().translate('table')} ${table.label}',
-                            style: TextStyle(color: themeText, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: themeText,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: table.status == ui_kit.TableStatus.available
+                              color:
+                                  table.status == ui_kit.TableStatus.available
                                   ? Colors.green.withValues(alpha: 0.15)
                                   : themePrimary.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              table.status == ui_kit.TableStatus.available ? LocalizationService().translate('free_status') : LocalizationService().translate('occupied_status'),
+                              table.status == ui_kit.TableStatus.available
+                                  ? LocalizationService().translate(
+                                      'free_status',
+                                    )
+                                  : LocalizationService().translate(
+                                      'occupied_status',
+                                    ),
                               style: TextStyle(
-                                color: table.status == ui_kit.TableStatus.available ? Colors.green : themePrimary,
+                                color:
+                                    table.status == ui_kit.TableStatus.available
+                                    ? Colors.green
+                                    : themePrimary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -5531,7 +7397,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           ),
                         ],
                       ),
-                      Text('${table.capacity} ${LocalizationService().translate('pax_label')}', style: TextStyle(color: themeHint, fontSize: 11)),
+                      Text(
+                        '${table.capacity} ${LocalizationService().translate('pax_label')}',
+                        style: TextStyle(color: themeHint, fontSize: 11),
+                      ),
                       const SizedBox(height: 12),
                       // QR Code
                       Container(
@@ -5539,14 +7408,25 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8)],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 8,
+                            ),
+                          ],
                         ),
                         child: QrImageView(
                           data: qrData,
                           version: QrVersions.auto,
                           size: 130.0,
-                          eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
-                          dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black),
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Colors.black,
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Colors.black,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -5565,14 +7445,27 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           Clipboard.setData(ClipboardData(text: qrData));
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('${LocalizationService().translate('link_copied_for')} ${table.label}!'),
+                              content: Text(
+                                '${LocalizationService().translate('link_copied_for')} ${table.label}!',
+                              ),
                               backgroundColor: Colors.green,
                               duration: const Duration(seconds: 2),
                             ),
                           );
                         },
-                        icon: Icon(Icons.copy_rounded, size: 16, color: themePrimary),
-                        label: Text(LocalizationService().translate('copy_link'), style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                        icon: Icon(
+                          Icons.copy_rounded,
+                          size: 16,
+                          color: themePrimary,
+                        ),
+                        label: Text(
+                          LocalizationService().translate('copy_link'),
+                          style: TextStyle(
+                            color: themePrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -5585,28 +7478,55 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-
-
   Widget _buildDashboardContent() {
     final today = _summaryData['today'] ?? {};
     final lifetime = _summaryData['lifetime'] ?? {};
-    final trends = (_summaryData['trends'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    
+    final trends =
+        (_summaryData['trends'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
     // Calculate split data from summaryData top-level keys
     final orderSplit = _summaryData['types'] as List? ?? [];
-    final dineInCount = orderSplit.firstWhere((s) => s['order_type'] == 'Dine-In' || s['order_type'] == 'dine_in', orElse: () => {'count': 0})['count'];
-    final pickupCount = orderSplit.firstWhere((s) => s['order_type'] == 'Takeaway' || s['order_type'] == 'takeaway' || s['order_type'] == 'pickup', orElse: () => {'count': 0})['count'];
-    final deliveryCount = orderSplit.firstWhere((s) => s['order_type'] == 'Delivery' || s['order_type'] == 'delivery', orElse: () => {'count': 0})['count'];
+    final dineInCount = orderSplit.firstWhere(
+      (s) => s['order_type'] == 'Dine-In' || s['order_type'] == 'dine_in',
+      orElse: () => {'count': 0},
+    )['count'];
+    final pickupCount = orderSplit.firstWhere(
+      (s) =>
+          s['order_type'] == 'Takeaway' ||
+          s['order_type'] == 'takeaway' ||
+          s['order_type'] == 'pickup',
+      orElse: () => {'count': 0},
+    )['count'];
+    final deliveryCount = orderSplit.firstWhere(
+      (s) => s['order_type'] == 'Delivery' || s['order_type'] == 'delivery',
+      orElse: () => {'count': 0},
+    )['count'];
 
     final paymentSplit = _summaryData['payments'] as List? ?? [];
-    final cashTotal = paymentSplit.firstWhere((s) => s['payment_method']?.toString().toLowerCase() == 'cash', orElse: () => {'total': 0.0})['total'];
-    final cardTotal = paymentSplit.firstWhere((s) => s['payment_method']?.toString().toLowerCase() == 'card' || s['payment_method']?.toString().toLowerCase() == 'card_terminal', orElse: () => {'total': 0.0})['total'];
-    
+    final cashTotal = paymentSplit.firstWhere(
+      (s) => s['payment_method']?.toString().toLowerCase() == 'cash',
+      orElse: () => {'total': 0.0},
+    )['total'];
+    final cardTotal = paymentSplit.firstWhere(
+      (s) =>
+          s['payment_method']?.toString().toLowerCase() == 'card' ||
+          s['payment_method']?.toString().toLowerCase() == 'card_terminal',
+      orElse: () => {'total': 0.0},
+    )['total'];
+
     // Use origins from operationalData for the Online Order card to include Website and QR
     final origins = _operationalData['origins'] as List? ?? [];
-    final websiteData = origins.firstWhere((o) => o['origin']?.toString().toLowerCase() == 'website', orElse: () => {'total': 0.0})['total'];
-    final qrData = origins.firstWhere((o) => o['origin']?.toString().toLowerCase() == 'qr-menu', orElse: () => {'total': 0.0})['total'];
-    final onlineTotal = (double.tryParse(websiteData.toString()) ?? 0.0) + (double.tryParse(qrData.toString()) ?? 0.0);
+    final websiteData = origins.firstWhere(
+      (o) => o['origin']?.toString().toLowerCase() == 'website',
+      orElse: () => {'total': 0.0},
+    )['total'];
+    final qrData = origins.firstWhere(
+      (o) => o['origin']?.toString().toLowerCase() == 'qr-menu',
+      orElse: () => {'total': 0.0},
+    )['total'];
+    final onlineTotal =
+        (double.tryParse(websiteData.toString()) ?? 0.0) +
+        (double.tryParse(qrData.toString()) ?? 0.0);
 
     final topItems = _summaryData['topItems'] as List? ?? [];
 
@@ -5624,7 +7544,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   Row(
                     children: [
                       Text(
-                        LocalizationService().translate('operational_analytics'),
+                        LocalizationService().translate(
+                          'operational_analytics',
+                        ),
                         style: TextStyle(
                           color: themeText,
                           fontSize: 32,
@@ -5645,7 +7567,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                 data: Theme.of(context).copyWith(
                                   colorScheme: ColorScheme.fromSeed(
                                     seedColor: themePrimary,
-                                    brightness: ThemeService().isDarkMode ? Brightness.dark : Brightness.light,
+                                    brightness: ThemeService().isDarkMode
+                                        ? Brightness.dark
+                                        : Brightness.light,
                                   ),
                                 ),
                                 child: child!,
@@ -5661,7 +7585,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: themeCard,
                             borderRadius: BorderRadius.circular(12),
@@ -5669,11 +7596,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.calendar_today_rounded, size: 16, color: themePrimary),
+                              Icon(
+                                Icons.calendar_today_rounded,
+                                size: 16,
+                                color: themePrimary,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 "${_dashboardDate.year}-${_dashboardDate.month.toString().padLeft(2, '0')}-${_dashboardDate.day.toString().padLeft(2, '0')}",
-                                style: TextStyle(color: themeText, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Icon(Icons.arrow_drop_down, color: themeHint),
@@ -5693,30 +7627,43 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _dashboardDate.day == DateTime.now().day && _dashboardDate.month == DateTime.now().month && _dashboardDate.year == DateTime.now().year
-                    ? themePrimary.withValues(alpha: 0.1)
-                    : Colors.orange.withValues(alpha: 0.1),
+                  color:
+                      _dashboardDate.day == DateTime.now().day &&
+                          _dashboardDate.month == DateTime.now().month &&
+                          _dashboardDate.year == DateTime.now().year
+                      ? themePrimary.withValues(alpha: 0.1)
+                      : Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      _dashboardDate.day == DateTime.now().day && _dashboardDate.month == DateTime.now().month && _dashboardDate.year == DateTime.now().year
-                        ? Icons.sync 
-                        : Icons.history, 
-                      color: _dashboardDate.day == DateTime.now().day && _dashboardDate.month == DateTime.now().month && _dashboardDate.year == DateTime.now().year
-                        ? themePrimary 
-                        : Colors.orange
+                      _dashboardDate.day == DateTime.now().day &&
+                              _dashboardDate.month == DateTime.now().month &&
+                              _dashboardDate.year == DateTime.now().year
+                          ? Icons.sync
+                          : Icons.history,
+                      color:
+                          _dashboardDate.day == DateTime.now().day &&
+                              _dashboardDate.month == DateTime.now().month &&
+                              _dashboardDate.year == DateTime.now().year
+                          ? themePrimary
+                          : Colors.orange,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      _dashboardDate.day == DateTime.now().day && _dashboardDate.month == DateTime.now().month && _dashboardDate.year == DateTime.now().year
-                        ? LocalizationService().translate('auto_sync_active')
-                        : 'HISTORICAL DATA VIEW',
+                      _dashboardDate.day == DateTime.now().day &&
+                              _dashboardDate.month == DateTime.now().month &&
+                              _dashboardDate.year == DateTime.now().year
+                          ? LocalizationService().translate('auto_sync_active')
+                          : 'HISTORICAL DATA VIEW',
                       style: TextStyle(
-                        color: _dashboardDate.day == DateTime.now().day && _dashboardDate.month == DateTime.now().month && _dashboardDate.year == DateTime.now().year
-                          ? themePrimary 
-                          : Colors.orange,
+                        color:
+                            _dashboardDate.day == DateTime.now().day &&
+                                _dashboardDate.month == DateTime.now().month &&
+                                _dashboardDate.year == DateTime.now().year
+                            ? themePrimary
+                            : Colors.orange,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -5725,329 +7672,483 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               ),
             ],
           ),
-              const SizedBox(height: 40),
 
-              Row(
+          if (_lowStockItems.isNotEmpty) ...[
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _DashboardMetric(
-                    label: LocalizationService().translate('todays_sale'),
-                    value:
-                        '\$${(double.tryParse(today['total'].toString()) ?? 0.0).toStringAsFixed(2)}',
-                    icon: Icons.payments_rounded,
-                    color: Colors.green,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.red,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Operational Alerts: Low Stock detected!',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _selectedDashboardTab = 18),
+                        child: Text(
+                          'Manage Inventory',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 24),
-                  _DashboardMetric(
-                    label: LocalizationService().translate('todays_orders'),
-                    value: '${today['count'] ?? 0}',
-                    icon: Icons.receipt_rounded,
-                    color: themePrimary,
-                  ),
-                  const SizedBox(width: 24),
-                  _DashboardMetric(
-                    label: LocalizationService().translate('lifetime_orders'),
-                    value: '${lifetime['count'] ?? 0}',
-                    icon: Icons.all_inclusive_rounded,
-                    color: Colors.orange,
-                  ),
-                  const SizedBox(width: 24),
-                  _DashboardMetric(
-                    label: LocalizationService().translate('avg_prep_time'),
-                    value: '${today['avgPrepTime'] ?? '0.0'} min',
-                    icon: Icons.timer_rounded,
-                    color: Colors.deepPurple,
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _lowStockItems.take(5).map((item) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: themeCard,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: themeBorder),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              item['name'],
+                              style: TextStyle(
+                                color: themeText,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${item['quantity']} ${item['unit']}',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
+            ),
+          ],
 
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 40),
+
+          Row(
+            children: [
+              _DashboardMetric(
+                label: LocalizationService().translate('todays_sale'),
+                value:
+                    '\$${(double.tryParse(today['total'].toString()) ?? 0.0).toStringAsFixed(2)}',
+                icon: Icons.payments_rounded,
+                color: Colors.green,
+              ),
+              const SizedBox(width: 24),
+              _DashboardMetric(
+                label: LocalizationService().translate('todays_orders'),
+                value: '${today['count'] ?? 0}',
+                icon: Icons.receipt_rounded,
+                color: themePrimary,
+              ),
+              const SizedBox(width: 24),
+              _DashboardMetric(
+                label: LocalizationService().translate('lifetime_orders'),
+                value: '${lifetime['count'] ?? 0}',
+                icon: Icons.all_inclusive_rounded,
+                color: Colors.orange,
+              ),
+              const SizedBox(width: 24),
+              _DashboardMetric(
+                label: LocalizationService().translate('avg_prep_time'),
+                value: '${today['avgPrepTime'] ?? '0.0'} min',
+                icon: Icons.timer_rounded,
+                color: Colors.deepPurple,
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+
+          // NEW: Financial Health Section (COGS & Profit)
+          Row(
+            children: [
+              _DashboardMetric(
+                label: 'Estimated COGS',
+                value:
+                    '${ThemeService.currency}${(double.tryParse(_financialData['cogs']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                icon: Icons.inventory_rounded,
+                color: Colors.orange,
+              ),
+              const SizedBox(width: 24),
+              _DashboardMetric(
+                label: 'Gross Profit',
+                value:
+                    '${ThemeService.currency}${(double.tryParse(_financialData['gross_profit']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                icon: Icons.trending_up_rounded,
+                color: Colors.green,
+              ),
+              const SizedBox(width: 24),
+              _DashboardMetric(
+                label: 'Net Profit',
+                value:
+                    '${ThemeService.currency}${(double.tryParse(_financialData['net_profit']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                icon: Icons.account_balance_wallet_rounded,
+                color: themePrimary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      LocalizationService().translate('order_service_split'),
+                      style: TextStyle(
+                        color: themeText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
                       children: [
-                        Text(
-                          LocalizationService().translate('order_service_split'),
-                          style: TextStyle(
-                            color: themeText,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        _SmallMetricCard(
+                          label: LocalizationService().translate('dine_in'),
+                          value: '${dineInCount ?? 0}',
+                          icon: Icons.restaurant,
+                          color: themePrimary,
                         ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            _SmallMetricCard(
-                              label: LocalizationService().translate('dine_in'),
-                              value: '${dineInCount ?? 0}',
-                              icon: Icons.restaurant,
-                              color: themePrimary,
-                              
-                            ),
-                            const SizedBox(width: 16),
-                            _SmallMetricCard(
-                              label: LocalizationService().translate('pick_up'),
-                              value: '${pickupCount ?? 0}',
-                              icon: Icons.shopping_bag,
-                              color: themeSecondary,
-                              
-                            ),
-                            const SizedBox(width: 16),
-                            _SmallMetricCard(
-                              label: LocalizationService().translate('delivery'),
-                              value: '${deliveryCount ?? 0}',
-                              icon: Icons.delivery_dining,
-                              color: themePrimary.withValues(alpha: 0.7),
-                              
-                            ),
-                          ],
+                        const SizedBox(width: 16),
+                        _SmallMetricCard(
+                          label: LocalizationService().translate('pick_up'),
+                          value: '${pickupCount ?? 0}',
+                          icon: Icons.shopping_bag,
+                          color: themeSecondary,
                         ),
-                        const SizedBox(height: 32),
-                        Text(
-                          LocalizationService().translate('payment_method_coverage'),
-                          style: TextStyle(
-                            color: themeText,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            _SmallMetricCard(
-                              label: LocalizationService().translate('cash'),
-                              value:
-                                  '\$${(double.tryParse(cashTotal.toString()) ?? 0.0).toStringAsFixed(0)}',
-                              icon: Icons.money,
-                              color: Colors.green,
-                              
-                            ),
-                            const SizedBox(width: 16),
-                            _SmallMetricCard(
-                              label: LocalizationService().translate('card_terminal'),
-                              value:
-                                  '\$${(double.tryParse(cardTotal.toString()) ?? 0.0).toStringAsFixed(0)}',
-                              icon: Icons.credit_card,
-                              color: themePrimary,
-                              
-                            ),
-                            const SizedBox(width: 16),
-                            _SmallMetricCard(
-                              label: LocalizationService().translate('online_order'),
-                              value:
-                                  '\$${(double.tryParse(onlineTotal.toString()) ?? 0.0).toStringAsFixed(0)}',
-                              icon: Icons.language,
-                              color: themePrimary.withValues(alpha: 0.9),
-                            ),
-                          ],
+                        const SizedBox(width: 16),
+                        _SmallMetricCard(
+                          label: LocalizationService().translate('delivery'),
+                          value: '${deliveryCount ?? 0}',
+                          icon: Icons.delivery_dining,
+                          color: themePrimary.withValues(alpha: 0.7),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 32),
-                  Expanded(
-                    flex: 1,
-                    child: _TrendChart(
-                      title: LocalizationService().translate('monthly_revenue_trend'),
-                      trends: trends,
-                      
-                      color: themePrimary,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 48),
-
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: themeCard,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: themeBorder),
+                    const SizedBox(height: 32),
+                    Text(
+                      LocalizationService().translate(
+                        'payment_method_coverage',
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      style: TextStyle(
+                        color: themeText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        _SmallMetricCard(
+                          label: LocalizationService().translate('cash'),
+                          value:
+                              '\$${(double.tryParse(cashTotal.toString()) ?? 0.0).toStringAsFixed(0)}',
+                          icon: Icons.money,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 16),
+                        _SmallMetricCard(
+                          label: LocalizationService().translate(
+                            'card_terminal',
+                          ),
+                          value:
+                              '\$${(double.tryParse(cardTotal.toString()) ?? 0.0).toStringAsFixed(0)}',
+                          icon: Icons.credit_card,
+                          color: themePrimary,
+                        ),
+                        const SizedBox(width: 16),
+                        _SmallMetricCard(
+                          label: LocalizationService().translate(
+                            'online_order',
+                          ),
+                          value:
+                              '\$${(double.tryParse(onlineTotal.toString()) ?? 0.0).toStringAsFixed(0)}',
+                          icon: Icons.language,
+                          color: themePrimary.withValues(alpha: 0.9),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 32),
+              Expanded(
+                flex: 1,
+                child: _TrendChart(
+                  title: LocalizationService().translate(
+                    'monthly_revenue_trend',
+                  ),
+                  trends: trends,
+
+                  color: themePrimary,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 48),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: themeCard,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: themeBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        LocalizationService().translate('daily_deductions'),
+                        style: TextStyle(
+                          color: themeText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
                         children: [
-                          Text(
-                            LocalizationService().translate('daily_deductions'),
-                            style: TextStyle(
-                              color: themeText,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                          _SmallMetricCard(
+                            label: LocalizationService().translate(
+                              'tips_today',
                             ),
+                            value:
+                                '\$${(double.tryParse(today['tips']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                            icon: Icons.volunteer_activism,
+                            color: themePrimary,
                           ),
-                          const SizedBox(height: 20),
-                          Row(
+                          const SizedBox(width: 16),
+                          _SmallMetricCard(
+                            label: LocalizationService().translate(
+                              'discounts_label',
+                            ),
+                            value:
+                                '-\$${(double.tryParse(today['discounts']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                            icon: Icons.loyalty,
+                            color: Colors.redAccent,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        LocalizationService().translate('top_selling_items'),
+                        style: TextStyle(
+                          color: themeText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ...topItems.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _SmallMetricCard(
-                                label: LocalizationService().translate('tips_today'),
-                                value:
-                                    '\$${(double.tryParse(today['tips']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
-                                icon: Icons.volunteer_activism,
-                                color: themePrimary,
-                                
+                              Text(
+                                item['name'] ?? 'Unknown Item',
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                              const SizedBox(width: 16),
-                              _SmallMetricCard(
-                                label: LocalizationService().translate('discounts_label'),
-                                value:
-                                    '-\$${(double.tryParse(today['discounts']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
-                                icon: Icons.loyalty,
-                                color: Colors.redAccent,
-                                
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 32),
-                          Text(
-                            LocalizationService().translate('top_selling_items'),
-                            style: TextStyle(
-                              color: themeText,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ...topItems
-                              .map(
-                                (item) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        item['name'] ?? 'Unknown Item',
-                                        style: TextStyle(
-                                          color: themeText,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: themePrimary.withValues(
-                                            alpha: 0.1,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '${item['sold']} ${LocalizationService().translate('sold')}',
-                                          style: TextStyle(
-                                            color: themePrimary,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: themePrimary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${item['sold']} ${LocalizationService().translate('sold')}',
+                                  style: TextStyle(
+                                    color: themePrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ),
-                          const SizedBox(height: 40),
-                          Text(
-                            LocalizationService().translate('popular_customizations'),
-                            style: TextStyle(
-                              color: themeText,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            ],
                           ),
-                          const SizedBox(height: 24),
-                          ...(_summaryData['customizations'] as List? ?? []).map(
-                            (c) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${c['name']} (${c['type']})',
-                                    style: TextStyle(color: themeText, fontSize: 13, fontWeight: FontWeight.w500),
-                                  ),
-                                  Text(
-                                    '${c['count']} ${LocalizationService().translate('uses')}',
-                                    style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
-                                ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      Text(
+                        LocalizationService().translate(
+                          'popular_customizations',
+                        ),
+                        style: TextStyle(
+                          color: themeText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ...(_summaryData['customizations'] as List? ?? []).map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${c['name']} (${c['type']})',
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
+                              Text(
+                                '${c['count']} ${LocalizationService().translate('uses')}',
+                                style: TextStyle(
+                                  color: themePrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 32),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: themeCard,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: themeBorder),
+                ),
+              ),
+              const SizedBox(width: 32),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: themeCard,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: themeBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        LocalizationService().translate(
+                          'live_operational_status',
+                        ),
+                        style: TextStyle(
+                          color: themeText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            LocalizationService().translate('live_operational_status'),
-                            style: TextStyle(
-                              color: themeText,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          _StatusRow(
-                            label: LocalizationService().translate('pending_orders_kds'),
-                            value: '${_summaryData['live']?['pending'] ?? 0}',
-                            icon: Icons.kitchen,
-                            color: Colors.red,
-                          ),
-                          _StatusRow(
-                            label: LocalizationService().translate('awaiting_payment'),
-                            value: '${_summaryData['live']?['unpaid'] ?? 0}',
-                            icon: Icons.payment,
-                            color: Colors.orange,
-                          ),
-                          _StatusRow(
-                            label: LocalizationService().translate('today_reservations'),
-                            value: '${_reservations.where((r) {
+                      const SizedBox(height: 24),
+                      _StatusRow(
+                        label: LocalizationService().translate(
+                          'pending_orders_kds',
+                        ),
+                        value: '${_summaryData['live']?['pending'] ?? 0}',
+                        icon: Icons.kitchen,
+                        color: Colors.red,
+                      ),
+                      _StatusRow(
+                        label: LocalizationService().translate(
+                          'awaiting_payment',
+                        ),
+                        value: '${_summaryData['live']?['unpaid'] ?? 0}',
+                        icon: Icons.payment,
+                        color: Colors.orange,
+                      ),
+                      _StatusRow(
+                        label: LocalizationService().translate(
+                          'today_reservations',
+                        ),
+                        value:
+                            '${_reservations.where((r) {
                               try {
                                 DateTime rd = DateTime.parse(r['reservation_date']).toLocal();
                                 return rd.year == _dashboardDate.year && rd.month == _dashboardDate.month && rd.day == _dashboardDate.day;
-                              } catch(_) { return false; }
+                              } catch (_) {
+                                return false;
+                              }
                             }).length}',
-                            icon: Icons.event_available,
-                            color: themePrimary,
-                          ),
-                          _StatusRow(
-                            label: LocalizationService().translate('active_orders'),
-                            value: '${_summaryData['live']?['active'] ?? 0}',
-                            icon: Icons.restaurant,
-                            color: Colors.green,
-                          ),
-                        ],
+                        icon: Icons.event_available,
+                        color: themePrimary,
                       ),
-                    ),
+                      _StatusRow(
+                        label: LocalizationService().translate('active_orders'),
+                        value: '${_summaryData['live']?['active'] ?? 0}',
+                        icon: Icons.restaurant,
+                        color: Colors.green,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-              _buildUnifiedSummary(themeText, themeCard, themeBorder, themePrimary, themeHint),
             ],
           ),
+          _buildUnifiedSummary(
+            themeText,
+            themeCard,
+            themeBorder,
+            themePrimary,
+            themeHint,
+          ),
+        ],
+      ),
     );
   }
 
@@ -6077,24 +8178,46 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _editingOrderId != null 
-                                  ? '${LocalizationService().translate('updating_order')} #$_editingOrderId' 
-                                  : LocalizationService().translate('main_course_items'),
+                                _editingOrderId != null
+                                    ? '${LocalizationService().translate('updating_order')} #$_editingOrderId'
+                                    : LocalizationService().translate(
+                                        'main_course_items',
+                                      ),
                                 style: TextStyle(
-                                  color: _editingOrderId != null ? themePrimary : themeText,
+                                  color: _editingOrderId != null
+                                      ? themePrimary
+                                      : themeText,
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                _menuItems.any((i) => i['id'].toString().startsWith('s')) 
-                                  ? LocalizationService().translate('demo_mode_desc')
-                                  : LocalizationService().translate('browse_menu_desc'),
+                                _menuItems.any(
+                                      (i) => i['id'].toString().startsWith('s'),
+                                    )
+                                    ? LocalizationService().translate(
+                                        'demo_mode_desc',
+                                      )
+                                    : LocalizationService().translate(
+                                        'browse_menu_desc',
+                                      ),
                                 style: TextStyle(
-                                  color: _menuItems.any((i) => i['id'].toString().startsWith('s')) ? themePrimary : themeHint,
+                                  color:
+                                      _menuItems.any(
+                                        (i) =>
+                                            i['id'].toString().startsWith('s'),
+                                      )
+                                      ? themePrimary
+                                      : themeHint,
                                   fontSize: 14,
-                                  fontWeight: _menuItems.any((i) => i['id'].toString().startsWith('s')) ? FontWeight.bold : FontWeight.normal,
+                                  fontWeight:
+                                      _menuItems.any(
+                                        (i) =>
+                                            i['id'].toString().startsWith('s'),
+                                      )
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -6103,7 +8226,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             children: [
                               if (_editingOrderId != null) ...[
                                 _buildOutlinedActionButton(
-                                  label: LocalizationService().translate('cancel_edit'),
+                                  label: LocalizationService().translate(
+                                    'cancel_edit',
+                                  ),
                                   icon: Icons.close_rounded,
                                   color: Colors.red,
                                   onPressed: () => _clearCart(),
@@ -6119,20 +8244,40 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                 ),
                                 child: TextField(
                                   style: TextStyle(color: themeText),
-                                  onChanged: (val) => setState(() => _menuSearchQuery = val),
+                                  onChanged: (val) =>
+                                      setState(() => _menuSearchQuery = val),
                                   decoration: InputDecoration(
-                                   hintText: LocalizationService().translate('search_items'),
+                                    hintText: LocalizationService().translate(
+                                      'search_items',
+                                    ),
                                     hintStyle: TextStyle(color: themeHint),
-                                    prefixIcon: Icon(Icons.search, color: themeHint, size: 20),
+                                    prefixIcon: Icon(
+                                      Icons.search,
+                                      color: themeHint,
+                                      size: 20,
+                                    ),
                                     border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              _buildTagButton(LocalizationService().translate('favorites').toUpperCase(), false),
+                              _buildTagButton(
+                                LocalizationService()
+                                    .translate('favorites')
+                                    .toUpperCase(),
+                                false,
+                              ),
                               const SizedBox(width: 12),
-                              _buildTagButton(LocalizationService().translate('recent').toUpperCase(), false),
+                              _buildTagButton(
+                                LocalizationService()
+                                    .translate('recent')
+                                    .toUpperCase(),
+                                false,
+                              ),
                             ],
                           ),
                         ],
@@ -6169,25 +8314,36 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         dynamicCategories.add((item['category'] as String).toUpperCase());
       }
     }
-    
+
     final List<String> categories = ['all_caps'];
-    categories.addAll(dynamicCategories.isNotEmpty ? dynamicCategories : ['appetizers', 'main_course', 'desserts']);
+    categories.addAll(
+      dynamicCategories.isNotEmpty
+          ? dynamicCategories
+          : ['appetizers', 'main_course', 'desserts'],
+    );
 
     return Container(
       height: 84,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-      decoration: BoxDecoration(
-        color: themeCard,
-      ),
+      decoration: BoxDecoration(color: themeCard),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
         itemBuilder: (context, index) {
           String cat = categories[index];
-          bool sel = _selectedCategory.toUpperCase() == cat.toUpperCase() || 
-                     (cat == 'all_caps' && _selectedCategory == 'All Items');
-          int itemCount = cat == 'all_caps' ? _menuItems.length : _menuItems.where((i) => i['category']?.toString().toUpperCase() == cat.toUpperCase()).length;
-          
+          bool sel =
+              _selectedCategory.toUpperCase() == cat.toUpperCase() ||
+              (cat == 'all_caps' && _selectedCategory == 'All Items');
+          int itemCount = cat == 'all_caps'
+              ? _menuItems.length
+              : _menuItems
+                    .where(
+                      (i) =>
+                          i['category']?.toString().toUpperCase() ==
+                          cat.toUpperCase(),
+                    )
+                    .length;
+
           return GestureDetector(
             onTap: () => setState(() {
               if (cat == 'all_caps') {
@@ -6197,23 +8353,37 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               }
             }),
             child: Container(
-              margin: const EdgeInsets.only(right: 16, top: 8), // Added top margin for badge space
+              margin: const EdgeInsets.only(
+                right: 16,
+                top: 8,
+              ), // Added top margin for badge space
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: sel
                           ? themePrimary
                           : themeCard, // Use themeCard instead of manual ternary
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: sel ? [
-                        BoxShadow(color: themePrimary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))
-                      ] : null,
+                      boxShadow: sel
+                          ? [
+                              BoxShadow(
+                                color: themePrimary.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: Text(
-                      LocalizationService().translate(cat.toLowerCase()).toUpperCase(),
+                      LocalizationService()
+                          .translate(cat.toLowerCase())
+                          .toUpperCase(),
                       style: TextStyle(
                         color: sel ? Colors.white : themeText,
                         fontWeight: sel ? FontWeight.bold : FontWeight.w600,
@@ -6227,13 +8397,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       top: -8,
                       child: Container(
                         padding: const EdgeInsets.all(6),
-                        constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                        constraints: const BoxConstraints(
+                          minWidth: 22,
+                          minHeight: 22,
+                        ),
                         decoration: BoxDecoration(
                           color: sel ? Colors.white : themePrimary,
                           shape: BoxShape.circle,
-                          border: Border.all(color: sel ? themePrimary : themeBg, width: 2),
+                          border: Border.all(
+                            color: sel ? themePrimary : themeBg,
+                            width: 2,
+                          ),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2))
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
                           ],
                         ),
                         child: Center(
@@ -6266,9 +8446,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           _selectedCategory == 'ALL' ||
           item['category'].toString().toUpperCase() ==
               _selectedCategory.toUpperCase();
-      
-      final matchesSearch = _menuSearchQuery.isEmpty || 
-          item['name'].toString().toLowerCase().contains(_menuSearchQuery.toLowerCase());
+
+      final matchesSearch =
+          _menuSearchQuery.isEmpty ||
+          item['name'].toString().toLowerCase().contains(
+            _menuSearchQuery.toLowerCase(),
+          );
 
       return matchesCat && matchesSearch;
     }).toList();
@@ -6298,17 +8481,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                    Icon(Icons.add_rounded, size: 32, color: themeHint),
-                    const SizedBox(height: 12),
-                    Text(
-                       LocalizationService().translate('custom_item'),
-                      style: TextStyle(
-                        color: themeHint,
-                        fontWeight: FontWeight.bold,
+                      Icon(Icons.add_rounded, size: 32, color: themeHint),
+                      const SizedBox(height: 12),
+                      Text(
+                        LocalizationService().translate('custom_item'),
+                        style: TextStyle(
+                          color: themeHint,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 ), // Closes FittedBox
               ), // Closes Center
             ), // Closes Container
@@ -6317,7 +8500,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
         final item = filteredItems[index];
         bool selected = _cartItems.any((i) => i['id'] == item['id']);
-        bool available = item['is_available'] != false && item['is_available'] != 0;
+        bool available =
+            item['is_available'] != false && item['is_available'] != 0;
 
         return GestureDetector(
           onTap: available ? () => _addToCart(item) : null,
@@ -6358,7 +8542,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           top: Radius.circular(18),
                         ),
                         image: DecorationImage(
-                          image: ThemeService.getImage(item['image'] as String?),
+                          image: ThemeService.getImage(
+                            item['image'] as String?,
+                          ),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -6367,7 +8553,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       top: 12,
                       right: 12,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: themePrimary,
                           borderRadius: BorderRadius.circular(12),
@@ -6376,7 +8565,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
-                            )
+                            ),
                           ],
                         ),
                         child: Text(
@@ -6389,17 +8578,26 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         ),
                       ),
                     ),
-                    if (item['is_available'] == 0 || item['is_available'] == false || item['is_available'] == "0")
+                    if (item['is_available'] == 0 ||
+                        item['is_available'] == false ||
+                        item['is_available'] == "0")
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(18),
+                            ),
                           ),
                           child: const Center(
                             child: Text(
                               'OUT OF STOCK',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                letterSpacing: 1,
+                              ),
                             ),
                           ),
                         ),
@@ -6425,10 +8623,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         const SizedBox(height: 4),
                         Expanded(
                           child: Text(
-                            item['description']?.toString() ?? item['category']?.toString() ?? '',
+                            item['description']?.toString() ??
+                                item['category']?.toString() ??
+                                '',
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: themeHint, fontSize: 11, height: 1.2),
+                            style: TextStyle(
+                              color: themeHint,
+                              fontSize: 11,
+                              height: 1.2,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -6450,7 +8654,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                 color: themeBg.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(Icons.add_shopping_cart, size: 16, color: themePrimary),
+                              child: Icon(
+                                Icons.add_shopping_cart,
+                                size: 16,
+                                color: themePrimary,
+                              ),
                             ),
                           ],
                         ),
@@ -6480,26 +8688,43 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             children: [
               Row(
                 children: [
-                  _buildTypeButton(LocalizationService().translate('dine_in'), Icons.restaurant, _orderType == 'Dine-In', () {
-                    setState(() => _orderType = 'Dine-In');
-                  }),
-                  if (_settings['branch']?['allow_pickup'] == true || _settings['branch']?['allow_pickup'] == 1) ...[
+                  _buildTypeButton(
+                    LocalizationService().translate('dine_in'),
+                    Icons.restaurant,
+                    _orderType == 'Dine-In',
+                    () {
+                      setState(() => _orderType = 'Dine-In');
+                    },
+                  ),
+                  if (_settings['branch']?['allow_pickup'] == true ||
+                      _settings['branch']?['allow_pickup'] == 1) ...[
                     const SizedBox(width: 8),
-                    _buildTypeButton(LocalizationService().translate('pickup'), Icons.shopping_bag_outlined, _orderType == 'Pickup', () {
-                      setState(() {
-                        _orderType = 'Pickup';
-                        _selectedTable = null;
-                      });
-                    }),
+                    _buildTypeButton(
+                      LocalizationService().translate('pickup'),
+                      Icons.shopping_bag_outlined,
+                      _orderType == 'Pickup',
+                      () {
+                        setState(() {
+                          _orderType = 'Pickup';
+                          _selectedTable = null;
+                        });
+                      },
+                    ),
                   ],
-                  if (_settings['branch']?['allow_delivery'] == true || _settings['branch']?['allow_delivery'] == 1) ...[
+                  if (_settings['branch']?['allow_delivery'] == true ||
+                      _settings['branch']?['allow_delivery'] == 1) ...[
                     const SizedBox(width: 8),
-                    _buildTypeButton(LocalizationService().translate('delivery'), Icons.delivery_dining_outlined, _orderType == 'Delivery', () {
-                      setState(() {
-                        _orderType = 'Delivery';
-                        _selectedTable = null;
-                      });
-                    }),
+                    _buildTypeButton(
+                      LocalizationService().translate('delivery'),
+                      Icons.delivery_dining_outlined,
+                      _orderType == 'Delivery',
+                      () {
+                        setState(() {
+                          _orderType = 'Delivery';
+                          _selectedTable = null;
+                        });
+                      },
+                    ),
                   ],
                 ],
               ),
@@ -6516,17 +8741,35 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           decoration: BoxDecoration(
                             color: themeBg,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: _selectedTable == null ? themePrimary.withValues(alpha: 0.5) : themeBorder),
+                            border: Border.all(
+                              color: _selectedTable == null
+                                  ? themePrimary.withValues(alpha: 0.5)
+                                  : themeBorder,
+                            ),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.table_bar_outlined, color: _selectedTable == null ? themePrimary : themeHint, size: 18),
+                              Icon(
+                                Icons.table_bar_outlined,
+                                color: _selectedTable == null
+                                    ? themePrimary
+                                    : themeHint,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
                               Text(
-                                _selectedTable != null 
-                                  ? '${LocalizationService().translate('table')} ${_selectedTable!.label}' 
-                                  : LocalizationService().translate('select_table'),
-                                style: TextStyle(color: _selectedTable != null ? themeText : themeHint, fontSize: 13, fontWeight: FontWeight.bold),
+                                _selectedTable != null
+                                    ? '${LocalizationService().translate('table')} ${_selectedTable!.label}'
+                                    : LocalizationService().translate(
+                                        'select_table',
+                                      ),
+                                style: TextStyle(
+                                  color: _selectedTable != null
+                                      ? themeText
+                                      : themeHint,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -6540,12 +8783,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                         decoration: BoxDecoration(
                           color: themeBg,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _selectedWaiter == null ? themePrimary.withValues(alpha: 0.5) : themeBorder),
+                          border: Border.all(
+                            color: _selectedWaiter == null
+                                ? themePrimary.withValues(alpha: 0.5)
+                                : themeBorder,
+                          ),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<Map<String, dynamic>>(
                             value: _selectedWaiter,
-                            hint: Text(LocalizationService().translate('select_waiter'), style: TextStyle(color: themeHint, fontSize: 13)),
+                            hint: Text(
+                              LocalizationService().translate('select_waiter'),
+                              style: TextStyle(color: themeHint, fontSize: 13),
+                            ),
                             isExpanded: true,
                             dropdownColor: themeCard,
                             style: TextStyle(color: themeText),
@@ -6555,7 +8805,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                 child: Text(w['name']),
                               );
                             }).toList(),
-                            onChanged: (val) => setState(() => _selectedWaiter = val),
+                            onChanged: (val) =>
+                                setState(() => _selectedWaiter = val),
                           ),
                         ),
                       ),
@@ -6563,9 +8814,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   ],
                 ),
               ],
-              
+
               const SizedBox(height: 12),
-              
+
               // Customer / Guest Selection (Mandatory for Delivery)
               Container(
                 padding: const EdgeInsets.all(12),
@@ -6581,14 +8832,29 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _isNewGuestMode ? 'NEW GUEST REGISTRATION' : 'SELECT CUSTOMER (LOYALTY)',
-                          style: TextStyle(color: themeHint, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                          _isNewGuestMode
+                              ? 'NEW GUEST REGISTRATION'
+                              : 'SELECT CUSTOMER (LOYALTY)',
+                          style: TextStyle(
+                            color: themeHint,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
                         ),
                         InkWell(
-                          onTap: () => setState(() => _isNewGuestMode = !_isNewGuestMode),
+                          onTap: () => setState(
+                            () => _isNewGuestMode = !_isNewGuestMode,
+                          ),
                           child: Text(
-                            _isNewGuestMode ? 'SEARCH EXISTING' : 'ADD NEW GUEST',
-                            style: TextStyle(color: themePrimary, fontSize: 10, fontWeight: FontWeight.bold),
+                            _isNewGuestMode
+                                ? 'SEARCH EXISTING'
+                                : 'ADD NEW GUEST',
+                            style: TextStyle(
+                              color: themePrimary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -6598,10 +8864,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       _buildCustomerSelector()
                     else
                       _buildNewGuestForm(),
-                    
+
                     if (_orderType == 'Delivery' && !_isNewGuestMode) ...[
                       const SizedBox(height: 8),
-                      _buildCRMField(_customerAddressController, 'Delivery Address', Icons.location_on_outlined),
+                      _buildCRMField(
+                        _customerAddressController,
+                        'Delivery Address',
+                        Icons.location_on_outlined,
+                      ),
                     ],
                   ],
                 ),
@@ -6681,7 +8951,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image(
-                                      image: ThemeService.getImage(item['image'] as String?),
+                                      image: ThemeService.getImage(
+                                        item['image'] as String?,
+                                      ),
                                       width: 32,
                                       height: 32,
                                       fit: BoxFit.cover,
@@ -6701,27 +8973,37 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                             fontSize: 11,
                                           ),
                                         ),
-                                        Builder(builder: (context) {
-                                          String customizationText = '';
-                                          if (item['variant'] != null) customizationText += item['variant']['name'];
-                                          if (item['extras'] != null && (item['extras'] as List).isNotEmpty) {
-                                            if (customizationText.isNotEmpty) customizationText += ' • ';
-                                            customizationText += (item['extras'] as List).map((e) => e['name']).join(', ');
-                                          }
-                                          if (customizationText.isEmpty && item['description'] != null) {
-                                             customizationText = item['description'];
-                                          }
-                                          if (customizationText.isEmpty) return const SizedBox.shrink();
-                                          return Text(
-                                            customizationText,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: themeHint,
-                                              fontSize: 9,
-                                            ),
-                                          );
-                                        }),
+                                        Builder(
+                                          builder: (context) {
+                                            String customizationText = '';
+                                            if (item['variant'] != null)
+                                              customizationText +=
+                                                  item['variant']['name'];
+                                            if (item['extras'] != null &&
+                                                (item['extras'] as List)
+                                                    .isNotEmpty) {
+                                              if (customizationText.isNotEmpty)
+                                                customizationText += ' • ';
+                                              customizationText +=
+                                                  (item['extras'] as List)
+                                                      .map((e) => e['name'])
+                                                      .join(', ');
+                                            }
+
+                                            if (customizationText.isEmpty)
+                                              return const SizedBox.shrink();
+                                            return Text(
+                                              customizationText,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: themePrimary.withValues(alpha: 0.9),
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            );
+                                          },
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -6762,47 +9044,77 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               ),
                             ),
                             DataCell(
-                              Builder(builder: (context) {
-                                double basePrice = double.tryParse(item['price'].toString()) ?? 0;
-                                if (item['variant'] != null) {
-                                  basePrice += double.tryParse(item['variant']['price_adjustment'].toString()) ?? 0;
-                                }
-                                if (item['extras'] != null) {
-                                  for (var e in item['extras']) {
-                                    basePrice += double.tryParse(e['price_adjustment'].toString()) ?? 0;
+                              Builder(
+                                builder: (context) {
+                                  double basePrice =
+                                      double.tryParse(
+                                        item['price'].toString(),
+                                      ) ??
+                                      0;
+                                  if (item['variant'] != null) {
+                                    basePrice +=
+                                        double.tryParse(
+                                          item['variant']['price_adjustment']
+                                              .toString(),
+                                        ) ??
+                                        0;
                                   }
-                                }
-                                return Text(
-                                  '\$${basePrice.toStringAsFixed(2)}',
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    color: themeHint,
-                                    fontSize: 12,
-                                  ),
-                                );
-                              }),
+                                  if (item['extras'] != null) {
+                                    for (var e in item['extras']) {
+                                      basePrice +=
+                                          double.tryParse(
+                                            e['price_adjustment'].toString(),
+                                          ) ??
+                                          0;
+                                    }
+                                  }
+                                  return Text(
+                                    '\$${basePrice.toStringAsFixed(2)}',
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      color: themeHint,
+                                      fontSize: 12,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                             DataCell(
-                              Builder(builder: (context) {
-                                double basePrice = double.tryParse(item['price'].toString()) ?? 0;
-                                if (item['variant'] != null) {
-                                  basePrice += double.tryParse(item['variant']['price_adjustment'].toString()) ?? 0;
-                                }
-                                if (item['extras'] != null) {
-                                  for (var e in item['extras']) {
-                                    basePrice += double.tryParse(e['price_adjustment'].toString()) ?? 0;
+                              Builder(
+                                builder: (context) {
+                                  double basePrice =
+                                      double.tryParse(
+                                        item['price'].toString(),
+                                      ) ??
+                                      0;
+                                  if (item['variant'] != null) {
+                                    basePrice +=
+                                        double.tryParse(
+                                          item['variant']['price_adjustment']
+                                              .toString(),
+                                        ) ??
+                                        0;
                                   }
-                                }
-                                return Text(
-                                  '\$${(basePrice * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    color: themeText,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                );
-                              }),
+                                  if (item['extras'] != null) {
+                                    for (var e in item['extras']) {
+                                      basePrice +=
+                                          double.tryParse(
+                                            e['price_adjustment'].toString(),
+                                          ) ??
+                                          0;
+                                    }
+                                  }
+                                  return Text(
+                                    '\$${(basePrice * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      color: themeText,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ],
                         );
@@ -6819,7 +9131,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           ),
           child: Column(
             children: [
-              _buildPriceRow(LocalizationService().translate('subtotal'), '\$${_subtotal.toStringAsFixed(2)}'),
+              _buildPriceRow(
+                LocalizationService().translate('subtotal'),
+                '\$${_subtotal.toStringAsFixed(2)}',
+              ),
               Row(
                 children: [
                   Expanded(
@@ -6827,7 +9142,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       LocalizationService().translate('tip'),
                       '\$${_tip.toStringAsFixed(2)}',
                       icon: Icons.volunteer_activism_outlined,
-                      onTap: () => _showValueInputDialog(LocalizationService().translate('add_tip'), _tip, (val) => setState(() => _tip = val)),
+                      onTap: () => _showValueInputDialog(
+                        LocalizationService().translate('add_tip'),
+                        _tip,
+                        (val) => setState(() => _tip = val),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -6837,7 +9156,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       '-\$${_discount.toStringAsFixed(2)}',
                       icon: Icons.local_offer_outlined,
                       color: Colors.green,
-                      onTap: () => _showValueInputDialog(LocalizationService().translate('apply_discount'), _discount, (val) => setState(() => _discount = val)),
+                      onTap: () => _showValueInputDialog(
+                        LocalizationService().translate('apply_discount'),
+                        _discount,
+                        (val) => setState(() => _discount = val),
+                      ),
                     ),
                   ),
                 ],
@@ -6845,10 +9168,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               // Promo Code Row
               _buildTappablePriceRow(
                 LocalizationService().translate('promo_code') ?? 'Promo Code',
-                _appliedPromo != null ? _appliedPromo!['code'].toString().toUpperCase() : '',
+                _appliedPromo != null
+                    ? _appliedPromo!['code'].toString().toUpperCase()
+                    : '',
                 icon: Icons.confirmation_number_outlined,
                 color: _appliedPromo != null ? themePrimary : null,
-                onTap: _appliedPromo != null ? () => _removePromoCode() : _showPromoCodeDialog,
+                onTap: _appliedPromo != null
+                    ? () => _removePromoCode()
+                    : _showPromoCodeDialog,
               ),
               if (_isTaxEnabled || _reservationFee > 0)
                 Row(
@@ -6860,7 +9187,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           '\$${_tax.toStringAsFixed(2)}',
                         ),
                       ),
-                    if (_isTaxEnabled && _reservationFee > 0) const SizedBox(width: 16),
+                    if (_isTaxEnabled && _reservationFee > 0)
+                      const SizedBox(width: 16),
                     if (_reservationFee > 0)
                       Expanded(
                         child: _buildPriceRow(
@@ -6885,14 +9213,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     width: 42,
                     height: 42,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : () {
-                        if (_cartItems.isEmpty) return;
-                        _clearCart();
-                      },
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              if (_cartItems.isEmpty) return;
+                              _clearCart();
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red.withValues(alpha: 0.1),
                         foregroundColor: Colors.red,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         elevation: 0,
                         padding: EdgeInsets.zero,
                       ),
@@ -6909,7 +9241,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       style: ElevatedButton.styleFrom(
                         backgroundColor: themePrimary.withValues(alpha: 0.1),
                         foregroundColor: themePrimary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         elevation: 0,
                         padding: EdgeInsets.zero,
                       ),
@@ -6925,26 +9259,50 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       child: SizedBox(
                         height: 42,
                         child: ElevatedButton.icon(
-                          icon: _isLoading 
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : Icon(
-                                _editingOrderId != null ? Icons.update_rounded : Icons.send_to_mobile_rounded, 
-                                color: Colors.white, 
-                                size: 18
-                              ),
+                          icon: _isLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Icon(
+                                  _editingOrderId != null
+                                      ? Icons.update_rounded
+                                      : Icons.send_to_mobile_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                           label: Text(
-                            LocalizationService().translate(_editingOrderId != null ? 'update_order' : 'send_to_kitchen').toUpperCase(),
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5),
+                            LocalizationService()
+                                .translate(
+                                  _editingOrderId != null
+                                      ? 'update_order'
+                                      : 'send_to_kitchen',
+                                )
+                                .toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 10,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                          onPressed: _isLoading ? null : () {
-                            if (!_validateOrderData()) return;
-                            _paymentMethod = null; // Ensure method is null for unpaid flow
-                            _placeOrder();
-                          },
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  if (!_validateOrderData()) return;
+                                  _paymentMethod =
+                                      null; // Ensure method is null for unpaid flow
+                                  _placeOrder();
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange.shade700,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                           ),
@@ -6958,21 +9316,42 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       child: SizedBox(
                         height: 42,
                         child: ElevatedButton.icon(
-                          icon: _isLoading 
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+                          icon: _isLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                           label: Text(
-                            LocalizationService().translate('complete_payment').toUpperCase(),
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5),
+                            LocalizationService()
+                                .translate('complete_payment')
+                                .toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 10,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                          onPressed: _isLoading ? null : () {
-                            if (!_validateOrderData()) return;
-                            _showCheckoutDialog();
-                          },
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  if (!_validateOrderData()) return;
+                                  _showCheckoutDialog();
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade700,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                           ),
@@ -6984,36 +9363,59 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       child: SizedBox(
                         height: 42,
                         child: ElevatedButton.icon(
-                          icon: _isLoading 
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : Icon(
-                                (_editingOrderId != null || _paymentPolicy == 'Pay Last') 
-                                  ? Icons.send_to_mobile_rounded 
-                                  : Icons.check_circle_outline_rounded, 
-                                color: Colors.white, 
-                                size: 18
-                              ),
+                          icon: _isLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Icon(
+                                  (_editingOrderId != null ||
+                                          _paymentPolicy == 'Pay Last')
+                                      ? Icons.send_to_mobile_rounded
+                                      : Icons.check_circle_outline_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                           label: Text(
-                            (_editingOrderId != null) 
-                              ? LocalizationService().translate('update_order').toUpperCase()
-                              : (_paymentPolicy == 'Pay First' 
-                                  ? LocalizationService().translate('complete_payment').toUpperCase()
-                                  : LocalizationService().translate('send_to_kitchen').toUpperCase()),
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                            (_editingOrderId != null)
+                                ? LocalizationService()
+                                      .translate('update_order')
+                                      .toUpperCase()
+                                : (_paymentPolicy == 'Pay First'
+                                      ? LocalizationService()
+                                            .translate('complete_payment')
+                                            .toUpperCase()
+                                      : LocalizationService()
+                                            .translate('send_to_kitchen')
+                                            .toUpperCase()),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                          onPressed: _isLoading ? null : () {
-                            if (!_validateOrderData()) return;
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  if (!_validateOrderData()) return;
 
-                            if (_paymentPolicy == 'Pay First' && _editingOrderId == null) {
-                              _showCheckoutDialog();
-                            } else {
-                              _placeOrder();
-                            }
-                          },
+                                  if (_paymentPolicy == 'Pay First' &&
+                                      _editingOrderId == null) {
+                                    _showCheckoutDialog();
+                                  } else {
+                                    _placeOrder();
+                                  }
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: themePrimary,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             elevation: 0,
                           ),
                         ),
@@ -7029,9 +9431,12 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-
-
-  Widget _buildTypeButton(String label, IconData icon, bool isSelected, VoidCallback onTap) {
+  Widget _buildTypeButton(
+    String label,
+    IconData icon,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -7042,13 +9447,32 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             color: isSelected ? themePrimary : themeBg,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: isSelected ? themePrimary : themeBorder),
-            boxShadow: isSelected ? [BoxShadow(color: themePrimary.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))] : null,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: themePrimary.withValues(alpha: 0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? Colors.white : themeHint, size: 16),
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : themeHint,
+                size: 16,
+              ),
               const SizedBox(height: 4),
-              Text(label, style: TextStyle(color: isSelected ? Colors.white : themeText, fontSize: 9, fontWeight: FontWeight.bold)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : themeText,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -7074,7 +9498,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       ),
     );
   }
-
 
   Widget _buildPriceRow(
     String label,
@@ -7128,12 +9551,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               children: [
                 Icon(icon, size: 14, color: color ?? themeHint),
                 const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(color: themeHint, fontSize: 11),
-                ),
+                Text(label, style: TextStyle(color: themeHint, fontSize: 11)),
                 const SizedBox(width: 4),
-                if (onTap != null) Icon(Icons.edit, size: 12, color: color ?? themeHint),
+                if (onTap != null)
+                  Icon(Icons.edit, size: 12, color: color ?? themeHint),
               ],
             ),
             Text(
@@ -7163,13 +9584,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         onPressed: (_isLoading || onPressed == null) ? null : onPressed,
         icon: Icon(icon, size: 16, color: Colors.white),
         label: Text(
-          label.toUpperCase(), 
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 9)
+          label.toUpperCase(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 9,
+          ),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 4),
         ),
@@ -7178,8 +9605,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   }
 
   /// Dialog to enter a numeric value (tip or discount)
-  void _showValueInputDialog(String title, double currentValue, void Function(double) onConfirm) {
-    final controller = TextEditingController(text: currentValue > 0 ? currentValue.toStringAsFixed(2) : '');
+  void _showValueInputDialog(
+    String title,
+    double currentValue,
+    void Function(double) onConfirm,
+  ) {
+    final controller = TextEditingController(
+      text: currentValue > 0 ? currentValue.toStringAsFixed(2) : '',
+    );
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -7189,11 +9622,27 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: themePrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-              child: Icon(title.contains('Tip') ? Icons.volunteer_activism : Icons.local_offer, color: themePrimary, size: 20),
+              decoration: BoxDecoration(
+                color: themePrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                title.contains('Tip')
+                    ? Icons.volunteer_activism
+                    : Icons.local_offer,
+                color: themePrimary,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
-            Text(title, style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: TextStyle(
+                color: themeText,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -7201,24 +9650,43 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           children: [
             Wrap(
               spacing: 8,
-              children: [5.0, 10.0, 15.0, 20.0].map((amt) => ActionChip(
-                label: Text('\$$amt', style: const TextStyle(fontWeight: FontWeight.bold)),
-                backgroundColor: themePrimary.withValues(alpha: 0.1),
-                side: BorderSide(color: themePrimary.withValues(alpha: 0.3)),
-                labelStyle: TextStyle(color: themePrimary),
-                onPressed: () => controller.text = amt.toStringAsFixed(2),
-              )).toList(),
+              children: [5.0, 10.0, 15.0, 20.0]
+                  .map(
+                    (amt) => ActionChip(
+                      label: Text(
+                        '\$$amt',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      backgroundColor: themePrimary.withValues(alpha: 0.1),
+                      side: BorderSide(
+                        color: themePrimary.withValues(alpha: 0.3),
+                      ),
+                      labelStyle: TextStyle(color: themePrimary),
+                      onPressed: () => controller.text = amt.toStringAsFixed(2),
+                    ),
+                  )
+                  .toList(),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               autofocus: true,
-              style: TextStyle(color: themeText, fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: themeText,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 prefixText: '\$  ',
-                prefixStyle: TextStyle(color: themePrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                prefixStyle: TextStyle(
+                  color: themePrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
                 hintText: '0.00',
                 hintStyle: TextStyle(color: themeHint),
                 enabledBorder: OutlineInputBorder(
@@ -7239,7 +9707,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               onConfirm(0.0);
               Navigator.pop(ctx);
             },
-            child: Text('Clear', style: TextStyle(color: Colors.red.withValues(alpha: 0.8))),
+            child: Text(
+              'Clear',
+              style: TextStyle(color: Colors.red.withValues(alpha: 0.8)),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -7253,9 +9724,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: themePrimary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: const Text('Apply', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Apply',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -7274,8 +9753,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             prefixIcon: Icon(Icons.search, size: 18, color: themePrimary),
             filled: true,
             fillColor: themeBg,
-            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 0,
+              horizontal: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         if (_customerSearchQuery.isNotEmpty)
@@ -7286,29 +9771,58 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               color: themeCard,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: themeBorder),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                ),
+              ],
             ),
             child: ListView(
               shrinkWrap: true,
-              children: _allCustomers.where((c) {
-                final q = _customerSearchQuery.toLowerCase();
-                return (c['first_name']?.toString().toLowerCase().contains(q) ?? false) ||
-                       (c['phone']?.toString().toLowerCase().contains(q) ?? false);
-              }).map((c) {
-                final isSelected = _selectedCustomer?['id'] == c['id'];
-                return ListTile(
-                  dense: true,
-                  title: Text(c['first_name'] ?? 'Guest', style: TextStyle(color: themeText, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                  subtitle: Text(c['phone'] ?? '', style: TextStyle(color: themeHint, fontSize: 11)),
-                  trailing: isSelected ? Icon(Icons.check_circle, color: themePrimary, size: 18) : null,
-                  onTap: () {
-                    setState(() {
-                      _selectedCustomer = c;
-                      _customerSearchQuery = '';
-                    });
-                  },
-                );
-              }).toList(),
+              children: _allCustomers
+                  .where((c) {
+                    final q = _customerSearchQuery.toLowerCase();
+                    return (c['first_name']?.toString().toLowerCase().contains(
+                              q,
+                            ) ??
+                            false) ||
+                        (c['phone']?.toString().toLowerCase().contains(q) ??
+                            false);
+                  })
+                  .map((c) {
+                    final isSelected = _selectedCustomer?['id'] == c['id'];
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        c['first_name'] ?? 'Guest',
+                        style: TextStyle(
+                          color: themeText,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      subtitle: Text(
+                        c['phone'] ?? '',
+                        style: TextStyle(color: themeHint, fontSize: 11),
+                      ),
+                      trailing: isSelected
+                          ? Icon(
+                              Icons.check_circle,
+                              color: themePrimary,
+                              size: 18,
+                            )
+                          : null,
+                      onTap: () {
+                        setState(() {
+                          _selectedCustomer = c;
+                          _customerSearchQuery = '';
+                        });
+                      },
+                    );
+                  })
+                  .toList(),
             ),
           ),
         if (_selectedCustomer != null)
@@ -7328,7 +9842,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   Expanded(
                     child: Text(
                       'Selected: ${_selectedCustomer!['first_name']} (${_selectedCustomer!['phone']})',
-                      style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 12),
+                      style: TextStyle(
+                        color: themePrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -7346,20 +9864,40 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
   Widget _buildNewGuestForm() {
     return Column(
       children: [
-        _buildCRMField(_customerFirstNameController, 'Full Name', Icons.person_outline),
+        _buildCRMField(
+          _customerFirstNameController,
+          'Full Name',
+          Icons.person_outline,
+        ),
         const SizedBox(height: 8),
-        _buildCRMField(_customerPhoneController, 'Phone Number', Icons.phone_android),
+        _buildCRMField(
+          _customerPhoneController,
+          'Phone Number',
+          Icons.phone_android,
+        ),
         const SizedBox(height: 8),
-        _buildCRMField(_customerEmailController, 'Email (Optional)', Icons.email_outlined),
+        _buildCRMField(
+          _customerEmailController,
+          'Email (Optional)',
+          Icons.email_outlined,
+        ),
         if (_orderType == 'Delivery') ...[
           const SizedBox(height: 8),
-          _buildCRMField(_customerAddressController, 'Delivery Address', Icons.location_on_outlined),
+          _buildCRMField(
+            _customerAddressController,
+            'Delivery Address',
+            Icons.location_on_outlined,
+          ),
         ],
       ],
     );
   }
 
-  Widget _buildCRMField(TextEditingController controller, String label, IconData icon) {
+  Widget _buildCRMField(
+    TextEditingController controller,
+    String label,
+    IconData icon,
+  ) {
     return TextField(
       controller: controller,
       style: TextStyle(color: themeText, fontSize: 13),
@@ -7370,8 +9908,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         filled: true,
         fillColor: themeBg,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12,
+          horizontal: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }
@@ -7380,19 +9924,25 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _handlePdfDownload(Map<String, dynamic> order) async {
     try {
-      final pdfBytes = await ReceiptService.generateInvoicePdf(order: order, settings: _settings);
+      final pdfBytes = await ReceiptService.generateInvoicePdf(
+        order: order,
+        settings: _settings,
+      );
       final blob = html.Blob([pdfBytes], 'application/pdf');
       final url = html.Url.createObjectUrlFromBlob(blob);
       html.AnchorElement(href: url)
-        ..setAttribute('download', 'Invoice_${order['order_number'] ?? order['id']}.pdf')
+        ..setAttribute(
+          'download',
+          'Invoice_${order['order_number'] ?? order['id']}.pdf',
+        )
         ..click();
       html.Url.revokeObjectUrl(url);
     } catch (e) {
       debugPrint('Error downloading PDF: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to download PDF: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to download PDF: $e')));
     }
   }
 
@@ -7403,7 +9953,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         data: ThemeService().themeData,
         child: Dialog(
           backgroundColor: themeCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Container(
             width: MediaQuery.of(context).size.width * 0.45,
             height: MediaQuery.of(context).size.height * 0.85,
@@ -7418,20 +9970,32 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          LocalizationService().translate('order_details'), 
-                          style: TextStyle(color: themePrimary, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.2)
+                          LocalizationService().translate('order_details'),
+                          style: TextStyle(
+                            color: themePrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '#${order['order_number'] ?? order['id']}', 
-                          style: TextStyle(color: themeText, fontSize: 24, fontWeight: FontWeight.bold)
+                          '#${order['order_number'] ?? order['id']}',
+                          style: TextStyle(
+                            color: themeText,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
                     IconButton(
                       icon: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: themeBg, shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                          color: themeBg,
+                          shape: BoxShape.circle,
+                        ),
                         child: Icon(Icons.close, color: themeHint, size: 20),
                       ),
                       onPressed: () => Navigator.pop(context),
@@ -7456,68 +10020,137 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                                child: Image(
-                                  image: ThemeService.getImage(item['image'] as String?),
-                                  width: 45,
-                                  height: 45,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => 
-                                    Icon(Icons.restaurant_menu_rounded, color: themeHint.withValues(alpha: 0.5), size: 24),
+                              child: Image(
+                                image: ThemeService.getImage(
+                                  item['image'] as String?,
                                 ),
+                                width: 45,
+                                height: 45,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Icon(
+                                      Icons.restaurant_menu_rounded,
+                                      color: themeHint.withValues(alpha: 0.5),
+                                      size: 24,
+                                    ),
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: themePrimary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text('x${item['quantity']}', style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                              child: Text(
+                                'x${item['quantity']}',
+                                style: TextStyle(
+                                  color: themePrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item['name'] ?? 'Item', style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text(
+                                    item['name'] ?? 'Item',
+                                    style: TextStyle(
+                                      color: themeText,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                                   if (item['variant'] != null)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Text(
                                         '${LocalizationService().translate('variant')}: ${item['variant']['name']}',
-                                        style: TextStyle(color: themePrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                                        style: TextStyle(
+                                          color: themePrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Wrap(
-                                        spacing: 8,
-                                        children: (item['extras'] as List).map<Widget>((e) => Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(color: themePrimary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(4)),
-                                          child: Text('+ ${e['name']}', style: TextStyle(color: themePrimaryAccent, fontSize: 11)),
-                                        )).toList(),
-                                      ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Wrap(
+                                      spacing: 8,
+                                      children: (item['extras'] as List)
+                                          .map<Widget>(
+                                            (e) => Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: themePrimary.withValues(
+                                                  alpha: 0.05,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                '+ ${e['name']}',
+                                                style: TextStyle(
+                                                  color: themePrimaryAccent,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
                                     ),
-                                  if ((item['variant'] == null && (item['extras'] == null || (item['extras'] as List).isEmpty)) && 
-                                      item['description'] != null && item['description'].toString().isNotEmpty)
+                                  ),
+                                  if ((item['variant'] == null &&
+                                          (item['extras'] == null ||
+                                              (item['extras'] as List)
+                                                  .isEmpty)) &&
+                                      item['description'] != null &&
+                                      item['description'].toString().isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Text(
                                         item['description'],
-                                        style: TextStyle(color: themeHint, fontSize: 12, fontStyle: FontStyle.italic),
+                                        style: TextStyle(
+                                          color: themeHint,
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic,
+                                        ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  if (item['notes'] != null && item['notes'].toString().isNotEmpty)
+                                  if (item['notes'] != null &&
+                                      item['notes'].toString().isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 6),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.notes, size: 12, color: themeHint),
+                                          Icon(
+                                            Icons.notes,
+                                            size: 12,
+                                            color: themeHint,
+                                          ),
                                           const SizedBox(width: 4),
-                                          Expanded(child: Text(item['notes'], style: TextStyle(color: themeHint, fontSize: 12, fontStyle: FontStyle.italic))),
+                                          Expanded(
+                                            child: Text(
+                                              item['notes'],
+                                              style: TextStyle(
+                                                color: themeHint,
+                                                fontSize: 12,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -7526,7 +10159,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             ),
                             Text(
                               '\$${double.tryParse(item['subtotal'].toString())?.toStringAsFixed(2) ?? '0.00'}',
-                              style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 15),
+                              style: TextStyle(
+                                color: themeText,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
                             ),
                           ],
                         ),
@@ -7538,8 +10175,22 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(LocalizationService().translate('total_amount'), style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.w500)),
-                    Text('\$${double.tryParse(order['total_amount'].toString())?.toStringAsFixed(2) ?? '0.00'}', style: TextStyle(color: themePrimary, fontSize: 28, fontWeight: FontWeight.bold)),
+                    Text(
+                      LocalizationService().translate('total_amount'),
+                      style: TextStyle(
+                        color: themeText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '\$${double.tryParse(order['total_amount'].toString())?.toStringAsFixed(2) ?? '0.00'}',
+                      style: TextStyle(
+                        color: themePrimary,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -7548,42 +10199,83 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => _handlePdfDownload(order),
-                        icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 20),
-                        label: Text(LocalizationService().translate('download_pdf'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        icon: const Icon(
+                          Icons.picture_as_pdf_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        label: Text(
+                          LocalizationService().translate('download_pdf'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[800], 
+                          backgroundColor: Colors.red[800],
                           padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => ReceiptService.printReceipt(order: Map<String, dynamic>.from(order), settings: _settings),
-                        icon: const Icon(Icons.print_rounded, color: Colors.white, size: 20),
-                        label: Text(LocalizationService().translate('print'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        onPressed: () => ReceiptService.printReceipt(
+                          order: Map<String, dynamic>.from(order),
+                          settings: _settings,
+                        ),
+                        icon: const Icon(
+                          Icons.print_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        label: Text(
+                          LocalizationService().translate('print'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[850], 
+                          backgroundColor: Colors.grey[850],
                           padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    if (order['status'] != 'Paid' && order['status'] != 'Cancelled' && order['status'] != 'Rejected')
+                    if (order['status'] != 'Paid' &&
+                        order['status'] != 'Cancelled' &&
+                        order['status'] != 'Rejected')
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.pop(context);
                             _showExistingOrderCheckoutDialog(order);
                           },
-                          icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                          label: Text(LocalizationService().translate('checkout_btn'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          icon: const Icon(
+                            Icons.check_circle_outline,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          label: Text(
+                            LocalizationService().translate('checkout_btn'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[700], 
+                            backgroundColor: Colors.green[700],
                             padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -7591,71 +10283,131 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 ),
                 const SizedBox(height: 16),
                 Row(
-                   children: [
-                     Expanded(
-                       child: OutlinedButton.icon(
-                         onPressed: () {
-                           if (!kIsWeb) {
-                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('WhatsApp sharing is only available on web.')));
-                             return;
-                           }
-                           final text = 'Invoice for Order #${order['order_number'] ?? order['id']}\nTotal: \$${order['total_amount']}\nThank you for choosing Zamzam Kitchen!';
-                           html.window.open('https://wa.me/?text=${Uri.encodeComponent(text)}', '_blank');
-                         },
-                         icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.green, size: 20),
-                         label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
-                         style: OutlinedButton.styleFrom(
-                           padding: const EdgeInsets.symmetric(vertical: 18),
-                           side: BorderSide(color: Colors.green.withOpacity(0.3)),
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                         ),
-                       ),
-                     ),
-                     const SizedBox(width: 12),
-                     Expanded(
-                       child: OutlinedButton.icon(
-                         onPressed: () {
-                           if (!kIsWeb) {
-                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email sharing is only available on web.')));
-                             return;
-                           }
-                           final subject = 'Invoice - Order #${order['order_number'] ?? order['id']}';
-                           final body = 'Hi,\n\nPlease find your order details below:\nOrder #${order['order_number'] ?? order['id']}\nTotal: \$${order['total_amount']}\n\nThank you!';
-                           html.window.open('mailto:?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}', '_self');
-                         },
-                         icon: const Icon(Icons.email_outlined, color: Colors.blue, size: 20),
-                         label: const Text('Email', style: TextStyle(fontWeight: FontWeight.bold)),
-                         style: OutlinedButton.styleFrom(
-                           padding: const EdgeInsets.symmetric(vertical: 18),
-                           side: BorderSide(color: Colors.blue.withOpacity(0.3)),
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                         ),
-                       ),
-                     ),
-                     const SizedBox(width: 12),
-                     Expanded(
-                       child: OutlinedButton.icon(
-                         onPressed: () {
-                            // Simplified sharing: Fallback to clipboard for broad compatibility
-                            final text = 'Order #${order['order_number'] ?? order['id']} from Zamzam Kitchen. Total: \$${order['total_amount']}';
-                            Clipboard.setData(ClipboardData(text: text)).then((_) {
-                               if (mounted) {
-                                 ScaffoldMessenger.of(context).showSnackBar(
-                                   const SnackBar(content: Text('Order details copied to clipboard!'), duration: Duration(seconds: 2)),
-                                 );
-                               }
-                            });
-                         },
-                         icon: Icon(Icons.share_outlined, color: themePrimary, size: 20),
-                         label: const Text('Share', style: TextStyle(fontWeight: FontWeight.bold)),
-                         style: OutlinedButton.styleFrom(
-                           padding: const EdgeInsets.symmetric(vertical: 18),
-                           side: BorderSide(color: themePrimary.withOpacity(0.3)),
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                         ),
-                       ),
-                     ),
-                   ],
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          if (!kIsWeb) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'WhatsApp sharing is only available on web.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          final text =
+                              'Invoice for Order #${order['order_number'] ?? order['id']}\nTotal: \$${order['total_amount']}\nThank you for choosing Zamzam Kitchen!';
+                          html.window.open(
+                            'https://wa.me/?text=${Uri.encodeComponent(text)}',
+                            '_blank',
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          color: Colors.green,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'WhatsApp',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          side: BorderSide(
+                            color: Colors.green.withOpacity(0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          if (!kIsWeb) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Email sharing is only available on web.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          final subject =
+                              'Invoice - Order #${order['order_number'] ?? order['id']}';
+                          final body =
+                              'Hi,\n\nPlease find your order details below:\nOrder #${order['order_number'] ?? order['id']}\nTotal: \$${order['total_amount']}\n\nThank you!';
+                          html.window.open(
+                            'mailto:?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}',
+                            '_self',
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.email_outlined,
+                          color: Colors.blue,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'Email',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          side: BorderSide(color: Colors.blue.withOpacity(0.3)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          // Simplified sharing: Fallback to clipboard for broad compatibility
+                          final text =
+                              'Order #${order['order_number'] ?? order['id']} from Zamzam Kitchen. Total: \$${order['total_amount']}';
+                          Clipboard.setData(ClipboardData(text: text)).then((
+                            _,
+                          ) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Order details copied to clipboard!',
+                                  ),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          });
+                        },
+                        icon: Icon(
+                          Icons.share_outlined,
+                          color: themePrimary,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'Share',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          side: BorderSide(
+                            color: themePrimary.withOpacity(0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -7664,7 +10416,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       ),
     );
   }
-
 
   String _getLapseTime(String? orderTimeStr) {
     if (orderTimeStr == null) return '--:--';
@@ -7680,30 +10431,41 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-
-
   Widget _buildWaitingView() {
     // Filter logic based on the selected tab
-    final filteredOrders = _placedOrders.where((o) {
-      final s = (o['status']?.toString() ?? '').toLowerCase();
-      if (_waitingTab == 'Active') {
-        return ['pending', 'ordered', 'preparing', 'paid', 'partially paid'].contains(s);
-      } else if (_waitingTab == 'Ready') {
-        return s == 'ready';
-      }
-      return false;
-    }).toList()
-      ..sort((a, b) {
-        final aId = int.tryParse(a['id'].toString()) ?? 0;
-        final bId = int.tryParse(b['id'].toString()) ?? 0;
-        final dir = _settings['branch']?['order_sort_direction'] ?? 'Descending';
-        return dir == 'Ascending' ? aId.compareTo(bId) : bId.compareTo(aId);
-      });
+    final filteredOrders =
+        _placedOrders.where((o) {
+          final s = (o['status']?.toString() ?? '').toLowerCase();
+          if (_waitingTab == 'Active') {
+            return [
+              'pending',
+              'ordered',
+              'preparing',
+              'paid',
+              'partially paid',
+            ].contains(s);
+          } else if (_waitingTab == 'Ready') {
+            return s == 'ready';
+          }
+          return false;
+        }).toList()..sort((a, b) {
+          final aId = int.tryParse(a['id'].toString()) ?? 0;
+          final bId = int.tryParse(b['id'].toString()) ?? 0;
+          final dir =
+              _settings['branch']?['order_sort_direction'] ?? 'Descending';
+          return dir == 'Ascending' ? aId.compareTo(bId) : bId.compareTo(aId);
+        });
 
     // Tab Counts for Badges
     int activeCount = _placedOrders.where((o) {
       final s = o['status'].toString().toLowerCase();
-      return ['pending', 'ordered', 'preparing', 'paid', 'partially paid'].contains(s);
+      return [
+        'pending',
+        'ordered',
+        'preparing',
+        'paid',
+        'partially paid',
+      ].contains(s);
     }).length;
     int readyCount = _placedOrders.where((o) {
       final s = o['status'].toString().toLowerCase();
@@ -7719,21 +10481,32 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           try {
             final startTime = DateTime.parse(o['order_time']).toLocal();
             return prev + DateTime.now().difference(startTime).inSeconds;
-          } catch (_) { return prev; }
+          } catch (_) {
+            return prev;
+          }
         });
         mainMetric = totalSeconds / filteredOrders.length / 60;
       } else if (_waitingTab == 'Ready') {
         metricLabel = LocalizationService().translate('avg_counter_time');
         final totalSeconds = filteredOrders.fold<int>(0, (prev, o) {
           try {
-            final readyTime = DateTime.parse(o['updated_at'] ?? o['order_time']).toLocal();
+            final readyTime = DateTime.parse(
+              o['updated_at'] ?? o['order_time'],
+            ).toLocal();
             return prev + DateTime.now().difference(readyTime).inSeconds;
-          } catch (_) { return prev; }
+          } catch (_) {
+            return prev;
+          }
         });
         mainMetric = totalSeconds / filteredOrders.length / 60;
       } else {
         metricLabel = LocalizationService().translate('cancellation_rate');
-        final cancelled = filteredOrders.where((o) => (o['status']?.toString() ?? '').toLowerCase() == 'cancelled').length;
+        final cancelled = filteredOrders
+            .where(
+              (o) =>
+                  (o['status']?.toString() ?? '').toLowerCase() == 'cancelled',
+            )
+            .length;
         mainMetric = (cancelled / filteredOrders.length) * 100;
       }
     }
@@ -7749,165 +10522,278 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             child: Row(
               children: [
                 _buildStatCard(
-                  metricLabel, 
-                  _waitingTab == 'History' ? '${mainMetric.toStringAsFixed(1)}%' : '${mainMetric.toStringAsFixed(1)} min', 
-                  _waitingTab == 'Ready' ? Icons.room_service : Icons.timer, 
-                  _waitingTab == 'History' ? Colors.red : Colors.blue
+                  metricLabel,
+                  _waitingTab == 'History'
+                      ? '${mainMetric.toStringAsFixed(1)}%'
+                      : '${mainMetric.toStringAsFixed(1)} min',
+                  _waitingTab == 'Ready' ? Icons.room_service : Icons.timer,
+                  _waitingTab == 'History' ? Colors.red : Colors.blue,
                 ),
                 const SizedBox(width: 16),
                 _buildStatCard(
-                  LocalizationService().translate('orders_in_view'), 
-                  '${filteredOrders.length}', 
-                  Icons.receipt_long, 
-                  themePrimary
+                  LocalizationService().translate('orders_in_view'),
+                  '${filteredOrders.length}',
+                  Icons.receipt_long,
+                  themePrimary,
                 ),
                 const SizedBox(width: 24),
-                _buildWaitingTab('Active', activeCount, Icons.fireplace_rounded),
+                _buildWaitingTab(
+                  'Active',
+                  activeCount,
+                  Icons.fireplace_rounded,
+                ),
                 const SizedBox(width: 12),
-                _buildWaitingTab('Ready', readyCount, Icons.check_circle_outline),
+                _buildWaitingTab(
+                  'Ready',
+                  readyCount,
+                  Icons.check_circle_outline,
+                ),
                 const Spacer(),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(LocalizationService().translate('order_velocity_analytics'), style: TextStyle(color: themeText, fontSize: 24, fontWeight: FontWeight.bold)),
-                    Text(LocalizationService().translate('lifecycle_tracking'), style: TextStyle(color: themeHint, fontSize: 13)),
+                    Text(
+                      LocalizationService().translate(
+                        'order_velocity_analytics',
+                      ),
+                      style: TextStyle(
+                        color: themeText,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      LocalizationService().translate('lifecycle_tracking'),
+                      style: TextStyle(color: themeHint, fontSize: 13),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
 
-
           // Table Header
           Expanded(
-            child: filteredOrders.isEmpty 
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(32),
+            child: filteredOrders.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            color: themeCard,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: themePrimary.withValues(alpha: 0.1),
+                                blurRadius: 40,
+                                spreadRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.auto_graph_rounded,
+                            size: 80,
+                            color: themePrimary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          '${LocalizationService().translate('no_orders_in')} ${LocalizationService().translate(_waitingTab.toLowerCase())}',
+                          style: TextStyle(
+                            color: themeText,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Operational dashboard is ready for incoming tickets.',
+                          style: TextStyle(color: themeHint, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: filteredOrders.length,
+                    itemBuilder: (context, index) {
+                      final order = filteredOrders[index];
+                      final String lapse = _getLapseTime(order['order_time']);
+
+                      // Progress Calculation
+                      int minutes = 0;
+                      try {
+                        final startTime = DateTime.parse(
+                          order['order_time'],
+                        ).toLocal();
+                        minutes = DateTime.now()
+                            .difference(startTime)
+                            .inMinutes;
+                      } catch (_) {}
+                      double progress = (minutes / 20).clamp(0.0, 1.0);
+                      Color progressColor = progress < 0.5
+                          ? Colors.green
+                          : (progress < 0.8 ? Colors.orange : Colors.red);
+
+                      final bool isWarning = progress > 0.8;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: themeCard,
-                          shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: themePrimary.withValues(alpha: 0.1), blurRadius: 40, spreadRadius: 10)],
-                        ),
-                        child: Icon(Icons.auto_graph_rounded, size: 80, color: themePrimary.withValues(alpha: 0.2)),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        '${LocalizationService().translate('no_orders_in')} ${LocalizationService().translate(_waitingTab.toLowerCase())}', 
-                        style: TextStyle(color: themeText, fontSize: 20, fontWeight: FontWeight.bold)
-                      ),
-                      Text(
-                        'Operational dashboard is ready for incoming tickets.',
-                        style: TextStyle(color: themeHint, fontSize: 14)
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(24),
-                  itemCount: filteredOrders.length,
-                  itemBuilder: (context, index) {
-                    final order = filteredOrders[index];
-                    final String lapse = _getLapseTime(order['order_time']);
-                    
-                    // Progress Calculation
-                    int minutes = 0;
-                    try {
-                      final startTime = DateTime.parse(order['order_time']).toLocal();
-                      minutes = DateTime.now().difference(startTime).inMinutes;
-                    } catch (_) {}
-                    double progress = (minutes / 20).clamp(0.0, 1.0);
-                    Color progressColor = progress < 0.5 ? Colors.green : (progress < 0.8 ? Colors.orange : Colors.red);
-                    
-                    final bool isWarning = progress > 0.8;
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                          color: themeCard,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isWarning ? Colors.red.withValues(alpha: 0.3) : themeBorder),
+                          border: Border.all(
+                            color: isWarning
+                                ? Colors.red.withValues(alpha: 0.3)
+                                : themeBorder,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.03),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
-                            )
+                            ),
                           ],
                         ),
                         child: Row(
                           children: [
-                          // 1. Fixed Actions Column (approx 280px)
-                          SizedBox(
-                            width: 280,
+                            // 1. Fixed Actions Column (approx 280px)
+                            SizedBox(
+                              width: 280,
                               child: Row(
                                 children: [
                                   Tooltip(
-                                    message: LocalizationService().translate('edit'),
+                                    message: LocalizationService().translate(
+                                      'edit',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: Icon(Icons.edit_note_rounded, color: themePrimary, size: 22),
+                                      icon: Icon(
+                                        Icons.edit_note_rounded,
+                                        color: themePrimary,
+                                        size: 22,
+                                      ),
                                       onPressed: () {
                                         setState(() {
-                                          _cartItems = (order['items'] as List).map((item) => {
-                                            'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                            'name': item['name'],
-                                            'description': item['description'] ?? '',
-                                            'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                     ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                            'quantity': item['quantity'],
-                                            'notes': item['notes'],
-                                            'extras': item['extras'],
-                                            'variants': item['variants'],
-                                          }).toList();
+                                          _cartItems = (order['items'] as List)
+                                              .map(
+                                                (item) => {
+                                                  'id':
+                                                      item['menu_item_id'] ??
+                                                      'custom-${item['id']}',
+                                                  'name': item['name'],
+                                                  'description':
+                                                      item['description'] ?? '',
+                                                  'price':
+                                                      double.tryParse(
+                                                        item['unit_price']
+                                                                ?.toString() ??
+                                                            '',
+                                                      ) ??
+                                                      ((double.tryParse(
+                                                                item['subtotal']
+                                                                    .toString(),
+                                                              ) ??
+                                                              0.0) /
+                                                          (item['quantity'] ??
+                                                              1)),
+                                                  'quantity': item['quantity'],
+                                                  'notes': item['notes'],
+                                                  'extras': item['extras'],
+                                                  'variants': item['variants'],
+                                                },
+                                              )
+                                              .toList();
                                           _editingOrderId = order['id'];
                                           _selectedTabIndex = 0;
-                                          _orderType = order['order_type'] ?? 'Dine-In';
+                                          _orderType =
+                                              order['order_type'] ?? 'Dine-In';
                                         });
                                       },
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('print'),
+                                    message: LocalizationService().translate(
+                                      'print',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: const Icon(Icons.print_rounded, color: Colors.blue, size: 20),
-                                      onPressed: () => ReceiptService.printReceipt(order: order, settings: _settings),
+                                      icon: const Icon(
+                                        Icons.print_rounded,
+                                        color: Colors.blue,
+                                        size: 20,
+                                      ),
+                                      onPressed: () =>
+                                          ReceiptService.printReceipt(
+                                            order: order,
+                                            settings: _settings,
+                                          ),
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('download_pdf'),
+                                    message: LocalizationService().translate(
+                                      'download_pdf',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 20),
-                                      onPressed: () => _handlePdfDownload(Map<String, dynamic>.from(order)),
+                                      icon: const Icon(
+                                        Icons.picture_as_pdf_rounded,
+                                        color: Colors.red,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => _handlePdfDownload(
+                                        Map<String, dynamic>.from(order),
+                                      ),
                                     ),
                                   ),
                                   Tooltip(
-                                    message: LocalizationService().translate('view_details'),
+                                    message: LocalizationService().translate(
+                                      'view_details',
+                                    ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 40,
+                                        minWidth: 40,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      icon: Icon(Icons.visibility_rounded, color: themePrimary, size: 20),
-                                      onPressed: () => _showOrderDetailsDialog(order),
+                                      icon: Icon(
+                                        Icons.visibility_rounded,
+                                        color: themePrimary,
+                                        size: 20,
+                                      ),
+                                      onPressed: () =>
+                                          _showOrderDetailsDialog(order),
                                     ),
                                   ),
                                   // Status Update Buttons
                                   SizedBox(
                                     width: 40,
                                     child: Visibility(
-                                      visible: order['status'] == 'Pending' || order['status'] == 'Ordered' || order['status'] == 'Paid',
+                                      visible:
+                                          order['status'] == 'Pending' ||
+                                          order['status'] == 'Ordered' ||
+                                          order['status'] == 'Paid',
                                       maintainSize: true,
                                       maintainAnimation: true,
                                       maintainState: true,
@@ -7915,10 +10801,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                         message: 'Next: Preparing',
                                         child: IconButton(
                                           padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 40,
+                                            minWidth: 40,
+                                          ),
                                           visualDensity: VisualDensity.compact,
-                                          icon: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
-                                          onPressed: () => _updateOrderStatus(order['id'], 'Preparing'),
+                                          icon: const Icon(
+                                            Icons.check_circle_rounded,
+                                            color: Colors.green,
+                                            size: 22,
+                                          ),
+                                          onPressed: () => _updateOrderStatus(
+                                            order['id'],
+                                            'Preparing',
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -7934,10 +10830,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                         message: 'Next: Ready',
                                         child: IconButton(
                                           padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 40,
+                                            minWidth: 40,
+                                          ),
                                           visualDensity: VisualDensity.compact,
-                                          icon: const Icon(Icons.restaurant_rounded, color: Colors.orange, size: 22),
-                                          onPressed: () => _updateOrderStatus(order['id'], 'Ready'),
+                                          icon: const Icon(
+                                            Icons.restaurant_rounded,
+                                            color: Colors.orange,
+                                            size: 22,
+                                          ),
+                                          onPressed: () => _updateOrderStatus(
+                                            order['id'],
+                                            'Ready',
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -7953,28 +10859,59 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                         message: 'Next: Paid/Complete',
                                         child: IconButton(
                                           padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(maxWidth: 40, minWidth: 40),
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 40,
+                                            minWidth: 40,
+                                          ),
                                           visualDensity: VisualDensity.compact,
-                                          icon: const Icon(Icons.done_all_rounded, color: Colors.blue, size: 22),
+                                          icon: const Icon(
+                                            Icons.done_all_rounded,
+                                            color: Colors.blue,
+                                            size: 22,
+                                          ),
                                           onPressed: () {
                                             setState(() {
-                                              _cartItems = (order['items'] as List).map((item) => {
-                                                'id': item['menu_item_id'] ?? 'custom-${item['id']}',
-                                                'name': item['name'],
-                                                'description': item['description'] ?? '',
-                                                'price': double.tryParse(item['unit_price']?.toString() ?? '') ?? 
-                                                         ((double.tryParse(item['subtotal'].toString()) ?? 0.0) / (item['quantity'] ?? 1)),
-                                                'quantity': item['quantity'],
-                                                'notes': item['notes'],
-                                                'extras': item['extras'],
-                                                'variants': item['variants'],
-                                              }).toList();
+                                              _cartItems = (order['items'] as List)
+                                                  .map(
+                                                    (item) => {
+                                                      'id':
+                                                          item['menu_item_id'] ??
+                                                          'custom-${item['id']}',
+                                                      'name': item['name'],
+                                                      'description':
+                                                          item['description'] ??
+                                                          '',
+                                                      'price':
+                                                          double.tryParse(
+                                                            item['unit_price']
+                                                                    ?.toString() ??
+                                                                '',
+                                                          ) ??
+                                                          ((double.tryParse(
+                                                                    item['subtotal']
+                                                                        .toString(),
+                                                                  ) ??
+                                                                  0.0) /
+                                                              (item['quantity'] ??
+                                                                  1)),
+                                                      'quantity':
+                                                          item['quantity'],
+                                                      'notes': item['notes'],
+                                                      'extras': item['extras'],
+                                                      'variants':
+                                                          item['variants'],
+                                                    },
+                                                  )
+                                                  .toList();
                                               _editingOrderId = order['id'];
                                               _selectedTabIndex = 0;
                                             });
-                                            Future.delayed(const Duration(milliseconds: 100), () {
-                                              _showCheckoutDialog();
-                                            });
+                                            Future.delayed(
+                                              const Duration(milliseconds: 100),
+                                              () {
+                                                _showCheckoutDialog();
+                                              },
+                                            );
                                           },
                                         ),
                                       ),
@@ -7991,10 +10928,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '#${order['order_number'] ?? order['id']}', 
+                                    '#${order['order_number'] ?? order['id']}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.bold)
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   const SizedBox(height: 2),
                                   FittedBox(
@@ -8002,13 +10945,33 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     alignment: Alignment.centerLeft,
                                     child: Row(
                                       children: [
-                                        Icon(Icons.access_time_rounded, size: 10, color: themeHint),
+                                        Icon(
+                                          Icons.access_time_rounded,
+                                          size: 10,
+                                          color: themeHint,
+                                        ),
                                         const SizedBox(width: 4),
-                                        Text(_formatDateTime(order['order_time']), style: TextStyle(color: themeHint, fontSize: 10)),
+                                        Text(
+                                          _formatDateTime(order['order_time']),
+                                          style: TextStyle(
+                                            color: themeHint,
+                                            fontSize: 10,
+                                          ),
+                                        ),
                                         const SizedBox(width: 10),
-                                        Icon(Icons.restaurant_menu_rounded, size: 10, color: themeHint),
+                                        Icon(
+                                          Icons.restaurant_menu_rounded,
+                                          size: 10,
+                                          color: themeHint,
+                                        ),
                                         const SizedBox(width: 4),
-                                        Text('${(order['items'] as List?)?.length ?? 0} Items', style: TextStyle(color: themeHint, fontSize: 10)),
+                                        Text(
+                                          '${(order['items'] as List?)?.length ?? 0} Items',
+                                          style: TextStyle(
+                                            color: themeHint,
+                                            fontSize: 10,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -8022,14 +10985,20 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               width: 85,
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
-                                child: OrderStatusChip(status: order['status'] ?? 'Pending', themePrimary: themePrimary),
+                                child: OrderStatusChip(
+                                  status: order['status'] ?? 'Pending',
+                                  themePrimary: themePrimary,
+                                ),
                               ),
                             ),
                             SizedBox(
                               width: 85,
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
-                                child: OriginBadge(origin: order['origin'], themePrimary: themePrimary),
+                                child: OriginBadge(
+                                  origin: order['origin'],
+                                  themePrimary: themePrimary,
+                                ),
                               ),
                             ),
                             SizedBox(
@@ -8037,11 +11006,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Visibility(
-                                  visible: order['order_type'] != null && order['order_type'] != 'In-Store',
+                                  visible:
+                                      order['order_type'] != null &&
+                                      order['order_type'] != 'In-Store',
                                   maintainSize: true,
                                   maintainAnimation: true,
                                   maintainState: true,
-                                  child: OrderTypeBadge(type: order['order_type'], themePrimary: themePrimary),
+                                  child: OrderTypeBadge(
+                                    type: order['order_type'],
+                                    themePrimary: themePrimary,
+                                  ),
                                 ),
                               ),
                             ),
@@ -8065,10 +11039,27 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     child: SizedBox(
                                       width: 100,
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(lapse, style: TextStyle(color: isWarning ? Colors.red : themeText, fontWeight: FontWeight.bold, fontSize: 12)),
-                                          Text('${(progress * 100).toInt()}%', style: TextStyle(color: progressColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                                          Text(
+                                            lapse,
+                                            style: TextStyle(
+                                              color: isWarning
+                                                  ? Colors.red
+                                                  : themeText,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${(progress * 100).toInt()}%',
+                                            style: TextStyle(
+                                              color: progressColor,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -8079,7 +11070,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                                     child: LinearProgressIndicator(
                                       value: progress,
                                       backgroundColor: themeBg,
-                                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        progressColor,
+                                      ),
                                       minHeight: 4,
                                     ),
                                   ),
@@ -8093,21 +11086,30 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                               child: Text(
                                 '${_settings['tenant']?['currency'] ?? '\$'}${(double.tryParse(order['total_amount'].toString()) ?? 0.0).toStringAsFixed(2)}',
                                 textAlign: TextAlign.right,
-                                style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 16),
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       );
                     },
-                ),
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       width: 220,
       padding: const EdgeInsets.all(20),
@@ -8120,7 +11122,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -8139,9 +11141,23 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(label, style: TextStyle(color: themeHint, fontSize: 12, fontWeight: FontWeight.w500)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: themeHint,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(value, style: TextStyle(color: themeText, fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: themeText,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
@@ -8162,16 +11178,32 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             decoration: BoxDecoration(
               color: isSelected ? themePrimary : themeCard,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isSelected ? themePrimary : themeBorder),
-              boxShadow: isSelected ? [BoxShadow(color: themePrimary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
+              border: Border.all(
+                color: isSelected ? themePrimary : themeBorder,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: themePrimary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 18, color: isSelected ? Colors.white : themeHint),
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected ? Colors.white : themeHint,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  LocalizationService().translate(label.toLowerCase()).toUpperCase(),
+                  LocalizationService()
+                      .translate(label.toLowerCase())
+                      .toUpperCase(),
                   style: TextStyle(
                     color: isSelected ? Colors.white : themeText,
                     fontWeight: FontWeight.bold,
@@ -8191,7 +11223,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 decoration: BoxDecoration(
                   color: isSelected ? Colors.white : themePrimary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: isSelected ? themePrimary : Colors.white, width: 2),
+                  border: Border.all(
+                    color: isSelected ? themePrimary : Colors.white,
+                    width: 2,
+                  ),
                 ),
                 constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
                 child: Center(
@@ -8217,11 +11252,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     for (var order in _placedOrders) {
       // Only count active (unpaid) orders for this table
       final status = (order['status']?.toString() ?? '').toLowerCase();
-      final paymentStatus = (order['payment_status']?.toString() ?? '').toLowerCase();
+      final paymentStatus = (order['payment_status']?.toString() ?? '')
+          .toLowerCase();
       final pMethod = (order['payment_method']?.toString() ?? '');
-      bool isPaid = status == 'paid' || paymentStatus == 'paid' || pMethod.isNotEmpty;
-      
-      if (!isPaid && status != 'cancelled' && status != 'rejected' && order['table_number']?.toString() == tableLabel) {
+      bool isPaid =
+          status == 'paid' || paymentStatus == 'paid' || pMethod.isNotEmpty;
+
+      if (!isPaid &&
+          status != 'cancelled' &&
+          status != 'rejected' &&
+          order['table_number']?.toString() == tableLabel) {
         // Fallback to 1 if party_size is missing, as most orders have at least 1 person
         total += int.tryParse(order['party_size']?.toString() ?? '1') ?? 1;
       }
@@ -8231,7 +11271,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   Future<void> _fetchTables() async {
     try {
-      final response = await http.get(Uri.parse('${ThemeService.apiBaseUrl}/api/tables'));
+      final response = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/tables'),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         if (mounted) {
@@ -8242,16 +11284,26 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               _restaurantTables = data.map((t) {
                 ui_kit.TableStatus status = ui_kit.TableStatus.available;
                 switch (t['status']) {
-                  case 'Occupied': status = ui_kit.TableStatus.occupied; break;
-                  case 'Reserved': status = ui_kit.TableStatus.reserved; break;
-                  case 'Needs Clearing': status = ui_kit.TableStatus.needsClearing; break;
+                  case 'Occupied':
+                    status = ui_kit.TableStatus.occupied;
+                    break;
+                  case 'Reserved':
+                    status = ui_kit.TableStatus.reserved;
+                    break;
+                  case 'Needs Clearing':
+                    status = ui_kit.TableStatus.needsClearing;
+                    break;
                 }
                 return ui_kit.RestaurantTable(
                   id: t['id'].toString(),
                   label: t['table_number'].toString(),
                   status: status,
-                  capacity: t['capacity'] is int ? t['capacity'] : int.tryParse(t['capacity'].toString()) ?? 4,
-                  currentOccupancy: _calculateOccupancy(t['table_number'].toString()),
+                  capacity: t['capacity'] is int
+                      ? t['capacity']
+                      : int.tryParse(t['capacity'].toString()) ?? 4,
+                  currentOccupancy: _calculateOccupancy(
+                    t['table_number'].toString(),
+                  ),
                   type: t['table_type'],
                   size: t['table_size'],
                   x: double.tryParse(t['pos_x'].toString()) ?? 0,
@@ -8262,7 +11314,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           });
         }
       } else {
-         if (mounted) setState(() => _restaurantTables = _getSampleTables());
+        if (mounted) setState(() => _restaurantTables = _getSampleTables());
       }
     } catch (e) {
       debugPrint('Tables error: $e');
@@ -8276,20 +11328,28 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         id: 'sample_$i',
         label: '${i + 1}',
         capacity: (i % 3 == 0) ? 6 : 4,
-        type: (i % 3 == 0) ? 'Round' : ((i % 3 == 1) ? 'Rectangular' : 'Square'),
+        type: (i % 3 == 0)
+            ? 'Round'
+            : ((i % 3 == 1) ? 'Rectangular' : 'Square'),
         size: (i % 3 == 0) ? 'Large' : ((i % 3 == 1) ? 'Medium' : 'Small'),
-        status: (i == 2) ? ui_kit.TableStatus.occupied : ui_kit.TableStatus.available,
+        status: (i == 2)
+            ? ui_kit.TableStatus.occupied
+            : ui_kit.TableStatus.available,
         x: (i % 4) * 180.0 + 50,
         y: (i ~/ 4) * 180.0 + 50,
       );
     });
   }
 
-  void _updateTableCoord(ui_kit.RestaurantTable table, double x, double y) async {
+  void _updateTableCoord(
+    ui_kit.RestaurantTable table,
+    double x,
+    double y,
+  ) async {
     // Defensive clamping
     final safeX = x < 0 ? 0.0 : x;
     final safeY = y < 0 ? 0.0 : y;
-    
+
     try {
       await http.patch(
         Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'),
@@ -8301,7 +11361,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     }
   }
 
-  void _updateTableStatus(ui_kit.RestaurantTable table, String newStatusDb) async {
+  void _updateTableStatus(
+    ui_kit.RestaurantTable table,
+    String newStatusDb,
+  ) async {
     try {
       await http.patch(
         Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'),
@@ -8331,7 +11394,8 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         // Apply reservation fee as advance payment
         if (reservation['booking_fee'] != null) {
           setState(() {
-            _reservationFee = double.tryParse(reservation['booking_fee'].toString()) ?? 0.0;
+            _reservationFee =
+                double.tryParse(reservation['booking_fee'].toString()) ?? 0.0;
           });
         }
       }
@@ -8353,18 +11417,24 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           children: [
             Icon(Icons.table_bar_outlined, size: 64, color: themeHint),
             const SizedBox(height: 16),
-            Text(LocalizationService().translate('no_tables_found'), style: TextStyle(color: themeHint, fontSize: 18)),
+            Text(
+              LocalizationService().translate('no_tables_found'),
+              style: TextStyle(color: themeHint, fontSize: 18),
+            ),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _fetchTables,
               style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
-              child: Text(LocalizationService().translate('retry_fetch'), style: const TextStyle(color: Colors.white)),
+              child: Text(
+                LocalizationService().translate('retry_fetch'),
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
       );
     }
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -8373,28 +11443,56 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(LocalizationService().translate('interactive_floor_plan'), style: TextStyle(color: themeText, fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                LocalizationService().translate('interactive_floor_plan'),
+                style: TextStyle(
+                  color: themeText,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const Spacer(),
               ElevatedButton.icon(
                 onPressed: _showAddTableDialog,
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: Text(LocalizationService().translate('add_new_table'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                label: Text(
+                  LocalizationService().translate('add_new_table'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               if (_restaurantTables!.any((t) => t.id.startsWith('sample_')))
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: themePrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: themePrimary),
                   ),
-                  child: Text('DEMO MODE', style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                  child: Text(
+                    'DEMO MODE',
+                    style: TextStyle(
+                      color: themePrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -8424,17 +11522,28 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${LocalizationService().translate('table')} ${table.label}', style: TextStyle(color: themeText)),
+              Text(
+                '${LocalizationService().translate('table')} ${table.label}',
+                style: TextStyle(color: themeText),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (available > 0 ? Colors.green : Colors.red).withValues(alpha: 0.1),
+                  color: (available > 0 ? Colors.green : Colors.red).withValues(
+                    alpha: 0.1,
+                  ),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: available > 0 ? Colors.green : Colors.red),
+                  border: Border.all(
+                    color: available > 0 ? Colors.green : Colors.red,
+                  ),
                 ),
                 child: Text(
                   '$available / ${table.capacity}',
-                  style: TextStyle(color: available > 0 ? Colors.green : Colors.red, fontSize: 14, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: available > 0 ? Colors.green : Colors.red,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -8459,10 +11568,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(LocalizationService().translate('available_capacity'), style: TextStyle(color: themeHint, fontSize: 11)),
+                          Text(
+                            LocalizationService().translate(
+                              'available_capacity',
+                            ),
+                            style: TextStyle(color: themeHint, fontSize: 11),
+                          ),
                           Text(
                             '$available ${LocalizationService().translate('seats_remaining')}',
-                            style: TextStyle(color: themeText, fontWeight: FontWeight.bold, fontSize: 15),
+                            style: TextStyle(
+                              color: themeText,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                           ),
                         ],
                       ),
@@ -8470,12 +11588,16 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   ],
                 ),
               ),
-              
-              if (table.status == ui_kit.TableStatus.available || table.status == ui_kit.TableStatus.occupied)
+
+              if (table.status == ui_kit.TableStatus.available ||
+                  table.status == ui_kit.TableStatus.occupied)
                 StatefulBuilder(
                   builder: (context, setDialogState) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         color: themeBg.withValues(alpha: 0.5),
@@ -8485,35 +11607,69 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Party Size:', style: TextStyle(color: themeText, fontWeight: FontWeight.w600)),
+                          Text(
+                            'Party Size:',
+                            style: TextStyle(
+                              color: themeText,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           Row(
                             children: [
                               IconButton(
-                                icon: Icon(Icons.remove_circle_outline, color: _partySize > 1 ? themePrimary : themeHint),
-                                onPressed: _partySize > 1 ? () {
-                                  setDialogState(() => _partySize--);
-                                  setState(() {});
-                                } : null,
+                                icon: Icon(
+                                  Icons.remove_circle_outline,
+                                  color: _partySize > 1
+                                      ? themePrimary
+                                      : themeHint,
+                                ),
+                                onPressed: _partySize > 1
+                                    ? () {
+                                        setDialogState(() => _partySize--);
+                                        setState(() {});
+                                      }
+                                    : null,
                               ),
-                              Text('$_partySize', style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text(
+                                '$_partySize',
+                                style: TextStyle(
+                                  color: themeText,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               IconButton(
-                                icon: Icon(Icons.add_circle_outline, color: _partySize < available ? themePrimary : themeHint),
-                                onPressed: _partySize < available ? () {
-                                  setDialogState(() => _partySize++);
-                                  setState(() {});
-                                } : null,
+                                icon: Icon(
+                                  Icons.add_circle_outline,
+                                  color: _partySize < available
+                                      ? themePrimary
+                                      : themeHint,
+                                ),
+                                onPressed: _partySize < available
+                                    ? () {
+                                        setDialogState(() => _partySize++);
+                                        setState(() {});
+                                      }
+                                    : null,
                               ),
                             ],
                           ),
                         ],
                       ),
                     );
-                  }
+                  },
                 ),
-              if (table.status == ui_kit.TableStatus.available || table.status == ui_kit.TableStatus.reserved)
+              if (table.status == ui_kit.TableStatus.available ||
+                  table.status == ui_kit.TableStatus.reserved)
                 ListTile(
-                  leading: const Icon(Icons.add_shopping_cart, color: Colors.green),
-                  title: Text(LocalizationService().translate('start_new_order'), style: TextStyle(color: themeText)),
+                  leading: const Icon(
+                    Icons.add_shopping_cart,
+                    color: Colors.green,
+                  ),
+                  title: Text(
+                    LocalizationService().translate('start_new_order'),
+                    style: TextStyle(color: themeText),
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     _startOrderFromTable(table);
@@ -8522,7 +11678,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               if (table.status == ui_kit.TableStatus.occupied)
                 ListTile(
                   leading: Icon(Icons.receipt_long, color: themePrimary),
-                  title: Text(LocalizationService().translate('manage_active_order'), style: TextStyle(color: themeText)),
+                  title: Text(
+                    LocalizationService().translate('manage_active_order'),
+                    style: TextStyle(color: themeText),
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     setState(() {
@@ -8533,8 +11692,14 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 ),
               if (table.status != ui_kit.TableStatus.available)
                 ListTile(
-                  leading: const Icon(Icons.cleaning_services, color: Colors.amber),
-                  title: Text(LocalizationService().translate('clear_table'), style: TextStyle(color: themeText)),
+                  leading: const Icon(
+                    Icons.cleaning_services,
+                    color: Colors.amber,
+                  ),
+                  title: Text(
+                    LocalizationService().translate('clear_table'),
+                    style: TextStyle(color: themeText),
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     _updateTableStatus(table, 'Available');
@@ -8542,18 +11707,34 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 ),
               const Divider(color: Colors.white12),
               ExpansionTile(
-                title: Text(LocalizationService().translate('manual_status_override'), style: TextStyle(color: themeHint, fontSize: 13)),
+                title: Text(
+                  LocalizationService().translate('manual_status_override'),
+                  style: TextStyle(color: themeHint, fontSize: 13),
+                ),
                 children: [
-                  _buildTableStatusOption(ctx, table, 'Available', Colors.green),
+                  _buildTableStatusOption(
+                    ctx,
+                    table,
+                    'Available',
+                    Colors.green,
+                  ),
                   _buildTableStatusOption(ctx, table, 'Occupied', themePrimary),
                   _buildTableStatusOption(ctx, table, 'Reserved', themePrimary),
-                  _buildTableStatusOption(ctx, table, 'Needs Clearing', Colors.amber),
+                  _buildTableStatusOption(
+                    ctx,
+                    table,
+                    'Needs Clearing',
+                    Colors.amber,
+                  ),
                 ],
               ),
               const Divider(color: Colors.white12),
               ListTile(
                 leading: Icon(Icons.edit, color: themePrimary),
-                title: Text(LocalizationService().translate('edit_table_details'), style: TextStyle(color: themeText)),
+                title: Text(
+                  LocalizationService().translate('edit_table_details'),
+                  style: TextStyle(color: themeText),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showEditTableDialog(table);
@@ -8561,7 +11742,10 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               ),
               ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: Text(LocalizationService().translate('delete_table'), style: TextStyle(color: Colors.red)),
+                title: Text(
+                  LocalizationService().translate('delete_table'),
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _confirmDeleteTable(table);
@@ -8570,7 +11754,7 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
             ],
           ),
         );
-      }
+      },
     );
   }
 
@@ -8579,26 +11763,52 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: themeCard,
-        title: Text(LocalizationService().translate('delete_table'), style: const TextStyle(color: Colors.white)),
-        content: Text('${LocalizationService().translate('delete_table_confirm')} ${table.label}?', style: TextStyle(color: themeHint)),
+        title: Text(
+          LocalizationService().translate('delete_table'),
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '${LocalizationService().translate('delete_table_confirm')} ${table.label}?',
+          style: TextStyle(color: themeHint),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(LocalizationService().translate('cancel').toUpperCase(), style: TextStyle(color: themeHint))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              LocalizationService().translate('cancel').toUpperCase(),
+              style: TextStyle(color: themeHint),
+            ),
+          ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                final resp = await http.delete(Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'));
+                final resp = await http.delete(
+                  Uri.parse(
+                    '${ThemeService.apiBaseUrl}/api/tables/${table.id}',
+                  ),
+                );
                 if (resp.statusCode == 200) {
                   if (!mounted) return;
                   _fetchTables();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('table_removed')), backgroundColor: Colors.green));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        LocalizationService().translate('table_removed'),
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
                 }
               } catch (e) {
                 debugPrint('Delete error: $e');
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(LocalizationService().translate('delete').toUpperCase(), style: const TextStyle(color: Colors.white)),
+            child: Text(
+              LocalizationService().translate('delete').toUpperCase(),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -8607,13 +11817,18 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
 
   void _showEditTableDialog(ui_kit.RestaurantTable table) {
     final labelController = TextEditingController(text: table.label);
-    final capacityController = TextEditingController(text: table.capacity.toString());
+    final capacityController = TextEditingController(
+      text: table.capacity.toString(),
+    );
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: themeCard,
-        title: Text('${LocalizationService().translate('edit_table_details')} ${table.label}', style: TextStyle(color: themeText)),
+        title: Text(
+          '${LocalizationService().translate('edit_table_details')} ${table.label}',
+          style: TextStyle(color: themeText),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -8623,7 +11838,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               decoration: InputDecoration(
                 labelText: LocalizationService().translate('table_number'),
                 labelStyle: TextStyle(color: themeHint),
-                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: themeBorder)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: themeBorder),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -8634,30 +11851,45 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
               decoration: InputDecoration(
                 labelText: LocalizationService().translate('capacity'),
                 labelStyle: TextStyle(color: themeHint),
-                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: themeBorder)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: themeBorder),
+                ),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(LocalizationService().translate('cancel').toUpperCase(), style: TextStyle(color: themeHint))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              LocalizationService().translate('cancel').toUpperCase(),
+              style: TextStyle(color: themeHint),
+            ),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (labelController.text.trim().isEmpty) {
-                _showWarningDialog(LocalizationService().translate('enter_table_number_warning'));
+                _showWarningDialog(
+                  LocalizationService().translate('enter_table_number_warning'),
+                );
                 return;
               }
               if (capacityController.text.trim().isEmpty) {
-                _showWarningDialog(LocalizationService().translate('enter_capacity_warning'));
+                _showWarningDialog(
+                  LocalizationService().translate('enter_capacity_warning'),
+                );
                 return;
               }
               final body = {
                 'table_number': labelController.text.trim(),
-                'capacity': int.tryParse(capacityController.text) ?? table.capacity,
+                'capacity':
+                    int.tryParse(capacityController.text) ?? table.capacity,
               };
               try {
                 final resp = await http.patch(
-                  Uri.parse('${ThemeService.apiBaseUrl}/api/tables/${table.id}'),
+                  Uri.parse(
+                    '${ThemeService.apiBaseUrl}/api/tables/${table.id}',
+                  ),
                   headers: {'Content-Type': 'application/json'},
                   body: json.encode(body),
                 );
@@ -8666,24 +11898,44 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                   Navigator.pop(ctx);
                   if (!mounted) return;
                   _fetchTables();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('table_updated')), backgroundColor: Colors.green));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        LocalizationService().translate('table_updated'),
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
                 }
               } catch (e) {
                 debugPrint('Edit error: $e');
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
-            child: Text(LocalizationService().translate('save_changes').toUpperCase(), style: const TextStyle(color: Colors.white)),
+            child: Text(
+              LocalizationService().translate('save_changes').toUpperCase(),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTableStatusOption(BuildContext ctx, ui_kit.RestaurantTable table, String status, Color color) {
+  Widget _buildTableStatusOption(
+    BuildContext ctx,
+    ui_kit.RestaurantTable table,
+    String status,
+    Color color,
+  ) {
     return ListTile(
       leading: Icon(Icons.circle, color: color),
-      title: Text(LocalizationService().translate(status.toLowerCase().replaceAll(' ', '_')), style: TextStyle(color: themeText)),
+      title: Text(
+        LocalizationService().translate(
+          status.toLowerCase().replaceAll(' ', '_'),
+        ),
+        style: TextStyle(color: themeText),
+      ),
       onTap: () {
         Navigator.pop(ctx);
         _updateTableStatus(table, status);
@@ -8691,9 +11943,17 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
     );
   }
 
-  Widget _buildUnifiedSummary(Color themeText, Color themeCard, Color themeBorder, Color themePrimary, Color themeHint) {
-    final clockedInCount = _hrStats['staff'] is List 
-        ? (_hrStats['staff'] as List).where((s) => s['status'] == 'Active').length 
+  Widget _buildUnifiedSummary(
+    Color themeText,
+    Color themeCard,
+    Color themeBorder,
+    Color themePrimary,
+    Color themeHint,
+  ) {
+    final clockedInCount = _hrStats['staff'] is List
+        ? (_hrStats['staff'] as List)
+              .where((s) => s['status'] == 'Active')
+              .length
         : 0;
 
     return Column(
@@ -8715,7 +11975,11 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                 children: [
                   Text(
                     LocalizationService().translate('mission_control_summary'),
-                    style: TextStyle(color: themeText, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: themeText,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Icon(Icons.analytics_outlined, color: themePrimary, size: 32),
                 ],
@@ -8732,20 +11996,30 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                       children: [
                         Text(
                           LocalizationService().translate('operational_health'),
-                          style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: themeText,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 20),
                         _StatusRow(
-                          label: LocalizationService().translate('staff_on_duty'),
+                          label: LocalizationService().translate(
+                            'staff_on_duty',
+                          ),
                           value: '$clockedInCount',
                           icon: Icons.badge_outlined,
                           color: Colors.blue,
                         ),
                         _StatusRow(
-                          label: LocalizationService().translate('low_stock_items'),
+                          label: LocalizationService().translate(
+                            'low_stock_items',
+                          ),
                           value: '${_lowStockItems.length}',
                           icon: Icons.inventory_2_outlined,
-                          color: _lowStockItems.isNotEmpty ? Colors.orange : Colors.green,
+                          color: _lowStockItems.isNotEmpty
+                              ? Colors.orange
+                              : Colors.green,
                         ),
                         if (_lowStockItems.isNotEmpty)
                           Padding(
@@ -8753,17 +12027,31 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                             child: Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: _lowStockItems.take(5).map((item) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  item['name'], 
-                                  style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600)
-                                ),
-                              )).toList(),
+                              children: _lowStockItems
+                                  .take(5)
+                                  .map(
+                                    (item) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        item['name'],
+                                        style: const TextStyle(
+                                          color: Colors.orange,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                             ),
                           ),
                       ],
@@ -8780,38 +12068,64 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              LocalizationService().translate('financial_reconciliation'),
-                              style: TextStyle(color: themeText, fontSize: 18, fontWeight: FontWeight.bold),
+                              LocalizationService().translate(
+                                'financial_reconciliation',
+                              ),
+                              style: TextStyle(
+                                color: themeText,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             ElevatedButton.icon(
                               icon: const Icon(Icons.add, size: 16),
-                              label: Text(LocalizationService().translate('log_expense')),
-                              onPressed: () => _showExpenseLoggingModal(context),
+                              label: Text(
+                                LocalizationService().translate('log_expense'),
+                              ),
+                              onPressed: () =>
+                                  _showExpenseLoggingModal(context),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: ThemeService().themeData.colorScheme.secondary,
+                                backgroundColor: ThemeService()
+                                    .themeData
+                                    .colorScheme
+                                    .secondary,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 20),
                         _StatusRow(
-                          label: LocalizationService().translate('net_profit_estimate'),
-                          value: '\$${(double.tryParse(_financialData['net_profit']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                          label: LocalizationService().translate(
+                            'net_profit_estimate',
+                          ),
+                          value:
+                              '\$${(double.tryParse(_financialData['net_profit']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
                           icon: Icons.trending_up,
                           color: Colors.green,
                         ),
                         _StatusRow(
-                          label: LocalizationService().translate('estimated_cogs'),
-                          value: '\$${(double.tryParse(_financialData['cogs']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                          label: LocalizationService().translate(
+                            'estimated_cogs',
+                          ),
+                          value:
+                              '\$${(double.tryParse(_financialData['cogs']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
                           icon: Icons.kitchen,
                           color: Colors.orange,
                         ),
                         _StatusRow(
-                          label: LocalizationService().translate('total_expenses'),
-                          value: '\$${(double.tryParse(_financialData['expenses']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                          label: LocalizationService().translate(
+                            'total_expenses',
+                          ),
+                          value:
+                              '\$${(double.tryParse(_financialData['expenses']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
                           icon: Icons.money_off,
                           color: Colors.red,
                         ),
@@ -8832,13 +12146,19 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       if (value is Map) {
         return MapEntry(key.toString(), _deepCastMap(value));
       } else if (value is List) {
-        return MapEntry(key.toString(), value.map((e) => e is Map ? _deepCastMap(e) : e).toList());
+        return MapEntry(
+          key.toString(),
+          value.map((e) => e is Map ? _deepCastMap(e) : e).toList(),
+        );
       }
       return MapEntry(key.toString(), value);
     });
   }
 
-  Future<void> _saveGatewaySettings(String name, Map<String, dynamic> data) async {
+  Future<void> _saveGatewaySettings(
+    String name,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final resp = await http.post(
         Uri.parse('${ThemeService.apiBaseUrl}/api/payment-gateways'),
@@ -8849,7 +12169,9 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
         _fetchSettings();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Payment gateway settings updated successfully'))
+            const SnackBar(
+              content: Text('Payment gateway settings updated successfully'),
+            ),
           );
         }
       }
@@ -8857,8 +12179,6 @@ class _POSMissionControlState extends State<POSMissionControl> with SingleTicker
       debugPrint('Error saving gateway settings: $e');
     }
   }
-
-
 }
 
 class _StatusRow extends StatelessWidget {
@@ -8890,7 +12210,10 @@ class _StatusRow extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(label, style: TextStyle(color: color.withValues(alpha: 0.7))),
+            child: Text(
+              label,
+              style: TextStyle(color: color.withValues(alpha: 0.7)),
+            ),
           ),
           Text(
             value,
@@ -9043,7 +12366,9 @@ class _TrendChart extends StatelessWidget {
     final cardBg = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black87;
 
-    final last6Months = trends.length > 6 ? trends.sublist(trends.length - 6) : trends;
+    final last6Months = trends.length > 6
+        ? trends.sublist(trends.length - 6)
+        : trends;
     double maxVal = 1.0;
     for (var t in last6Months) {
       double val = double.tryParse(t['total'].toString()) ?? 0.0;
@@ -9074,15 +12399,18 @@ class _TrendChart extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: last6Months.map((t) {
-                final double total = double.tryParse(t['total'].toString()) ?? 0.0;
+                final double total =
+                    double.tryParse(t['total'].toString()) ?? 0.0;
                 final heightFactor = total / maxVal;
-                
+
                 return Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
-                        total > 0 ? '\$${total.toStringAsFixed(0)}' : '',
+                        total > 0
+                            ? '${ThemeService.currency}${total.toStringAsFixed(0)}'
+                            : '',
                         style: TextStyle(
                           color: color,
                           fontSize: 10,
@@ -9105,13 +12433,13 @@ class _TrendChart extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                        Text(
-                          t['month'] ?? '',
-                          style: TextStyle(
-                            color: textColor.withValues(alpha: 0.5),
-                            fontSize: 12,
-                          ),
+                      Text(
+                        t['month'] ?? '',
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.5),
+                          fontSize: 12,
                         ),
+                      ),
                     ],
                   ),
                 );
@@ -9123,7 +12451,6 @@ class _TrendChart extends StatelessWidget {
     );
   }
 }
-
 
 class DigitalClock extends StatefulWidget {
   final TextStyle? style;
@@ -9154,10 +12481,12 @@ class _DigitalClockState extends State<DigitalClock> {
 
   void _updateTime() {
     final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final hour = now.hour > 12
+        ? now.hour - 12
+        : (now.hour == 0 ? 12 : now.hour);
     final amPm = now.hour >= 12 ? 'PM' : 'AM';
     final minute = now.minute.toString().padLeft(2, '0');
-    
+
     final month = now.month.toString().padLeft(2, '0');
     final day = now.day.toString().padLeft(2, '0');
     final year = now.year;

@@ -11,12 +11,13 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
-  
+
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -27,7 +28,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    
+
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -39,9 +40,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   Future<void> _fetchBranding() async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final response = await http.get(
-        Uri.parse('${ThemeService.apiBaseUrl}/api/settings?t=$timestamp'),
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .get(
+            Uri.parse('${ThemeService.apiBaseUrl}/api/settings?t=$timestamp'),
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -135,14 +138,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           // Background Image or Gradient
           Positioned.fill(
             child: ThemeService.instance.loginBackgroundUrl != null
-              ? Image.network(
-                  '${ThemeService.instance.loginBackgroundUrl!}?t=${DateTime.now().millisecondsSinceEpoch}',
-                  fit: BoxFit.cover,
-                  color: Colors.black.withValues(alpha: 0.6),
-                  colorBlendMode: BlendMode.darken,
-                  errorBuilder: (context, error, stackTrace) => _buildDefaultBackground(theme, themePrimary),
-                )
-              : _buildDefaultBackground(theme, themePrimary),
+                ? Image.network(
+                    ThemeService.instance.loginBackgroundUrl!.startsWith('http')
+                        ? '${ThemeService.instance.loginBackgroundUrl!}?t=${DateTime.now().millisecondsSinceEpoch}'
+                        : '${ThemeService.apiBaseUrl}/assets/${ThemeService.instance.loginBackgroundUrl!}?t=${DateTime.now().millisecondsSinceEpoch}',
+                    fit: BoxFit.cover,
+                    color: Colors.black.withValues(alpha: 0.6),
+                    colorBlendMode: BlendMode.darken,
+                    errorBuilder: (context, error, stackTrace) =>
+                        _buildDefaultBackground(theme, themePrimary),
+                  )
+                : _buildDefaultBackground(theme, themePrimary),
           ),
 
           Center(
@@ -151,20 +157,24 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 width: 480,
                 padding: const EdgeInsets.all(40),
                 decoration: BoxDecoration(
-                  color: isDark 
-                    ? Colors.white.withValues(alpha: 0.05) 
-                    : theme.cardColor.withValues(alpha: 0.7),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : theme.cardColor.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.dividerColor.withValues(alpha: 0.2)
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : theme.dividerColor.withValues(alpha: 0.2),
                   ),
-                  boxShadow: !isDark ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    )
-                  ] : null,
+                  boxShadow: !isDark
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -175,18 +185,18 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       children: [
                         // Primary Logo
                         _buildLogoCircle(
-                          ThemeService.instance.logoUrl, 
-                          accentColor, 
+                          ThemeService.instance.logoUrl,
+                          accentColor,
                           isDark,
                           _pulseAnimation,
                         ),
-                        
+
                         // Secondary Logo
                         if (ThemeService.instance.secondaryLogoUrl != null) ...[
                           const SizedBox(width: 20),
                           _buildLogoCircle(
-                            ThemeService.instance.secondaryLogoUrl, 
-                            accentColor, 
+                            ThemeService.instance.secondaryLogoUrl,
+                            accentColor,
                             isDark,
                             null,
                             isSecondary: true,
@@ -215,7 +225,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       ),
                     ),
                     const SizedBox(height: 48),
-                    
+
                     // Form Fields
                     _buildTextField(
                       controller: _usernameController,
@@ -237,18 +247,21 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       textColor: textColor,
                       subTextColor: subTextColor,
                     ),
-                    
+
                     if (_errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 20),
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // Login Button
                     SizedBox(
                       width: double.infinity,
@@ -283,7 +296,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
                     TextButton(
                       onPressed: () {},
@@ -319,7 +332,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildLogoCircle(String? url, Color accentColor, bool isDark, Animation<double>? pulse, {bool isSecondary = false}) {
+  Widget _buildLogoCircle(
+    String? url,
+    Color accentColor,
+    bool isDark,
+    Animation<double>? pulse, {
+    bool isSecondary = false,
+  }) {
     final logoWidget = Container(
       height: isSecondary ? 80 : 120,
       width: isSecondary ? 80 : 120,
@@ -331,16 +350,24 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         borderRadius: BorderRadius.circular(isSecondary ? 40 : 60),
         child: url != null && url.isNotEmpty
             ? Image.network(
-                url,
+                url.startsWith('http')
+                    ? url
+                    : '${ThemeService.apiBaseUrl}/assets/$url',
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => 
-                    Icon(isSecondary ? Icons.verified : Icons.restaurant, color: accentColor, size: isSecondary ? 40 : 60),
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  isSecondary ? Icons.verified : Icons.restaurant,
+                  color: accentColor,
+                  size: isSecondary ? 40 : 60,
+                ),
               )
             : Image.asset(
                 'packages/pos_terminal/assets/images/logo.png',
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => 
-                    Icon(isSecondary ? Icons.verified : Icons.restaurant, color: accentColor, size: isSecondary ? 40 : 60),
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  isSecondary ? Icons.verified : Icons.restaurant,
+                  color: accentColor,
+                  size: isSecondary ? 40 : 60,
+                ),
               ),
       ),
     );
@@ -363,7 +390,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
       ),
@@ -374,7 +403,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: subTextColor, fontSize: 14),
-          prefixIcon: Icon(icon, color: accentColor.withValues(alpha: 0.8), size: 22),
+          prefixIcon: Icon(
+            icon,
+            color: accentColor.withValues(alpha: 0.8),
+            size: 22,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,

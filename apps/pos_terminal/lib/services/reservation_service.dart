@@ -6,12 +6,19 @@ class ReservationService {
     return await ApiService.get('/api/reservations');
   }
 
-  static Future<http.Response> createReservation(Map<String, dynamic> data) async {
+  static Future<http.Response> createReservation(
+    Map<String, dynamic> data,
+  ) async {
     return await ApiService.post('/api/reservations', data);
   }
 
-  static Future<http.Response> updateReservationStatus(dynamic id, String status) async {
-    return await ApiService.put('/api/reservations/$id/status', {'status': status});
+  static Future<http.Response> updateReservationStatus(
+    dynamic id,
+    String status,
+  ) async {
+    return await ApiService.put('/api/reservations/$id/status', {
+      'status': status,
+    });
   }
 
   static Future<http.Response> deleteReservation(dynamic id) async {

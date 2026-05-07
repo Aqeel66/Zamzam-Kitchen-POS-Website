@@ -27,13 +27,13 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     console.log('POST /api/inventory body:', req.body);
-    const { name, unit, pack_unit, pack_size } = req.body;
+    const { name, unit, pack_unit, pack_size, cost_per_unit, min_stock_level } = req.body;
     const qty = req.body.current_stock !== undefined ? req.body.current_stock : (req.body.quantity || 0);
     const threshold = req.body.minimum_stock_level !== undefined ? req.body.minimum_stock_level : (req.body.low_stock_threshold || 0);
     
     const [result] = await db.query(
-      'INSERT INTO inventory_items (name, unit, quantity, low_stock_threshold, pack_unit, pack_size) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, unit, qty, threshold, pack_unit || null, pack_size || 1.00]
+      'INSERT INTO inventory_items (name, unit, quantity, low_stock_threshold, pack_unit, pack_size, cost_per_unit, min_stock_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, unit, qty, threshold, pack_unit || null, pack_size || 1.00, cost_per_unit || 0.00, min_stock_level || 0.00]
     );
     res.status(201).json({ success: true, itemId: result.insertId });
   } catch (error) {
@@ -56,7 +56,7 @@ router.put('/:id', async (req, res) => {
     }
     const currentItem = rows[0];
 
-    const { name, unit, pack_unit, pack_size } = req.body;
+    const { name, unit, pack_unit, pack_size, cost_per_unit, min_stock_level } = req.body;
     const qty = req.body.current_stock !== undefined ? req.body.current_stock : 
                 (req.body.quantity !== undefined ? req.body.quantity : currentItem.quantity);
     const threshold = req.body.minimum_stock_level !== undefined ? req.body.minimum_stock_level : 
@@ -66,10 +66,12 @@ router.put('/:id', async (req, res) => {
     const finalUnit = unit || currentItem.unit;
     const finalPackUnit = pack_unit !== undefined ? pack_unit : currentItem.pack_unit;
     const finalPackSize = pack_size !== undefined ? pack_size : currentItem.pack_size;
+    const finalCost = cost_per_unit !== undefined ? cost_per_unit : currentItem.cost_per_unit;
+    const finalMinStock = min_stock_level !== undefined ? min_stock_level : currentItem.min_stock_level;
 
     await db.query(
-      'UPDATE inventory_items SET name = ?, unit = ?, quantity = ?, low_stock_threshold = ?, pack_unit = ?, pack_size = ? WHERE id = ?',
-      [finalName, finalUnit, qty, threshold, finalPackUnit, finalPackSize, id]
+      'UPDATE inventory_items SET name = ?, unit = ?, quantity = ?, low_stock_threshold = ?, pack_unit = ?, pack_size = ?, cost_per_unit = ?, min_stock_level = ? WHERE id = ?',
+      [finalName, finalUnit, qty, threshold, finalPackUnit, finalPackSize, finalCost, finalMinStock, id]
     );
     
     res.json({ success: true });
