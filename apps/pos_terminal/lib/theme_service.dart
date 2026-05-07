@@ -189,6 +189,20 @@ class ThemeService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> hardReset() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      // Clear web local storage
+      html.window.localStorage.clear();
+      html.window.sessionStorage.clear();
+      // Force reload the page to clear browser cache
+      html.window.location.reload();
+    } catch (e) {
+      debugPrint('Error during hard reset: $e');
+    }
+  }
+
   static String resolveImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http')) return '$path?t=$_cacheBuster';

@@ -202,7 +202,7 @@ class _SettingsViewState extends State<SettingsView> {
                     Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Text(
-                        'Version 2.4.0',
+                        'v1.0.8-stable',
                         style: TextStyle(color: themeHint, fontSize: 10),
                       ),
                     ),
@@ -1311,6 +1311,45 @@ class _SettingsViewState extends State<SettingsView> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 32),
+          SettingsGridCard(
+            title: 'Application Recovery',
+            children: [
+              SettingActionRow(
+                label: 'Hard Reset & Clear Cache',
+                description: 'Clears all local storage, session data, and forces a full browser reload. Use this if you see old data or images.',
+                buttonLabel: 'HARD RESET',
+                buttonColor: Colors.orange.shade800,
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: Theme.of(context).cardColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      title: const Text('Confirm Hard Reset'),
+                      content: const Text(
+                        'This will clear your local session, local storage, and force the browser to reload from the server. You will be logged out.\n\nAre you sure?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('CANCEL'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            ThemeService.instance.hardReset();
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800),
+                          child: const Text('CONFIRM RESET', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),

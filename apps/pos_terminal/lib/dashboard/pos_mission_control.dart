@@ -1434,6 +1434,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             _categories = categories;
             _isLoading = false; // Only clears the initial heavy load
           });
+          _precacheMenuImages();
         }
       } else {
         if (mounted) {
@@ -6611,102 +6612,270 @@ class _POSMissionControlState extends State<POSMissionControl>
       );
     }
 
-    switch (_selectedTabIndex) {
-      case 0:
-        return _buildPOSView();
-      case 1:
-        return _buildDashboardView();
-      case 2:
-        return KDSView(
-          placedOrders: _placedOrders,
-          onUpdateStatus: _updateOrderStatus,
-          onReject: _showRejectionDialog,
-          onRefresh: () {
-            _fetchOrders();
-            _fetchSummary();
-          },
-          orderSortDirection:
-              _settings['branch']?['order_sort_direction'] ?? 'Descending',
-          themePrimary: themePrimary,
-          themeBg: themeBg,
-          themeText: themeText,
-          themeHint: themeHint,
-          themeCard: themeCard,
-          themeBorder: themeBorder,
-        );
-      case 3:
-        return OrdersView(
-          placedOrders: _placedOrders,
-          statusFilter: _orderStatusFilter,
-          onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
-          onEdit: (order) {
-            _setCartFromOrder(order);
-            setState(() => _selectedTabIndex = 0);
-          },
-          onSettle: (order) {
-            _setCartFromOrder(order);
-            _showCheckoutDialog();
-          },
-          onSplit: (order) {
-            _setCartFromOrder(order);
-            _showSplitBillDialog();
-          },
-          onMerge: (order) {
-            _setCartFromOrder(order);
-            _showMergeBillDialog();
-          },
-          onViewDetails: _showOrderDetailsDialog,
-          onDownloadPdf: _handlePdfDownload,
-          settings: _settings,
-          orderSortDirection:
-              _settings['branch']?['order_sort_direction'] ?? 'Descending',
-          themePrimary: themePrimary,
-          themeBg: themeBg,
-          themeText: themeText,
-          themeHint: themeHint,
-          themeCard: themeCard,
-          themeBorder: themeBorder,
-        );
-      case 4:
-        return _buildWaitingView();
-      case 5:
-        return ReservationsView(
-          reservations: _reservations,
-          statusFilter: _reservationStatusFilter,
-          selectedReservation: _selectedReservationDetails,
-          restaurantTables: _restaurantTables,
-          onFilterChanged: (f) => setState(() {
-            _reservationStatusFilter = f;
-            _selectedReservationDetails = null;
-          }),
-          onSelectReservation: (res) =>
-              setState(() => _selectedReservationDetails = res),
-          onAddReservation: _showNewReservationDialog,
-          onRefresh: _fetchReservations,
-          onUpdateStatus: _updateReservationStatus,
-          orderSortDirection:
-              _settings['branch']?['order_sort_direction'] ?? 'Descending',
-          themePrimary: themePrimary,
-          themeBg: themeBg,
-          themeText: themeText,
-          themeHint: themeHint,
-          themeCard: themeCard,
-          themeBorder: themeBorder,
-        );
-      case 6:
-        return _buildTablesView();
-      default:
-        return _buildPOSView();
-    }
+    return IndexedStack(
+      index: _selectedTabIndex,
+      children: _getMainStackChildren(themePrimary, themeBg, themeText, themeHint, themeCard, themeBorder),
+    );
+  }
+
+  List<Widget> _getMainStackChildren(
+    Color themePrimary,
+    Color themeBg,
+    Color themeText,
+    Color themeHint,
+    Color themeCard,
+    Color themeBorder,
+  ) {
+    return [
+      _buildPOSView(), // 0
+      _buildDashboardView(), // 1
+      KDSView( // 2
+        placedOrders: _placedOrders,
+        onUpdateStatus: _updateOrderStatus,
+        onReject: _showRejectionDialog,
+        onRefresh: () {
+          _fetchOrders();
+          _fetchSummary();
+        },
+        orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+        themePrimary: themePrimary,
+        themeBg: themeBg,
+        themeText: themeText,
+        themeHint: themeHint,
+        themeCard: themeCard,
+        themeBorder: themeBorder,
+      ),
+      OrdersView( // 3
+        placedOrders: _placedOrders,
+        statusFilter: _orderStatusFilter,
+        onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
+        onEdit: (order) {
+          _setCartFromOrder(order);
+          setState(() => _selectedTabIndex = 0);
+        },
+        onSettle: (order) {
+          _setCartFromOrder(order);
+          _showCheckoutDialog();
+        },
+        onSplit: (order) {
+          _setCartFromOrder(order);
+          _showSplitBillDialog();
+        },
+        onMerge: (order) {
+          _setCartFromOrder(order);
+          _showMergeBillDialog();
+        },
+        onViewDetails: _showOrderDetailsDialog,
+        onDownloadPdf: _handlePdfDownload,
+        settings: _settings,
+        orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+        themePrimary: themePrimary,
+        themeBg: themeBg,
+        themeText: themeText,
+        themeHint: themeHint,
+        themeCard: themeCard,
+        themeBorder: themeBorder,
+      ),
+      _buildWaitingView(), // 4
+      ReservationsView( // 5
+        reservations: _reservations,
+        statusFilter: _reservationStatusFilter,
+        selectedReservation: _selectedReservationDetails,
+        restaurantTables: _restaurantTables,
+        onFilterChanged: (f) => setState(() {
+          _reservationStatusFilter = f;
+          _selectedReservationDetails = null;
+        }),
+        onSelectReservation: (res) => setState(() => _selectedReservationDetails = res),
+        onAddReservation: _showNewReservationDialog,
+        onRefresh: _fetchReservations,
+        onUpdateStatus: _updateReservationStatus,
+        orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+        themePrimary: themePrimary,
+        themeBg: themeBg,
+        themeText: themeText,
+        themeHint: themeHint,
+        themeCard: themeCard,
+        themeBorder: themeBorder,
+      ),
+      _buildTablesView(), // 6
+    ];
   }
 
   Widget _buildDashboardView() {
     return Row(
       children: [
         _buildDashboardSidebar(),
-        Expanded(child: _getDashboardContent()),
+        Expanded(
+          child: IndexedStack(
+            index: _getDashboardIndex(_selectedDashboardTab),
+            children: _getDashboardStackChildren(),
+          ),
+        ),
       ],
     );
+  }
+
+  int _getDashboardIndex(int tab) {
+    // Map non-contiguous tabs to IndexedStack indices
+    final map = {
+      0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
+      10: 10, 11: 11, 12: 12, 13: 4, 14: 13
+    };
+    return map[tab] ?? 0;
+  }
+
+  List<Widget> _getDashboardStackChildren() {
+    final themeBg = Theme.of(context).scaffoldBackgroundColor;
+    final themePrimary = Theme.of(context).primaryColor;
+    final themeText = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeCard = Theme.of(context).cardColor;
+    final themeBorder = Theme.of(context).dividerColor;
+
+    return [
+      _buildDashboardContent(), // 0
+      OrdersView( // 1
+        placedOrders: _placedOrders,
+        statusFilter: _orderStatusFilter,
+        onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
+        onEdit: (order) {
+          _setCartFromOrder(order);
+          setState(() => _selectedTabIndex = 0);
+        },
+        onSettle: (order) {
+          _setCartFromOrder(order);
+          _showCheckoutDialog();
+        },
+        onSplit: (order) {
+          _setCartFromOrder(order);
+          _showSplitBillDialog();
+        },
+        onMerge: (order) {
+          _setCartFromOrder(order);
+          _showMergeBillDialog();
+        },
+        onViewDetails: _showOrderDetailsDialog,
+        onDownloadPdf: _handlePdfDownload,
+        settings: _settings,
+        orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+        themePrimary: themePrimary,
+        themeBg: themeBg,
+        themeText: themeText,
+        themeHint: themeHint,
+        themeCard: themeCard,
+        themeBorder: themeBorder,
+      ),
+      PurchaseManagementView(isDarkMode: _isDarkMode), // 2
+      ReservationsView( // 3
+        reservations: _reservations,
+        statusFilter: _reservationStatusFilter,
+        selectedReservation: _selectedReservationDetails,
+        restaurantTables: _restaurantTables,
+        onFilterChanged: (f) => setState(() {
+          _reservationStatusFilter = f;
+          _selectedReservationDetails = null;
+        }),
+        onSelectReservation: (res) => setState(() => _selectedReservationDetails = res),
+        onAddReservation: _showNewReservationDialog,
+        onRefresh: _fetchReservations,
+        onUpdateStatus: _updateReservationStatus,
+        themePrimary: themePrimary,
+        themeBg: themeBg,
+        themeText: themeText,
+        themeHint: themeHint,
+        themeCard: themeCard,
+        themeBorder: themeBorder,
+      ),
+      CategoryManagementView( // 4 (also 13)
+        isDarkMode: _isDarkMode,
+        categories: _categories,
+        onCreateCategory: _createCategory,
+        onUpdateCategory: _updateCategory,
+        onDeleteCategory: _deleteCategory,
+        onPickImage: _pickImage,
+      ),
+      KDSView( // 5
+        placedOrders: _placedOrders,
+        onUpdateStatus: _updateOrderStatus,
+        onReject: _showRejectionDialog,
+        onRefresh: () {
+          _fetchOrders();
+          _fetchSummary();
+        },
+        themePrimary: themePrimary,
+        themeBg: themeBg,
+        themeText: themeText,
+        themeHint: themeHint,
+        themeCard: themeCard,
+        themeBorder: themeBorder,
+      ),
+      HumanResourceView( // 6
+        shifts: _shifts,
+        users: _users,
+        hrStats: _hrStats,
+        operationalData: _operationalData,
+        isLoading: _isHRLoading,
+        onClockIn: _showClockInDialog,
+        onRefresh: _fetchShifts,
+      ),
+      ReportsView( // 7
+        summaryData: _summaryData,
+        financialData: _financialData,
+        operationalData: _operationalData,
+        placedOrders: _placedOrders,
+        shifts: _shifts,
+        isLoading: _isLoading,
+      ),
+      _buildTableQRCodeView(), // 8
+      UserManagementView( // 9
+        users: _users,
+        roles: _roles,
+        permissions: _permissions,
+        isUsersLoading: _isUsersLoading,
+        isRolesLoading: _isRolesLoading,
+        onCreateUser: _createUser,
+        onUpdateUser: _updateUser,
+        onDeleteUser: _deleteUser,
+        onCreateRole: _createRole,
+        onUpdateRole: _updateRole,
+        onDeleteRole: _deleteRole,
+        onUpdateRolePermissions: _updateRolePermissions,
+        initialSubTab: 0,
+      ),
+      SettingsView( // 10
+        settings: _settings,
+        isLoading: _isLoading,
+        onUpdateSetting: _updateSetting,
+        onSaveGatewaySettings: _saveGatewaySettings,
+        onFetchSettings: _fetchSettings,
+        onPickImage: _pickImage,
+        onResetTransactions: _showResetConfirmation,
+        onTestTwilio: _testTwilio,
+        onTestSMTP: _testSMTP,
+        onTestPaymentGateway: _testPaymentGateway,
+      ),
+      InventoryDashboard( // 11
+        isDarkMode: _isDarkMode,
+        onRefresh: _fetchInventory,
+      ),
+      CustomerManagementView( // 12
+        isDarkMode: _isDarkMode,
+      ),
+      FoodItemManagementView( // 13 (case 14)
+        isDarkMode: _isDarkMode,
+        categories: _categories,
+        items: _menuItems,
+        onCreateMenuItem: _createMenuItem,
+        onUpdateMenuItem: _updateMenuItem,
+        onDeleteMenuItem: _deleteMenuItem,
+        onPickImage: _pickImage,
+        onRefreshMenu: _fetchMenu,
+      ),
+      PromotionsView( // 14 (extra safety)
+        isDarkMode: _isDarkMode,
+      ),
+    ];
   }
 
   Widget _getDashboardContent() {
@@ -7152,6 +7321,13 @@ class _POSMissionControlState extends State<POSMissionControl>
                   style: TextStyle(
                     color: themeText.withValues(alpha: 0.3),
                     fontSize: 8,
+                  ),
+                ),
+                Text(
+                  'Identity: ${widget.user['first_name'] ?? ''} | ${widget.user['last_name'] ?? ''} (@${widget.user['username'] ?? ''})',
+                  style: TextStyle(
+                    color: themeText.withValues(alpha: 0.2),
+                    fontSize: 7,
                   ),
                 ),
               ],
@@ -12219,6 +12395,18 @@ class _POSMissionControlState extends State<POSMissionControl>
       }
     } catch (e) {
       debugPrint('Error saving gateway settings: $e');
+    }
+  }
+
+  void _precacheMenuImages() {
+    if (!mounted) return;
+    for (var item in _menuItems) {
+      if (item['image'] != null && item['image'].toString().isNotEmpty) {
+        precacheImage(
+          CachedNetworkImageProvider(ThemeService.resolveImageUrl(item['image'].toString())),
+          context,
+        );
+      }
     }
   }
 }
