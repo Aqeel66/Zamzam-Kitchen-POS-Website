@@ -8,8 +8,12 @@ const path = require('path');
 // We use require() to load the entire backend app
 console.log('🚀 Starting Zamzam RMS Backend from Root Entry Point...');
 try {
-    require('../apps/backend/src/index.js');
+    const backendPath = path.join(__dirname, '../apps/backend/src/index.js');
+    console.log(`🔍 Attempting to load backend from: ${backendPath}`);
+    require(backendPath);
 } catch (err) {
-    console.error('🔥 Failed to load backend index.js:', err.message);
+    console.error('🔥 CRITICAL ERROR: Failed to load backend module!');
+    console.error('🔥 Error Message:', err.message);
+    console.error('🔥 Stack Trace:', err.stack);
     process.exit(1);
 }
