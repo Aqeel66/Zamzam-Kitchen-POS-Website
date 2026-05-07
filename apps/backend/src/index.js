@@ -99,8 +99,14 @@ app.use('/assets', (req, res) => {
 
 app.use(express.static(webPath));
 
-app.get('/api/health', (req, res) => {
+app.use('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Zamzam Kitchen API is running', timestamp: new Date() });
+});
+
+// API Request Logger (Debugging 405)
+app.use('/api', (req, res, next) => {
+  console.log(`📡 [${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
 });
 
 // Route Imports

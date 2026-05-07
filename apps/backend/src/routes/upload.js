@@ -170,6 +170,19 @@ router.post('/login-bg', uploadLoginBg.single('image'), async (req, res) => {
   }
 });
 
+// Explicitly handle GET to provide feedback for redirects (405 issues)
+router.get(['/login-bg', '/logo', '/secondary-logo', '/hero-bg'], (req, res) => {
+  res.status(405).json({ 
+    success: false, 
+    message: `Method ${req.method} not allowed. Please ensure you are using POST and that there are no HTTP -> HTTPS redirects stripping the method.`,
+    debug: {
+      url: req.originalUrl,
+      method: req.method,
+      protocol: req.protocol
+    }
+  });
+});
+
 // ─── Hero Background Upload Storage ──────────────────────────────────────────
 const heroBgStorage = multer.diskStorage({
   destination: function (req, file, cb) {
