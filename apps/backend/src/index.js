@@ -48,21 +48,35 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const os = require('os');
 
-// PERMANENT STORAGE: Use a directory in the user's home folder to ensure survival across deployments
-const STORAGE_ROOT = path.join(os.homedir(), '.zamzam_rms_storage');
+// SAFE STORAGE INITIALIZATION: Try home directory, but fallback to local path to prevent 503 crashes
+let STORAGE_ROOT;
+try {
+  // On some shared hosts, os.homedir() might be restricted or point to root
+  const home = os.homedir();
+  if (home && home !== '/') {
+    STORAGE_ROOT = path.join(home, '.zamzam_rms_storage');
+  } else {
+    throw new Error('Invalid home directory');
+  }
+} catch (e) {
+  console.warn('⚠️ Home directory restricted, falling back to application-relative storage.');
+  STORAGE_ROOT = path.join(__dirname, '../../zamzam_persistent_storage');
+}
+
 const ASSETS_STORAGE = path.join(STORAGE_ROOT, 'assets');
 const MENU_ITEMS_STORAGE = path.join(ASSETS_STORAGE, 'menu_items');
 
-// Initialize permanent storage structure
-console.log('📂 Initializing Permanent Asset Storage...');
+// Initialize permanent storage structure with safety checks
+console.log('📂 Initializing Asset Storage...');
 [STORAGE_ROOT, ASSETS_STORAGE, MENU_ITEMS_STORAGE].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    try {
+  try {
+    if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`✅ Created Permanent Storage: ${dir}`);
-    } catch (e) {
-      console.error(`❌ Failed to create storage ${dir}:`, e.message);
+      console.log(`✅ Storage initialized at: ${dir}`);
     }
+  } catch (e) {
+    console.error(`❌ Storage initialization failed for ${dir}:`, e.message);
+    // If we can't even create a local fallback, we're in trouble, but let's try to keep the server alive
   }
 });
 
@@ -70,23 +84,31 @@ const legacyAssetsPath = path.join(__dirname, '../assets');
 const legacyPersistentPath = path.join(__dirname, '../persistent_assets');
 const webPath = path.join(__dirname, '../public');
 
-// Optimized serving with prioritized lookups and aggressive caching
+// Optimized serving with prioritized lookups and error safety
 const serveAsset = (req, res, next) => {
-  const assetUrl = req.path;
-  
-  // Potential locations in priority order
-  const locations = [
-    path.join(ASSETS_STORAGE, assetUrl),
-    path.join(legacyAssetsPath, assetUrl),
-    path.join(legacyPersistentPath, assetUrl)
-  ];
+  try {
+    const assetUrl = req.path;
+    
+    // Potential locations in priority order
+    const locations = [
+      path.join(ASSETS_STORAGE, assetUrl),
+      path.join(legacyAssetsPath, assetUrl),
+      path.join(legacyPersistentPath, assetUrl)
+    ].filter(loc => {
+      try {
+        return fs.existsSync(loc) && fs.lstatSync(loc).isFile();
+      } catch (e) {
+        return false;
+      }
+    });
 
-  for (const loc of locations) {
-    if (fs.existsSync(loc) && fs.lstatSync(loc).isFile()) {
+    if (locations.length > 0) {
       res.set('Access-Control-Allow-Origin', '*');
       res.set('Cache-Control', 'public, max-age=31536000, immutable');
-      return res.sendFile(loc);
+      return res.sendFile(locations[0]);
     }
+  } catch (err) {
+    console.error('🔥 ASSET SERVE ERROR:', err.message);
   }
   next();
 };
@@ -94,7 +116,7 @@ const serveAsset = (req, res, next) => {
 app.use('/assets', serveAsset);
 app.use(express.static(webPath));
 
-// Fallback for 404 assets with diagnostic info
+// Fallback for 404 assets
 app.use('/assets', (req, res) => {
   console.warn(`⚠️ Asset Not Found: ${req.originalUrl}`);
   res.status(404).send('Asset not found');

@@ -6,12 +6,26 @@ const fs = require('fs');
 const db = require('../db');
 
 const os = require('os');
-// Base permanent storage path (Home directory for total isolation)
-const persistentAssetsPath = path.join(os.homedir(), '.zamzam_rms_storage', 'assets');
+// Safe persistent storage path with fallback
+let persistentAssetsPath;
+try {
+  const home = os.homedir();
+  if (home && home !== '/') {
+    persistentAssetsPath = path.join(home, '.zamzam_rms_storage', 'assets');
+  } else {
+    throw new Error('Invalid home');
+  }
+} catch (e) {
+  persistentAssetsPath = path.join(__dirname, '../../../zamzam_persistent_storage', 'assets');
+}
 
 // Ensure base path exists for uploads
 if (!fs.existsSync(persistentAssetsPath)) {
-  fs.mkdirSync(persistentAssetsPath, { recursive: true });
+  try {
+    fs.mkdirSync(persistentAssetsPath, { recursive: true });
+  } catch (e) {
+    console.error('❌ Failed to create upload directory:', e.message);
+  }
 }
 
 // ─── Menu Item Image Storage ────────────────────────────────────────────────
