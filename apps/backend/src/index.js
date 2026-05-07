@@ -84,6 +84,10 @@ const assetOptions = {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    // Prevent aggressive caching for branding images
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
   }
 };
 
