@@ -218,18 +218,22 @@ for (const p of waiterAppPaths) {
 
 // Handle Main Website routing (Root /)
 app.get(/.*/, (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
+  // CRITICAL: Do NOT catch /waiter! The root entry point handles that.
+  if (req.path.startsWith('/waiter')) {
     return next();
   }
   
-  // Serve the main website index.html
-  const indexPath = path.join(webPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      console.error('❌ Error sending Website index.html:', err);
-      next();
-    }
-  });
+  // Exclude API routes
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+
+  const websitePath = path.join(__dirname, '../../website/dist/index.html');
+  if (fs.existsSync(websitePath)) {
+    res.sendFile(websitePath);
+  } else {
+    res.status(404).send('Website not found');
+  }
 });
 
 // 404 Logger for debugging missing assets
