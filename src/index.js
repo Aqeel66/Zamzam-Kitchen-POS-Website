@@ -20,19 +20,20 @@ app.use('/waiter/assets', express.static(path.join(waiterAppPath, 'assets'), {
 // 2. Serve other static files in /waiter/
 app.use('/waiter', express.static(waiterAppPath, { fallthrough: true }));
 
-// 3. FORCE SPA Fallback for /waiter - Handle this BEFORE loading backend
-app.get('/waiter', (req, res) => {
-    const indexPath = path.join(waiterAppPath, 'index.html');
-    if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
-    res.status(404).send('Waiter App Index Not Found');
-});
-
-app.get('/waiter/*', (req, res, next) => {
+// 3. ABSOLUTE CATCH-ALL for /waiter - Handle this BEFORE loading backend
+app.all(['/waiter', '/waiter/*'], (req, res, next) => {
+    // Let API requests pass through to the backend
     if (req.path.includes('/api/')) return next();
     
+    // Serve assets if it's an asset request
+    if (req.path.includes('/assets/')) return next();
+
     const indexPath = path.join(waiterAppPath, 'index.html');
-    if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
-    next();
+    if (fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+    }
+    
+    res.status(404).send('Waiter App Index Not Found in Persistent Storage');
 });
 
 // Attempt to load the rest of the backend
