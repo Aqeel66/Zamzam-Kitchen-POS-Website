@@ -161,9 +161,7 @@ class _LoginPageState extends State<LoginPage>
           Positioned.fill(
             child: ThemeService.instance.loginBackgroundUrl != null
                 ? Image.network(
-                    ThemeService.instance.loginBackgroundUrl!.startsWith('http')
-                        ? '${ThemeService.instance.loginBackgroundUrl!}?t=${ThemeService.cacheBuster}'
-                        : '${ThemeService.apiBaseUrl}/assets/${ThemeService.instance.loginBackgroundUrl!}?t=${ThemeService.cacheBuster}',
+                    ThemeService.instance.loginBackgroundUrl!,
                     fit: BoxFit.cover,
                     color: Colors.black.withValues(alpha: 0.6),
                     colorBlendMode: BlendMode.darken,
@@ -372,9 +370,7 @@ class _LoginPageState extends State<LoginPage>
         borderRadius: BorderRadius.circular(isSecondary ? 40 : 60),
         child: url != null && url.isNotEmpty
             ? Image.network(
-                url.startsWith('http')
-                    ? url
-                    : '${ThemeService.apiBaseUrl}/assets/$url',
+                url,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => Icon(
                   isSecondary ? Icons.verified : Icons.restaurant,

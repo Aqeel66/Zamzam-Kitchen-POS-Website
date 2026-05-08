@@ -413,3 +413,52 @@ class SettingColorPicker extends StatelessWidget {
     );
   }
 }
+
+class SettingActionRow extends StatelessWidget {
+  final String label;
+  final String description;
+  final String buttonLabel;
+  final Color buttonColor;
+  final VoidCallback onPressed;
+
+  const SettingActionRow({
+    super.key,
+    required this.label,
+    required this.description,
+    required this.buttonLabel,
+    required this.buttonColor,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeService().themeData;
+    final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
+    final themeHint = themeText.withValues(alpha: 0.6);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      title: Text(
+        label,
+        style: TextStyle(color: themeText, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(color: themeHint, fontSize: 13),
+      ),
+      trailing: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: buttonColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Text(
+          buttonLabel,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+}

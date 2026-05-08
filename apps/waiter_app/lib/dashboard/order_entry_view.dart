@@ -251,7 +251,7 @@ class _OrderEntryViewState extends State<OrderEntryView> {
             Expanded(
               child: item['image'] != null
                   ? Image.network(
-                      '${ThemeService.apiBaseUrl}/assets/${item['image']}',
+                      ThemeService.resolveImageUrl(item['image']),
                       fit: BoxFit.cover,
                       width: double.infinity,
                       errorBuilder: (context, error, stackTrace) =>

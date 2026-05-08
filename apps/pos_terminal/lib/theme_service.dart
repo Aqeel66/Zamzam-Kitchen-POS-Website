@@ -127,18 +127,18 @@ class ThemeService extends ChangeNotifier {
 
   String? get logoUrl {
     if (_logoPath == null || _logoPath!.isEmpty) return null;
-    return resolveImageUrl(_logoPath!);
+    return resolveImageUrl(_logoPath!, useCacheBuster: true);
   }
 
   String? get secondaryLogoUrl {
     if (_secondaryLogoPath == null || _secondaryLogoPath!.isEmpty) return null;
-    return resolveImageUrl(_secondaryLogoPath!);
+    return resolveImageUrl(_secondaryLogoPath!, useCacheBuster: true);
   }
 
   String? get loginBackgroundUrl {
     if (_loginBackgroundPath == null || _loginBackgroundPath!.isEmpty)
       return null;
-    return resolveImageUrl(_loginBackgroundPath!);
+    return resolveImageUrl(_loginBackgroundPath!, useCacheBuster: true);
   }
 
   static ImageProvider getImage(String? path) {
@@ -203,16 +203,19 @@ class ThemeService extends ChangeNotifier {
     }
   }
 
-  static String resolveImageUrl(String? path) {
+  static String resolveImageUrl(String? path, {bool useCacheBuster = false}) {
     if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return '$path?t=$_cacheBuster';
+    if (path.startsWith('http')) {
+      return useCacheBuster ? '$path?t=$_cacheBuster' : path;
+    }
 
     // Remove any leading slashes or "assets/" to avoid double path segments
     String cleanPath = path;
     if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
     if (cleanPath.startsWith('assets/')) cleanPath = cleanPath.substring(7);
 
-    return '${ThemeService.apiBaseUrl}/assets/$cleanPath?t=$_cacheBuster';
+    final url = '${ThemeService.apiBaseUrl}/assets/$cleanPath';
+    return useCacheBuster ? '$url?t=$_cacheBuster' : url;
   }
 
   void setFlavor(AppThemeFlavor flavor) {

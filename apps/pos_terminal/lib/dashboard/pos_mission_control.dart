@@ -4,6 +4,7 @@ import 'dart:async';
 // ignore_for_file: deprecated_member_use
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -224,7 +225,8 @@ class _POSMissionControlState extends State<POSMissionControl>
 
       // Secondary data (only if we've reached a 5-min interval)
       final tickCount = (_refreshTimer?.tick ?? 0);
-      if (tickCount % 10 == 0) { // 5 minutes (10 * 30s)
+      if (tickCount % 10 == 0) {
+        // 5 minutes (10 * 30s)
         _fetchUsers();
         _fetchRoles();
         _fetchPermissions();
@@ -2158,7 +2160,9 @@ class _POSMissionControlState extends State<POSMissionControl>
           final errorData = json.decode(resp.body);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${errorData['error'] ?? 'Failed to create user'}'),
+              content: Text(
+                'Error: ${errorData['error'] ?? 'Failed to create user'}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -2192,7 +2196,9 @@ class _POSMissionControlState extends State<POSMissionControl>
           final errorData = json.decode(resp.body);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${errorData['error'] ?? 'Failed to update user'}'),
+              content: Text(
+                'Error: ${errorData['error'] ?? 'Failed to update user'}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -5481,8 +5487,8 @@ class _POSMissionControlState extends State<POSMissionControl>
               radius: 40,
               backgroundColor: themePrimary,
               child: Text(
-                ThemeService.instance.userName.isNotEmpty 
-                    ? ThemeService.instance.userName[0].toUpperCase() 
+                ThemeService.instance.userName.isNotEmpty
+                    ? ThemeService.instance.userName[0].toUpperCase()
                     : 'U',
                 style: const TextStyle(
                   color: Colors.white,
@@ -5510,9 +5516,9 @@ class _POSMissionControlState extends State<POSMissionControl>
             ),
             const SizedBox(height: 8),
             Text(
-              ThemeService.instance.userRole == 'admin' 
-                ? LocalizationService().translate('role_admin')
-                : ThemeService.instance.userRole,
+              ThemeService.instance.userRole == 'admin'
+                  ? LocalizationService().translate('role_admin')
+                  : ThemeService.instance.userRole,
               style: TextStyle(color: Colors.grey[600]),
             ),
           ],
@@ -6390,8 +6396,8 @@ class _POSMissionControlState extends State<POSMissionControl>
                       radius: 16,
                       backgroundColor: themePrimary,
                       child: Text(
-                        ThemeService.instance.userName.isNotEmpty 
-                            ? ThemeService.instance.userName[0].toUpperCase() 
+                        ThemeService.instance.userName.isNotEmpty
+                            ? ThemeService.instance.userName[0].toUpperCase()
                             : 'U',
                         style: const TextStyle(
                           color: Colors.white,
@@ -6414,8 +6420,8 @@ class _POSMissionControlState extends State<POSMissionControl>
                         ),
                         Text(
                           ThemeService.instance.userRole == 'admin'
-                            ? LocalizationService().translate('role_admin')
-                            : ThemeService.instance.userRole,
+                              ? LocalizationService().translate('role_admin')
+                              : ThemeService.instance.userRole,
                           style: TextStyle(
                             color: Colors.green,
                             fontSize: 10,
@@ -6614,7 +6620,14 @@ class _POSMissionControlState extends State<POSMissionControl>
 
     return IndexedStack(
       index: _selectedTabIndex,
-      children: _getMainStackChildren(themePrimary, themeBg, themeText, themeHint, themeCard, themeBorder),
+      children: _getMainStackChildren(
+        themePrimary,
+        themeBg,
+        themeText,
+        themeHint,
+        themeCard,
+        themeBorder,
+      ),
     );
   }
 
@@ -6629,7 +6642,8 @@ class _POSMissionControlState extends State<POSMissionControl>
     return [
       _buildPOSView(), // 0
       _buildDashboardView(), // 1
-      KDSView( // 2
+      KDSView(
+        // 2
         placedOrders: _placedOrders,
         onUpdateStatus: _updateOrderStatus,
         onReject: _showRejectionDialog,
@@ -6637,7 +6651,8 @@ class _POSMissionControlState extends State<POSMissionControl>
           _fetchOrders();
           _fetchSummary();
         },
-        orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+        orderSortDirection:
+            _settings['branch']?['order_sort_direction'] ?? 'Descending',
         themePrimary: themePrimary,
         themeBg: themeBg,
         themeText: themeText,
@@ -6645,7 +6660,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         themeCard: themeCard,
         themeBorder: themeBorder,
       ),
-      OrdersView( // 3
+      OrdersView(
+        // 3
         placedOrders: _placedOrders,
         statusFilter: _orderStatusFilter,
         onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
@@ -6668,7 +6684,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         onViewDetails: _showOrderDetailsDialog,
         onDownloadPdf: _handlePdfDownload,
         settings: _settings,
-        orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+        orderSortDirection:
+            _settings['branch']?['order_sort_direction'] ?? 'Descending',
         themePrimary: themePrimary,
         themeBg: themeBg,
         themeText: themeText,
@@ -6677,7 +6694,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         themeBorder: themeBorder,
       ),
       _buildWaitingView(), // 4
-      ReservationsView( // 5
+      ReservationsView(
+        // 5
         reservations: _reservations,
         statusFilter: _reservationStatusFilter,
         selectedReservation: _selectedReservationDetails,
@@ -6686,11 +6704,13 @@ class _POSMissionControlState extends State<POSMissionControl>
           _reservationStatusFilter = f;
           _selectedReservationDetails = null;
         }),
-        onSelectReservation: (res) => setState(() => _selectedReservationDetails = res),
+        onSelectReservation: (res) =>
+            setState(() => _selectedReservationDetails = res),
         onAddReservation: _showNewReservationDialog,
         onRefresh: _fetchReservations,
         onUpdateStatus: _updateReservationStatus,
-        orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+        orderSortDirection:
+            _settings['branch']?['order_sort_direction'] ?? 'Descending',
         themePrimary: themePrimary,
         themeBg: themeBg,
         themeText: themeText,
@@ -6719,8 +6739,22 @@ class _POSMissionControlState extends State<POSMissionControl>
   int _getDashboardIndex(int tab) {
     // Map non-contiguous tabs to IndexedStack indices
     final map = {
-      0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
-      10: 10, 11: 11, 12: 12, 13: 4, 14: 13
+      0: 0,
+      1: 1,
+      2: 2,
+      3: 3,
+      4: 4,
+      5: 5,
+      6: 6,
+      7: 7,
+      8: 8,
+      9: 9,
+      10: 10,
+      11: 11,
+      12: 12,
+      13: 13,
+      14: 14,
+      15: 15,
     };
     return map[tab] ?? 0;
   }
@@ -6728,14 +6762,16 @@ class _POSMissionControlState extends State<POSMissionControl>
   List<Widget> _getDashboardStackChildren() {
     final themeBg = Theme.of(context).scaffoldBackgroundColor;
     final themePrimary = Theme.of(context).primaryColor;
-    final themeText = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+    final themeText =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
     final themeHint = themeText.withValues(alpha: 0.6);
     final themeCard = Theme.of(context).cardColor;
     final themeBorder = Theme.of(context).dividerColor;
 
     return [
       _buildDashboardContent(), // 0
-      OrdersView( // 1
+      OrdersView(
+        // 1
         placedOrders: _placedOrders,
         statusFilter: _orderStatusFilter,
         onFilterChanged: (f) => setState(() => _orderStatusFilter = f),
@@ -6758,7 +6794,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         onViewDetails: _showOrderDetailsDialog,
         onDownloadPdf: _handlePdfDownload,
         settings: _settings,
-        orderSortDirection: _settings['branch']?['order_sort_direction'] ?? 'Descending',
+        orderSortDirection:
+            _settings['branch']?['order_sort_direction'] ?? 'Descending',
         themePrimary: themePrimary,
         themeBg: themeBg,
         themeText: themeText,
@@ -6767,7 +6804,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         themeBorder: themeBorder,
       ),
       PurchaseManagementView(isDarkMode: _isDarkMode), // 2
-      ReservationsView( // 3
+      ReservationsView(
+        // 3
         reservations: _reservations,
         statusFilter: _reservationStatusFilter,
         selectedReservation: _selectedReservationDetails,
@@ -6776,7 +6814,8 @@ class _POSMissionControlState extends State<POSMissionControl>
           _reservationStatusFilter = f;
           _selectedReservationDetails = null;
         }),
-        onSelectReservation: (res) => setState(() => _selectedReservationDetails = res),
+        onSelectReservation: (res) =>
+            setState(() => _selectedReservationDetails = res),
         onAddReservation: _showNewReservationDialog,
         onRefresh: _fetchReservations,
         onUpdateStatus: _updateReservationStatus,
@@ -6787,7 +6826,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         themeCard: themeCard,
         themeBorder: themeBorder,
       ),
-      CategoryManagementView( // 4 (also 13)
+      CategoryManagementView(
+        // 4
         isDarkMode: _isDarkMode,
         categories: _categories,
         onCreateCategory: _createCategory,
@@ -6795,7 +6835,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         onDeleteCategory: _deleteCategory,
         onPickImage: _pickImage,
       ),
-      KDSView( // 5
+      KDSView(
+        // 5
         placedOrders: _placedOrders,
         onUpdateStatus: _updateOrderStatus,
         onReject: _showRejectionDialog,
@@ -6810,7 +6851,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         themeCard: themeCard,
         themeBorder: themeBorder,
       ),
-      HumanResourceView( // 6
+      HumanResourceView(
+        // 6
         shifts: _shifts,
         users: _users,
         hrStats: _hrStats,
@@ -6819,7 +6861,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         onClockIn: _showClockInDialog,
         onRefresh: _fetchShifts,
       ),
-      ReportsView( // 7
+      ReportsView(
+        // 7
         summaryData: _summaryData,
         financialData: _financialData,
         operationalData: _operationalData,
@@ -6828,7 +6871,8 @@ class _POSMissionControlState extends State<POSMissionControl>
         isLoading: _isLoading,
       ),
       _buildTableQRCodeView(), // 8
-      UserManagementView( // 9
+      UserManagementView(
+        // 9
         users: _users,
         roles: _roles,
         permissions: _permissions,
@@ -6843,26 +6887,29 @@ class _POSMissionControlState extends State<POSMissionControl>
         onUpdateRolePermissions: _updateRolePermissions,
         initialSubTab: 0,
       ),
-      SettingsView( // 10
-        settings: _settings,
-        isLoading: _isLoading,
-        onUpdateSetting: _updateSetting,
-        onSaveGatewaySettings: _saveGatewaySettings,
-        onFetchSettings: _fetchSettings,
-        onPickImage: _pickImage,
-        onResetTransactions: _showResetConfirmation,
-        onTestTwilio: _testTwilio,
-        onTestSMTP: _testSMTP,
-        onTestPaymentGateway: _testPaymentGateway,
+      UserManagementView(
+        // 10
+        users: _users,
+        roles: _roles,
+        permissions: _permissions,
+        isUsersLoading: _isUsersLoading,
+        isRolesLoading: _isRolesLoading,
+        onCreateUser: _createUser,
+        onUpdateUser: _updateUser,
+        onDeleteUser: _deleteUser,
+        onCreateRole: _createRole,
+        onUpdateRole: _updateRole,
+        onDeleteRole: _deleteRole,
+        onUpdateRolePermissions: _updateRolePermissions,
+        initialSubTab: 1, // Roles
       ),
-      InventoryDashboard( // 11
+      InventoryDashboard(
+        // 11
         isDarkMode: _isDarkMode,
-        onRefresh: _fetchInventory,
       ),
-      CustomerManagementView( // 12
-        isDarkMode: _isDarkMode,
-      ),
-      FoodItemManagementView( // 13 (case 14)
+      CustomerManagementView(), // 12
+      FoodItemManagementView(
+        // 13
         isDarkMode: _isDarkMode,
         categories: _categories,
         items: _menuItems,
@@ -6872,8 +6919,23 @@ class _POSMissionControlState extends State<POSMissionControl>
         onPickImage: _pickImage,
         onRefreshMenu: _fetchMenu,
       ),
-      PromotionsView( // 14 (extra safety)
+      PromotionsView(
+        // 14
         isDarkMode: _isDarkMode,
+        themePrimary: themePrimary,
+      ),
+      SettingsView(
+        // 15
+        settings: _settings,
+        isLoading: _isLoading,
+        onUpdateSetting: _updateSetting,
+        onSaveGatewaySettings: _saveGatewaySettings,
+        onFetchSettings: _fetchSettings,
+        onPickImage: _pickImage,
+        onResetTransactions: _resetTransactionalData,
+        onTestTwilio: _testTwilio,
+        onTestSMTP: _testSMTP,
+        onTestPaymentGateway: _testPaymentGateway,
       ),
     ];
   }
@@ -7159,142 +7221,157 @@ class _POSMissionControlState extends State<POSMissionControl>
         color: themeCard,
         border: Border(right: BorderSide(color: themeBorder)),
       ),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: Column(
         children: [
-          Text(
-            LocalizationService().translate('manager_dashboard').toUpperCase(),
-            style: TextStyle(
-              color: themeHint,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              children: [
+                Text(
+                  LocalizationService()
+                      .translate('manager_dashboard')
+                      .toUpperCase(),
+                  style: TextStyle(
+                    color: themeHint,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                if (_hasPermission('view_dashboard') ||
+                    _hasPermission('view_analytics'))
+                  _buildSidebarNav(
+                    0,
+                    LocalizationService().translate('analytics_overview'),
+                    Icons.analytics_outlined,
+                  ),
+                if (_hasPermission('manage_purchase'))
+                  _buildSidebarNav(
+                    2,
+                    LocalizationService().translate('purchase_management'),
+                    Icons.shopping_cart_outlined,
+                  ),
+                if (_hasPermission('manage_inventory'))
+                  _buildSidebarNav(
+                    11,
+                    LocalizationService().translate('inventory_management'),
+                    Icons.inventory_2_outlined,
+                    badgeCount: _lowStockItems.length,
+                  ),
+                if (_hasPermission('manage_menu'))
+                  _buildSidebarNav(
+                    4,
+                    LocalizationService().translate('food_management'),
+                    Icons.fastfood_outlined,
+                    onTap: () => setState(() {
+                      _isFoodManagementExpanded = !_isFoodManagementExpanded;
+                      _isSecurityExpanded = false; // Close other submenus
+                    }),
+                    isExpanded: _isFoodManagementExpanded,
+                    hasSubmenu: true,
+                  ),
+                if (_isFoodManagementExpanded) ...[
+                  _buildSidebarSubNav(
+                    4,
+                    LocalizationService().translate('categories'),
+                  ),
+                  _buildSidebarSubNav(
+                    13,
+                    LocalizationService().translate('food_items'),
+                  ),
+                ],
+                if (_hasPermission('manage_hr'))
+                  _buildSidebarNav(
+                    6,
+                    LocalizationService().translate('human_resource'),
+                    Icons.people_outline_rounded,
+                  ),
+                if (_hasPermission('manage_customers'))
+                  _buildSidebarNav(
+                    12,
+                    LocalizationService().translate('customer_directory'),
+                    Icons.person_search_rounded,
+                  ),
+                if (_hasPermission('view_reports'))
+                  _buildSidebarNav(
+                    7,
+                    LocalizationService().translate('reports'),
+                    Icons.bar_chart_rounded,
+                  ),
+                if (_hasPermission('manage_settings_general'))
+                  _buildSidebarNav(
+                    14,
+                    LocalizationService().translate('promotions_coupons'),
+                    Icons.confirmation_number_outlined,
+                  ),
+                if (_hasPermission(
+                  'manage_menu',
+                )) // Assuming QR codes are menu related
+                  _buildSidebarNav(
+                    8,
+                    LocalizationService().translate('table_qr_codes'),
+                    Icons.qr_code_2_rounded,
+                  ),
+                if (_hasPermission('manage_users') ||
+                    _hasPermission('manage_roles'))
+                  _buildSidebarNav(
+                    9,
+                    LocalizationService().translate('security_access'),
+                    Icons.admin_panel_settings_outlined,
+                    onTap: () => setState(() {
+                      _isSecurityExpanded = !_isSecurityExpanded;
+                      _isFoodManagementExpanded = false; // Close other submenus
+                    }),
+                    isExpanded: _isSecurityExpanded,
+                    hasSubmenu: true,
+                  ),
+                if (_isSecurityExpanded) ...[
+                  _buildSidebarSubNav(
+                    9,
+                    LocalizationService().translate('user_management'),
+                  ),
+                  _buildSidebarSubNav(
+                    10,
+                    LocalizationService().translate('role_permissions'),
+                  ),
+                ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Divider(height: 1, color: themeBorder),
+                ),
+                if (_hasPermission('manage_settings_general') ||
+                    _hasPermission('manage_settings_operations') ||
+                    _hasPermission('manage_settings_branding') ||
+                    _hasPermission('manage_settings_payments') ||
+                    _hasPermission('manage_settings_communications') ||
+                    _hasPermission('manage_settings_reset'))
+                  _buildSidebarNav(
+                    15,
+                    LocalizationService().translate('system_settings'),
+                    Icons.settings_outlined,
+                    onTap: () {
+                      setState(() {
+                        _selectedDashboardTab = 15;
+                        _isFoodManagementExpanded = false;
+                        _isSecurityExpanded = false; // Close submenus
+                      });
+                      _fetchSettings();
+                    },
+                  ),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
-          if (_hasPermission('view_dashboard') ||
-              _hasPermission('view_analytics'))
-            _buildSidebarNav(
-              0,
-              LocalizationService().translate('analytics_overview'),
-              Icons.analytics_outlined,
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: themeBorder.withValues(alpha: 0.2)),
+              ),
             ),
-          if (_hasPermission('manage_purchase'))
-            _buildSidebarNav(
-              2,
-              LocalizationService().translate('purchase_management'),
-              Icons.shopping_cart_outlined,
-            ),
-          if (_hasPermission('manage_inventory'))
-            _buildSidebarNav(
-              18,
-              LocalizationService().translate('inventory_management'),
-              Icons.inventory_2_outlined,
-              badgeCount: _lowStockItems.length,
-            ),
-          if (_hasPermission('manage_menu'))
-            _buildSidebarNav(
-              4,
-              LocalizationService().translate('food_management'),
-              Icons.fastfood_outlined,
-              onTap: () => setState(() {
-                _isFoodManagementExpanded = !_isFoodManagementExpanded;
-                _isSecurityExpanded = false; // Close other submenus
-              }),
-              isExpanded: _isFoodManagementExpanded,
-              hasSubmenu: true,
-            ),
-          if (_isFoodManagementExpanded) ...[
-            _buildSidebarSubNav(
-              13,
-              LocalizationService().translate('categories'),
-            ),
-            _buildSidebarSubNav(
-              14,
-              LocalizationService().translate('food_items'),
-            ),
-          ],
-          if (_hasPermission('manage_hr'))
-            _buildSidebarNav(
-              6,
-              LocalizationService().translate('human_resource'),
-              Icons.people_outline_rounded,
-            ),
-          if (_hasPermission('manage_customers'))
-            _buildSidebarNav(
-              19,
-              LocalizationService().translate('customer_directory'),
-              Icons.person_search_outlined,
-            ),
-          if (_hasPermission('view_reports'))
-            _buildSidebarNav(
-              7,
-              LocalizationService().translate('reports'),
-              Icons.bar_chart_rounded,
-            ),
-          if (_hasPermission(
-            'manage_settings_general',
-          )) // Reusing permission or adding 'manage_promotions'
-            _buildSidebarNav(
-              20,
-              LocalizationService().translate('promotions_coupons'),
-              Icons.confirmation_number_outlined,
-            ),
-          if (_hasPermission(
-            'manage_menu',
-          )) // Assuming QR codes are menu related
-            _buildSidebarNav(
-              8,
-              LocalizationService().translate('table_qr_codes'),
-              Icons.qr_code_2_rounded,
-            ),
-          if (_hasPermission('manage_users') || _hasPermission('manage_roles'))
-            _buildSidebarNav(
-              9,
-              LocalizationService().translate('security_access'),
-              Icons.admin_panel_settings_outlined,
-              onTap: () => setState(() {
-                _isSecurityExpanded = !_isSecurityExpanded;
-                _isFoodManagementExpanded = false; // Close other submenus
-              }),
-              isExpanded: _isSecurityExpanded,
-              hasSubmenu: true,
-            ),
-          if (_isSecurityExpanded) ...[
-            _buildSidebarSubNav(
-              9,
-              LocalizationService().translate('user_management'),
-            ),
-            _buildSidebarSubNav(
-              10,
-              LocalizationService().translate('role_permissions'),
-            ),
-          ],
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Divider(height: 1, color: themeBorder),
-          ),
-          if (_hasPermission('manage_settings_general') ||
-              _hasPermission('manage_settings_operations') ||
-              _hasPermission('manage_settings_branding') ||
-              _hasPermission('manage_settings_payments') ||
-              _hasPermission('manage_settings_communications') ||
-              _hasPermission('manage_settings_reset'))
-            _buildSidebarNav(
-              12,
-              LocalizationService().translate('system_settings'),
-              Icons.settings_suggest_rounded,
-              onTap: () {
-                setState(() {
-                  _selectedDashboardTab = 12;
-                  _isFoodManagementExpanded = false;
-                  _isSecurityExpanded = false; // Close submenus
-                });
-                _fetchSettings();
-              },
-            ),
-          const Spacer(),
-          Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -7323,12 +7400,18 @@ class _POSMissionControlState extends State<POSMissionControl>
                     fontSize: 8,
                   ),
                 ),
-                Text(
-                  'Identity: ${widget.user['first_name'] ?? ''} | ${widget.user['last_name'] ?? ''} (@${widget.user['username'] ?? ''})',
-                  style: TextStyle(
-                    color: themeText.withValues(alpha: 0.2),
-                    fontSize: 7,
-                  ),
+                Builder(
+                  builder: (context) {
+                    final userData = widget.user;
+                    if (userData == null) return const SizedBox.shrink();
+                    return Text(
+                      'Identity: ${userData['first_name'] ?? ''} | ${userData['last_name'] ?? ''} (@${userData['username'] ?? ''})',
+                      style: TextStyle(
+                        color: themeText.withValues(alpha: 0.2),
+                        fontSize: 7,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -9215,7 +9298,9 @@ class _POSMissionControlState extends State<POSMissionControl>
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
-                                                color: themePrimary.withValues(alpha: 0.9),
+                                                color: themePrimary.withValues(
+                                                  alpha: 0.9,
+                                                ),
                                                 fontSize: 9,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -12403,7 +12488,9 @@ class _POSMissionControlState extends State<POSMissionControl>
     for (var item in _menuItems) {
       if (item['image'] != null && item['image'].toString().isNotEmpty) {
         precacheImage(
-          CachedNetworkImageProvider(ThemeService.resolveImageUrl(item['image'].toString())),
+          CachedNetworkImageProvider(
+            ThemeService.resolveImageUrl(item['image'].toString()),
+          ),
           context,
         );
       }

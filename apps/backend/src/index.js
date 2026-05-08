@@ -197,6 +197,24 @@ app.get(/^\/pos/, (req, res, next) => {
   });
 });
 
+// Handle Waiter App routing (Sub-folder /waiter)
+const waiterAppPath = path.join(__dirname, '../../waiter_app');
+app.use('/waiter', express.static(waiterAppPath));
+app.get(/^\/waiter/, (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
+    return next();
+  }
+  
+  // Serve the Waiter App index.html for deep links
+  const indexPath = path.join(waiterAppPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error('❌ Error sending Waiter App index.html:', err);
+      return res.status(500).send(`CRITICAL ERROR: Could not find Waiter App at path: ${indexPath}. Please verify the files are uploaded to this exact location on the server.`);
+    }
+  });
+});
+
 // Handle Main Website routing (Root /)
 app.get(/.*/, (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
