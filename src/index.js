@@ -20,26 +20,19 @@ app.use('/waiter/assets', express.static(path.join(waiterAppPath, 'assets'), {
 // 2. Serve other static files in /waiter/
 app.use('/waiter', express.static(waiterAppPath, { fallthrough: true }));
 
-// 3. SPA Fallback for /waiter
-app.get(/^\/waiter/, (req, res, next) => {
-    if (req.path.includes('/api/')) {
-        return next();
-    }
+// 3. FORCE SPA Fallback for /waiter - Handle this BEFORE loading backend
+app.get('/waiter', (req, res) => {
+    const indexPath = path.join(waiterAppPath, 'index.html');
+    if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
+    res.status(404).send('Waiter App Index Not Found');
+});
+
+app.get('/waiter/*', (req, res, next) => {
+    if (req.path.includes('/api/')) return next();
     
     const indexPath = path.join(waiterAppPath, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        return res.sendFile(indexPath);
-    } else {
-        res.status(404).send(`
-            <div style="font-family: sans-serif; padding: 40px; text-align: center;">
-                <h1 style="color: #0d9488;">Zamzam Waiter App - TESTING 123</h1>
-                <p>Waiting for files to be uploaded to persistent storage...</p>
-                <div style="color: #64748b; font-size: 12px; margin-top: 20px;">
-                    Required Path: ${waiterAppPath}
-                </div>
-            </div>
-        `);
-    }
+    if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
+    next();
 });
 
 // Attempt to load the rest of the backend
