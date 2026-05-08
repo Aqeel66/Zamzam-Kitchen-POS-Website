@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../services/order_service.dart';
 import '../theme_service.dart';
+import 'dart:async';
 
 class MyOrdersView extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -18,10 +19,19 @@ class _MyOrdersViewState extends State<MyOrdersView> {
   bool _isLoading = true;
   String _statusFilter = 'ALL';
 
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
     _fetchOrders();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _fetchOrders());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchOrders() async {
@@ -31,14 +41,7 @@ class _MyOrdersViewState extends State<MyOrdersView> {
       final response = await OrderService.fetchOrders();
       if (response.statusCode == 200) {
         final List<dynamic> allOrders = json.decode(response.body);
-        
-        // Filter by current waiter ID if available
-        final waiterId = widget.userData?['id'];
-        if (waiterId != null) {
-          setState(() {
-            _orders = allOrders.where((o) => o['user_id'].toString() == waiterId.toString()).toList();
-          });
-        } else {
+        if (mounted) {
           setState(() {
             _orders = allOrders;
           });
@@ -86,8 +89,14 @@ class _MyOrdersViewState extends State<MyOrdersView> {
                     ? _buildEmptyState()
                     : RefreshIndicator(
                         onRefresh: _fetchOrders,
-                        child: ListView.builder(
+                        child: GridView.builder(
                           padding: const EdgeInsets.all(16),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 400,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.85,
+                          ),
                           itemCount: filteredOrders.length,
                           itemBuilder: (context, index) {
                             final order = filteredOrders[index];
@@ -102,7 +111,7 @@ class _MyOrdersViewState extends State<MyOrdersView> {
   }
 
   Widget _buildFilterBar(Color primaryColor) {
-    final filters = ['ALL', 'PENDING', 'PREPARING', 'READY', 'SERVED'];
+    final filters = ['ALL', 'PENDING', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED', 'REJECTED'];
     return Container(
       height: 50,
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -145,64 +154,171 @@ class _MyOrdersViewState extends State<MyOrdersView> {
     final status = order['status'].toString();
     final itemsCount = (order['items'] as List?)?.length ?? 0;
     final timeStr = _formatTime(order['order_time']);
+    final dateStr = _formatDate(order['order_time']);
+    final tableStr = order['table_number'] ?? order['table_id'] ?? 'N/A';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ExpansionTile(
-        title: Row(
-          children: [
-            Text('#${order['order_number'] ?? order['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            const Spacer(),
-            _buildStatusBadge(status),
-          ],
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.table_bar_outlined, size: 14, color: theme.hintColor),
-              const SizedBox(width: 4),
-              Text('Table ${order['table_number'] ?? order['table_id'] ?? 'N/A'}'),
-              const SizedBox(width: 12),
-              Icon(Icons.access_time, size: 14, color: theme.hintColor),
-              const SizedBox(width: 4),
-              Text(timeStr),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'T-$tableStr',
+                      style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Order #${order['order_number'] ?? order['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(timeStr, style: TextStyle(color: theme.hintColor, fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+              _buildStatusBadge(status),
             ],
           ),
-        ),
-        children: [
-          const Divider(),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: itemsCount,
-            itemBuilder: (context, iIndex) {
-              final item = order['items'][iIndex];
-              return ListTile(
-                dense: true,
-                title: Text(item['name'] ?? 'Unknown Item'),
-                subtitle: item['notes'] != null && item['notes'].isNotEmpty ? Text(item['notes']) : null,
-                trailing: Text('x${item['quantity']}'),
-              );
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(
-                  '£${double.tryParse(order['total_amount'].toString())?.toStringAsFixed(2) ?? '0.00'}',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: theme.primaryColor, fontSize: 18),
-                ),
-              ],
+          const SizedBox(height: 16),
+          // Date Line
+          Text('$dateStr | $timeStr', style: TextStyle(color: theme.hintColor, fontSize: 12)),
+          const SizedBox(height: 16),
+          // Items List (Preview)
+          Expanded(
+            child: ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              itemCount: itemsCount,
+              itemBuilder: (context, iIndex) {
+                final item = order['items'][iIndex];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['name'] ?? 'Unknown',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (item['variant'] != null)
+                              Text(
+                                'Size/Type: ${item['variant']['name']}',
+                                style: TextStyle(fontSize: 11, color: theme.hintColor),
+                              ),
+                            if ((item['extras'] as List? ?? []).isNotEmpty)
+                              Text(
+                                'Extras: ${(item['extras'] as List).map((e) => e['name']).join(', ')}',
+                                style: TextStyle(fontSize: 11, color: theme.hintColor),
+                              ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 30, child: Text('${item['quantity']}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14))),
+                      SizedBox(width: 60, child: Text('${ThemeService.currency}${item['price']}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 14))),
+                    ],
+                  ),
+                );
+              },
             ),
+          ),
+          const Divider(),
+          // Footer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Total (before tax)', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(
+                '${ThemeService.currency}${double.tryParse(order['total_amount'].toString())?.toStringAsFixed(2) ?? '0.00'}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Action Buttons
+          Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text('$itemsCount items', style: TextStyle(color: theme.hintColor, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: status.toUpperCase() == 'READY' ? () => _markAsServed(order['id']) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: status.toUpperCase() == 'READY' ? Colors.teal : theme.primaryColor.withValues(alpha: 0.1),
+                    foregroundColor: status.toUpperCase() == 'READY' ? Colors.white : theme.primaryColor,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text(
+                    status.toUpperCase() == 'READY' ? 'Mark as Served' : (status.toUpperCase() == 'PENDING' ? 'Pay bill' : 'View Details'),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _markAsServed(dynamic orderId) async {
+    try {
+      final resp = await OrderService.updateOrderStatus(orderId, 'Served');
+      if (resp.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Order marked as served'), backgroundColor: Colors.teal),
+          );
+        }
+        _fetchOrders();
+      } else {
+        throw Exception('Failed to update status');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Widget _buildStatusBadge(String status) {
@@ -210,11 +326,13 @@ class _MyOrdersViewState extends State<MyOrdersView> {
     switch (status.toUpperCase()) {
       case 'PENDING': color = Colors.orange; break;
       case 'ORDERED': color = Colors.blue; break;
+      case 'ACCEPTED': color = Colors.indigo; break;
       case 'PREPARING': color = Colors.purple; break;
       case 'READY': color = Colors.green; break;
       case 'SERVED': color = Colors.teal; break;
       case 'PAID': color = Colors.green; break;
-      case 'CANCELLED': color = Colors.red; break;
+      case 'CANCELLED': 
+      case 'REJECTED': color = Colors.red; break;
       default: color = Colors.grey;
     }
 
@@ -236,9 +354,19 @@ class _MyOrdersViewState extends State<MyOrdersView> {
     if (time == null) return '--:--';
     try {
       final dt = DateTime.parse(time.toString()).toLocal();
-      return DateFormat('HH:mm').format(dt);
+      return DateFormat('HH:mm a').format(dt);
     } catch (e) {
       return time.toString();
+    }
+  }
+
+  String _formatDate(dynamic time) {
+    if (time == null) return '';
+    try {
+      final dt = DateTime.parse(time.toString()).toLocal();
+      return DateFormat('EEE, MMM dd, yyyy').format(dt);
+    } catch (e) {
+      return '';
     }
   }
 }

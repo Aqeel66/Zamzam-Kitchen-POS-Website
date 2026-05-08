@@ -3,6 +3,8 @@ import 'package:ui_kit/ui_kit.dart';
 import 'package:flutter/foundation.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -40,7 +42,8 @@ class ThemeService extends ChangeNotifier {
   String _restaurantName = 'ZAMZAM KITCHEN';
   String _tagline = '';
   bool _isInitialized = false;
-  static String get currency => '\$';
+  String _currency = '\$';
+  static String get currency => instance._currency;
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -63,13 +66,36 @@ class ThemeService extends ChangeNotifier {
       _logoPath = prefs.getString('branding_logo');
       _secondaryLogoPath = prefs.getString('branding_secondary_logo');
       _loginBackgroundPath = prefs.getString('branding_login_bg');
+      _cacheBuster = prefs.getString('branding_cache_buster') ?? '';
       _restaurantName = prefs.getString('branding_name') ?? 'ZAMZAM KITCHEN';
       _tagline = prefs.getString('branding_tagline') ?? '';
+      _currency = prefs.getString('branding_currency') ?? '\$';
+
+      // Attempt to fetch latest currency from API
+      _fetchCurrencyAsync();
 
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
       debugPrint('ThemeService: Error during initialization: $e');
+    }
+  }
+
+  Future<void> _fetchCurrencyAsync() async {
+    try {
+      final response = await http.get(Uri.parse('$apiBaseUrl/api/settings'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final c = data['tenant']?['currency'];
+        if (c != null && c.toString().isNotEmpty) {
+          _currency = c;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('branding_currency', _currency);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('ThemeService: Error fetching currency: $e');
     }
   }
 
@@ -158,7 +184,7 @@ class ThemeService extends ChangeNotifier {
       return AssetImage(cleanPath);
     }
 
-    final url = resolveImageUrl(path);
+    final url = resolveImageUrl(path, useCacheBuster: true);
     return CachedNetworkImageProvider(url);
   }
 
@@ -166,7 +192,7 @@ class ThemeService extends ChangeNotifier {
   String get tagline => _tagline;
 
   // Cache buster should be stable to avoid unnecessary re-downloads
-  static String _cacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
+  static String _cacheBuster = '';
   static String get cacheBuster => _cacheBuster;
 
   // Session state
@@ -243,6 +269,7 @@ class ThemeService extends ChangeNotifier {
   }) {
     bool changed = false;
     _cacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
+    SharedPreferences.getInstance().then((prefs) => prefs.setString('branding_cache_buster', _cacheBuster));
     if (logoUrl != null && _logoPath != logoUrl) {
       debugPrint('ThemeService: Updating logo from "$_logoPath" to "$logoUrl"');
       _logoPath = logoUrl;

@@ -3,6 +3,8 @@ import 'package:ui_kit/ui_kit.dart';
 import 'package:flutter/foundation.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -40,7 +42,8 @@ class ThemeService extends ChangeNotifier {
   String _restaurantName = 'ZAMZAM KITCHEN';
   String _tagline = '';
   bool _isInitialized = false;
-  static String get currency => '\$';
+  String _currency = '\$';
+  static String get currency => instance._currency;
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -63,13 +66,36 @@ class ThemeService extends ChangeNotifier {
       _logoPath = prefs.getString('branding_logo');
       _secondaryLogoPath = prefs.getString('branding_secondary_logo');
       _loginBackgroundPath = prefs.getString('branding_login_bg');
+      _cacheBuster = prefs.getString('branding_cache_buster') ?? '';
       _restaurantName = prefs.getString('branding_name') ?? 'ZAMZAM KITCHEN';
       _tagline = prefs.getString('branding_tagline') ?? '';
+      _currency = prefs.getString('branding_currency') ?? '\$';
+
+      // Attempt to fetch latest currency from API
+      _fetchCurrencyAsync();
 
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
       debugPrint('ThemeService: Error during initialization: $e');
+    }
+  }
+
+  Future<void> _fetchCurrencyAsync() async {
+    try {
+      final response = await http.get(Uri.parse('$apiBaseUrl/api/settings'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final c = data['tenant']?['currency'];
+        if (c != null && c.toString().isNotEmpty) {
+          _currency = c;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('branding_currency', _currency);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('ThemeService: Error fetching currency: $e');
     }
   }
 
@@ -123,18 +149,18 @@ class ThemeService extends ChangeNotifier {
 
   String? get logoUrl {
     if (_logoPath == null || _logoPath!.isEmpty) return null;
-    return resolveImageUrl(_logoPath!);
+    return resolveImageUrl(_logoPath!, useCacheBuster: true);
   }
 
   String? get secondaryLogoUrl {
     if (_secondaryLogoPath == null || _secondaryLogoPath!.isEmpty) return null;
-    return resolveImageUrl(_secondaryLogoPath!);
+    return resolveImageUrl(_secondaryLogoPath!, useCacheBuster: true);
   }
 
   String? get loginBackgroundUrl {
     if (_loginBackgroundPath == null || _loginBackgroundPath!.isEmpty)
       return null;
-    return resolveImageUrl(_loginBackgroundPath!);
+    return resolveImageUrl(_loginBackgroundPath!, useCacheBuster: true);
   }
 
   static ImageProvider getImage(String? path) {
@@ -161,16 +187,24 @@ class ThemeService extends ChangeNotifier {
   String get restaurantName => _restaurantName;
   String get tagline => _tagline;
 
-  static String resolveImageUrl(String? path) {
+  // Cache buster should be stable to avoid unnecessary re-downloads
+  // Cache buster should be stable to avoid unnecessary re-downloads
+  static String _cacheBuster = '';
+  static String get cacheBuster => _cacheBuster;
+
+  static String resolveImageUrl(String? path, {bool useCacheBuster = false}) {
     if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
+    if (path.startsWith('http')) {
+      return useCacheBuster ? '$path?t=$_cacheBuster' : path;
+    }
 
     // Remove any leading slashes or "assets/" to avoid double path segments
     String cleanPath = path;
     if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
     if (cleanPath.startsWith('assets/')) cleanPath = cleanPath.substring(7);
 
-    return '${ThemeService.apiBaseUrl}/assets/$cleanPath';
+    final url = '${ThemeService.apiBaseUrl}/assets/$cleanPath';
+    return useCacheBuster ? '$url?t=$_cacheBuster' : url;
   }
 
   void setFlavor(AppThemeFlavor flavor) {
@@ -197,6 +231,8 @@ class ThemeService extends ChangeNotifier {
     String? tagline,
   }) {
     bool changed = false;
+    _cacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
+    SharedPreferences.getInstance().then((prefs) => prefs.setString('branding_cache_buster', _cacheBuster));
     if (logoUrl != null && _logoPath != logoUrl) {
       debugPrint('ThemeService: Updating logo from "$_logoPath" to "$logoUrl"');
       _logoPath = logoUrl;

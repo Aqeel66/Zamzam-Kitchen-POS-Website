@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:ui_kit/ui_kit.dart' as ui_kit;
 import '../theme_service.dart';
 import '../localization_service.dart';
+import 'dart:async';
 
 class TableMapView extends StatefulWidget {
   final List<dynamic> userPermissions;
@@ -23,10 +24,23 @@ class _TableMapViewState extends State<TableMapView> {
   List<ui_kit.RestaurantTable>? _restaurantTables;
   bool _isLoading = false;
 
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
-    _fetchTables();
+    _fetchOrdersStatus(); // Initial fetch
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _fetchTables());
+  }
+
+  Future<void> _fetchOrdersStatus() async {
+     _fetchTables();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchTables() async {

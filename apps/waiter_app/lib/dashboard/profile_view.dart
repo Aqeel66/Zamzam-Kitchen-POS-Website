@@ -50,6 +50,14 @@ class ProfileView extends StatelessWidget {
               const Divider(),
               _buildInfoRow(Icons.business_outlined, 'Branch', 'Main Branch'),
             ]),
+            const SizedBox(height: 24),
+            _buildInfoCard(theme, [
+              _buildInfoRow(Icons.lock_outline, 'Account Security', 'Password & Auth'),
+              const Divider(),
+              _buildInfoRow(Icons.settings_suggest_outlined, 'App Settings', 'Theme & Sync'),
+              const Divider(),
+              _buildInfoRow(Icons.help_outline, 'Support', 'Contact Manager'),
+            ]),
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,

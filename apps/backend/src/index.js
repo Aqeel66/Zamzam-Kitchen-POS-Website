@@ -182,8 +182,7 @@ app.use('/api/promotions', promotionRoutes);
 
 // Handle POS Terminal routing (Sub-folder /pos)
 app.get(/^\/pos/, (req, res, next) => {
-  // If it's an API or Assets route, let it pass through to the 404 handler if not found
-  if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
+  if (req.path.includes('/api/') || req.path.includes('/assets/')) {
     return next();
   }
   
@@ -198,22 +197,24 @@ app.get(/^\/pos/, (req, res, next) => {
 });
 
 // Handle Waiter App routing (Sub-folder /waiter)
-const waiterAppPath = path.join(__dirname, '../../waiter_app');
-app.use('/waiter', express.static(waiterAppPath));
-app.get(/^\/waiter/, (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/assets')) {
-    return next();
+// Handle Waiter App routing (Sub-folder /waiter)
+const waiterAppPaths = [
+  path.join(__dirname, '../public/waiter'),         // Preferred: Persistent public folder
+  path.join(__dirname, '../../waiter_app'),         // Legacy location
+  path.join(__dirname, '../../../waiter_app'),      // Root location
+  path.join(process.cwd(), 'apps/waiter_app'),
+  path.join(process.cwd(), 'waiter_app')
+];
+
+let waiterAppPath = waiterAppPaths[0];
+for (const p of waiterAppPaths) {
+  if (fs.existsSync(path.join(p, 'index.html'))) {
+    waiterAppPath = p;
+    break;
   }
-  
-  // Serve the Waiter App index.html for deep links
-  const indexPath = path.join(waiterAppPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      console.error('❌ Error sending Waiter App index.html:', err);
-      return res.status(500).send(`CRITICAL ERROR: Could not find Waiter App at path: ${indexPath}. Please verify the files are uploaded to this exact location on the server.`);
-    }
-  });
-});
+}
+// SPA Routing for Waiter App is now handled by the Root Entry Point
+// to ensure persistent asset serving. No action needed here.
 
 // Handle Main Website routing (Root /)
 app.get(/.*/, (req, res, next) => {

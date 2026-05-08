@@ -37,7 +37,7 @@ class _OrderEntryViewState extends State<OrderEntryView> {
   Future<void> _fetchMenu() async {
     try {
       final response = await http
-          .get(Uri.parse('${ThemeService.apiBaseUrl}/api/menu'))
+          .get(Uri.parse('${ThemeService.apiBaseUrl}/api/menu?t=${DateTime.now().millisecondsSinceEpoch}'))
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -72,22 +72,125 @@ class _OrderEntryViewState extends State<OrderEntryView> {
   }
 
   void _addToCart(dynamic item) {
+    final variants = item['variants'] as List<dynamic>? ?? [];
+    final extras = item['extras'] as List<dynamic>? ?? [];
+
+    if (variants.isNotEmpty || extras.isNotEmpty) {
+      _showCustomizationDialog(item, variants, extras);
+    } else {
+      _finalizeAddToCart(item, null, []);
+    }
+  }
+
+  void _showCustomizationDialog(dynamic item, List<dynamic> variants, List<dynamic> extras) {
+    dynamic selectedVariant = variants.isNotEmpty ? variants[0] : null;
+    List<dynamic> selectedExtras = [];
+    final theme = Theme.of(context);
+    final themePrimary = theme.primaryColor;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Customize ${item['name']}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (variants.isNotEmpty) ...[
+                  const Text('Select Variant', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  ...variants.map((v) => RadioListTile<dynamic>(
+                    title: Text('${v['name']} (+${ThemeService.currency}${v['price_adjustment']})'),
+                    value: v,
+                    groupValue: selectedVariant,
+                    activeColor: themePrimary,
+                    onChanged: (val) => setDialogState(() => selectedVariant = val),
+                  )),
+                  const Divider(),
+                ],
+                if (extras.isNotEmpty) ...[
+                  const Text('Select Extras', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  ...extras.map((e) {
+                    final isSelected = selectedExtras.contains(e);
+                    return CheckboxListTile(
+                      title: Text('${e['name']} (+${ThemeService.currency}${e['price_adjustment']})'),
+                      value: isSelected,
+                      activeColor: themePrimary,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          if (val == true) {
+                            selectedExtras.add(e);
+                          } else {
+                            selectedExtras.remove(e);
+                          }
+                        });
+                      },
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _finalizeAddToCart(item, selectedVariant, selectedExtras);
+                Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: themePrimary),
+              child: const Text('Add to Cart', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _finalizeAddToCart(dynamic item, dynamic variant, List<dynamic> extras) {
     setState(() {
-      final existingIndex = _cartItems.indexWhere((i) => i['id'] == item['id']);
+      final existingIndex = _cartItems.indexWhere((i) {
+        if (i['id'] != item['id']) return false;
+        if (i['variant']?['id'] != variant?['id']) return false;
+        
+        final existingExtras = (i['extras'] as List? ?? []).map((e) => e['id']).toSet();
+        final newExtras = extras.map((e) => e['id']).toSet();
+        return existingExtras.length == newExtras.length && existingExtras.containsAll(newExtras);
+      });
+
       if (existingIndex >= 0) {
         _cartItems[existingIndex]['quantity']++;
       } else {
         _cartItems.add({
           ...item,
           'quantity': 1,
+          'variant': variant,
+          'extras': extras,
         });
       }
     });
   }
 
   double get _totalAmount {
-    return _cartItems.fold(0, (sum, item) {
-      return sum + (double.tryParse(item['price'].toString()) ?? 0) * item['quantity'];
+    return _cartItems.fold(0.0, (sum, item) {
+      double itemBasePrice = double.tryParse(item['price'].toString()) ?? 0.0;
+      double variantAdjustment = 0.0;
+      if (item['variant'] != null) {
+        variantAdjustment = double.tryParse(item['variant']['price_adjustment'].toString()) ?? 0.0;
+      }
+      double extrasTotal = 0.0;
+      if (item['extras'] != null) {
+        for (var e in item['extras']) {
+          extrasTotal += double.tryParse(e['price_adjustment'].toString()) ?? 0.0;
+        }
+      }
+      return sum + (itemBasePrice + variantAdjustment + extrasTotal) * item['quantity'];
     });
   }
 
@@ -210,7 +313,7 @@ class _OrderEntryViewState extends State<OrderEntryView> {
                     children: [
                       const Text('Total Amount', style: TextStyle(fontSize: 12)),
                       Text(
-                        '£${_totalAmount.toStringAsFixed(2)}',
+                        '${ThemeService.currency}${_totalAmount.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -272,7 +375,7 @@ class _OrderEntryViewState extends State<OrderEntryView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '£${double.tryParse(item['price'].toString())?.toStringAsFixed(2) ?? '0.00'}',
+                    '${ThemeService.currency}${double.tryParse(item['price'].toString())?.toStringAsFixed(2) ?? '0.00'}',
                     style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -358,13 +461,34 @@ class _CartSheet extends StatelessWidget {
           Expanded(
             child: items.isEmpty
                 ? const Center(child: Text('Your cart is empty'))
-                : ListView.builder(
+                  : ListView.builder(
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
+                      final variantName = item['variant'] != null ? ' (${item['variant']['name']})' : '';
+                      final extras = (item['extras'] as List? ?? []);
+                      final extrasText = extras.isNotEmpty 
+                          ? '\nExtras: ${extras.map((e) => e['name']).join(', ')}' 
+                          : '';
+
+                      double itemBasePrice = double.tryParse(item['price'].toString()) ?? 0.0;
+                      double variantAdjustment = 0.0;
+                      if (item['variant'] != null) {
+                        variantAdjustment = double.tryParse(item['variant']['price_adjustment'].toString()) ?? 0.0;
+                      }
+                      double extrasTotal = 0.0;
+                      for (var e in extras) {
+                        extrasTotal += double.tryParse(e['price_adjustment'].toString()) ?? 0.0;
+                      }
+                      double unitPrice = itemBasePrice + variantAdjustment + extrasTotal;
+
                       return ListTile(
-                        title: Text(item['name']),
-                        subtitle: Text('£${item['price']} x ${item['quantity']}'),
+                        title: Text('${item['name']}$variantName'),
+                        subtitle: Text(
+                          '${ThemeService.currency}${unitPrice.toStringAsFixed(2)} x ${item['quantity']}$extrasText',
+                          style: TextStyle(color: theme.primaryColor, fontSize: 13),
+                        ),
+                        isThreeLine: extras.isNotEmpty,
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -392,7 +516,7 @@ class _CartSheet extends StatelessWidget {
                   children: [
                     const Text('Total', style: TextStyle(fontSize: 18)),
                     Text(
-                      '£${total.toStringAsFixed(2)}',
+                      '${ThemeService.currency}${total.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,

@@ -1405,7 +1405,7 @@ class _POSMissionControlState extends State<POSMissionControl>
   Future<void> _fetchMenu() async {
     try {
       final response = await http
-          .get(Uri.parse('${ThemeService.apiBaseUrl}/api/menu'))
+          .get(Uri.parse('${ThemeService.apiBaseUrl}/api/menu?t=${DateTime.now().millisecondsSinceEpoch}'))
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -12489,7 +12489,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       if (item['image'] != null && item['image'].toString().isNotEmpty) {
         precacheImage(
           CachedNetworkImageProvider(
-            ThemeService.resolveImageUrl(item['image'].toString()),
+            ThemeService.resolveImageUrl(item['image'].toString(), useCacheBuster: true),
           ),
           context,
         );

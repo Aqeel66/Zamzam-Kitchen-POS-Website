@@ -305,7 +305,23 @@ class _LoginPageState extends State<LoginPage>
 
                     const SizedBox(height: 24),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Forgot Password?'),
+                            content: const Text(
+                              'Please contact your manager or system administrator to reset your password. For security reasons, waiters cannot reset passwords directly.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                       child: Text(
                         'Forgot Password?',
                         style: TextStyle(color: subTextColor),
