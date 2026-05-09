@@ -29,10 +29,14 @@ app.all(['/waiter', '/waiter/*'], (req, res, next) => {
   if (req.path.includes('/assets/')) return next();
   
   const indexPath = path.join(waiterAppPath, 'index.html');
+  
   if (fs.existsSync(indexPath)) {
+    console.log(`✅ [WAITER] Found index.html at: ${indexPath}`);
     return res.sendFile(indexPath);
+  } else {
+    console.log(`❌ [WAITER] MISSING index.html at: ${indexPath}`);
+    next();
   }
-  next();
 });
 // ---------------------------------------------------
 const PORT = process.env.PORT || 5000;
