@@ -215,15 +215,7 @@ const AppContent = () => {
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
             </button>
             <div className="h-8 w-px bg-slate-200" />
-            <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-slate-900 leading-none uppercase">{user?.first_name} {user?.last_name}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{user?.roles?.[0] || 'Staff'}</p>
-              </div>
-              <div className="w-10 h-10 bg-slate-200 rounded-xl flex items-center justify-center border border-slate-200 shadow-sm font-black text-slate-500">
-                {user?.first_name?.[0]}{user?.last_name?.[0]}
-              </div>
-            </div>
+            {/* User profile moved to sidebar footer */}
           </div>
         </header>
 
