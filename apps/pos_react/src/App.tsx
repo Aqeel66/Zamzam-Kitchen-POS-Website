@@ -14,9 +14,7 @@ import {
   Ticket,
   Shield,
   Table2,
-  Calendar,
-  MessageSquare,
-  CreditCard
+  Calendar
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';

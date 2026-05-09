@@ -12,7 +12,6 @@ import {
   Clock,
   Image as ImageIcon,
   MessageSquare,
-  Globe,
   Settings2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
