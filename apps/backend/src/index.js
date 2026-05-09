@@ -11,6 +11,30 @@ process.on('uncaughtException', (err) => {
 });
 
 const app = express();
+
+// --- WAITER APP PERSISTENT SERVING (ROOT PRIORITY) ---
+const waiterAppPath = '/home/u824115399/persistent_assets/waiter';
+const fs = require('fs');
+
+// 1. Static Assets
+app.use('/waiter/assets', express.static(path.join(waiterAppPath, 'assets'), {
+  immutable: true,
+  maxAge: '1y',
+  fallthrough: false
+}));
+
+// 2. Base SPA Path
+app.all(['/waiter', '/waiter/*'], (req, res, next) => {
+  if (req.path.includes('/api/')) return next();
+  if (req.path.includes('/assets/')) return next();
+  
+  const indexPath = path.join(waiterAppPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  next();
+});
+// ---------------------------------------------------
 const PORT = process.env.PORT || 5000;
 const pool = require('./db');
 const syncSchema = require('./schemaSync');
