@@ -12,6 +12,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { menuService, tableService, orderService } from '../services/orderService';
 import { useAuth } from '../context/AuthContext';
+import { resolveImageUrl } from '../services/api';
 
 interface NewOrderProps {
   onClose: () => void;
@@ -172,23 +173,38 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
                   />
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {activeCategory?.items
                   .filter((item: any) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map((item: any) => (
-                    <div key={item.id} className="bg-white border border-slate-100 rounded-3xl p-4 flex flex-col justify-between hover:shadow-lg transition-shadow group">
-                      <div>
-                        <h4 className="font-bold text-slate-800 group-hover:text-teal-900 transition-colors">{item.name}</h4>
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">{item.description}</p>
+                    <div key={item.id} className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden flex flex-col hover:shadow-xl hover:shadow-teal-900/5 transition-all group">
+                      <div className="relative h-40 overflow-hidden">
+                        <img 
+                          src={resolveImageUrl(item.image_url)} 
+                          alt={item.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                          <p className="text-white text-[10px] font-medium leading-tight">{item.description}</p>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between mt-4">
-                        <span className="font-black text-teal-900 text-lg">£{item.price.toFixed(2)}</span>
-                        <button
-                          onClick={() => addItem({ id: parseInt(item.id), name: item.name, price: item.price, quantity: 1 })}
-                          className="bg-[#FFB300] hover:bg-[#FFA000] p-2 rounded-xl transition-all active:scale-90"
-                        >
-                          <Plus size={20} />
-                        </button>
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="font-black text-slate-800 group-hover:text-teal-900 transition-colors text-lg uppercase tracking-tight">{item.name}</h4>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Available Now</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-6">
+                          <span className="font-black text-teal-900 text-xl tracking-tighter">£{item.price.toFixed(2)}</span>
+                          <button
+                            onClick={() => addItem({ id: parseInt(item.id), name: item.name, price: item.price, quantity: 1 })}
+                            className="bg-zamzam-yellow text-slate-900 p-3 rounded-2xl shadow-lg shadow-yellow-500/20 hover:scale-110 active:scale-95 transition-all"
+                          >
+                            <Plus size={24} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
