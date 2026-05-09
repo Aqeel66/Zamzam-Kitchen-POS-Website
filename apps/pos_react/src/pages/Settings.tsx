@@ -139,8 +139,6 @@ export default function Settings() {
             { id: 'general', label: 'General Info', icon: Store },
             { id: 'branding', label: 'Branding', icon: ImageIcon },
             { id: 'operations', label: 'Operations', icon: Settings2 },
-            { id: 'communications', label: 'Communications', icon: MessageSquare },
-            { id: 'payments', label: 'Payments', icon: CreditCard },
             { id: 'reset', label: 'System Reset', icon: ShieldAlert },
           ].map((item) => (
             <button
@@ -376,44 +374,6 @@ export default function Settings() {
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
                     />
                   </div>
-                </div>
-              </motion.section>
-            )}
-
-            {activeSection === 'communications' && (
-              <motion.section
-                key="communications"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-10"
-              >
-                <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-center">
-                  <div className="w-16 h-16 bg-zamzam-teal/10 rounded-2xl flex items-center justify-center text-zamzam-teal mx-auto mb-4">
-                    <MessageSquare size={28} />
-                  </div>
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-2">Communications Hub</h3>
-                  <p className="text-sm font-bold text-slate-400 max-w-md mx-auto mb-6"> Configure WhatsApp, SMS, and Email gateways for order notifications and marketing.</p>
-                  <div className="text-xs font-black text-zamzam-teal uppercase tracking-widest bg-white border border-zamzam-teal/20 px-6 py-3 rounded-xl inline-block shadow-sm">Module Integration Pending</div>
-                </div>
-              </motion.section>
-            )}
-
-            {activeSection === 'payments' && (
-              <motion.section
-                key="payments"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-10"
-              >
-                <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-center">
-                  <div className="w-16 h-16 bg-zamzam-yellow/10 rounded-2xl flex items-center justify-center text-zamzam-yellow mx-auto mb-4">
-                    <Globe size={28} />
-                  </div>
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-2">Payment Gateways</h3>
-                  <p className="text-sm font-bold text-slate-400 max-w-md mx-auto mb-6">Securely connect Stripe, PayPal, or local processors for online and QR payments.</p>
-                  <div className="text-xs font-black text-zamzam-yellow uppercase tracking-widest bg-white border border-zamzam-yellow/20 px-6 py-3 rounded-xl inline-block shadow-sm">Gateway Management Coming Soon</div>
                 </div>
               </motion.section>
             )}
