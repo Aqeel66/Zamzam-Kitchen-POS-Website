@@ -13,15 +13,14 @@ process.on('uncaughtException', (err) => {
 
 const app = express();
 
-// --- WAITER APP PERSISTENT SERVING (ROOT PRIORITY) ---
+// --- WAITER APP SERVING (FIXED & PRIORITIZED) ---
 const waiterAppPaths = [
-  '/home/u824115399/persistent_assets/waiter',
-  '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter',
-  path.resolve(__dirname, '../../waiter_react/dist'), // Local Path
-  path.resolve(__dirname, '../../../../persistent_assets/waiter')
+  path.resolve(__dirname, '../../waiter_react/dist'), // 1. Local Git Path (Prioritize)
+  '/home/u824115399/persistent_assets/waiter', // 2. Hostinger Path 1
+  '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter', // 3. Hostinger Path 2
 ];
 
-let waiterAppPath = waiterAppPaths[0];
+let waiterAppPath = waiterAppPaths[0]; // Default to local
 for (const p of waiterAppPaths) {
   if (fs.existsSync(path.join(p, 'index.html'))) {
     waiterAppPath = p;
@@ -29,27 +28,33 @@ for (const p of waiterAppPaths) {
   }
 }
 
-// 1. Static Assets
+console.log(`📦 [WAITER] Serving from: ${waiterAppPath}`);
+
+// 1. Redirect /waiter to /waiter/ for consistent relative path resolution
+app.get('/waiter', (req, res, next) => {
+  if (!req.url.endsWith('/')) {
+    return res.redirect(301, req.url + '/');
+  }
+  next();
+});
+
+// 2. Static Assets (Must be before the SPA catch-all)
 app.use('/waiter/assets', express.static(path.join(waiterAppPath, 'assets'), {
   immutable: true,
   maxAge: '1y',
-  fallthrough: false
+  fallthrough: true
 }));
 
-// 2. Base SPA Path
+// 3. SPA Routing
 app.all(['/waiter', '/waiter/*'], (req, res, next) => {
   if (req.path.includes('/api/')) return next();
   if (req.path.includes('/assets/')) return next();
   
   const indexPath = path.join(waiterAppPath, 'index.html');
-  
   if (fs.existsSync(indexPath)) {
-    console.log(`✅ [WAITER] Found index.html at: ${indexPath}`);
     return res.sendFile(indexPath);
-  } else {
-    console.log(`❌ [WAITER] MISSING index.html at: ${indexPath}`);
-    next();
   }
+  next();
 });
 // ---------------------------------------------------
 const PORT = process.env.PORT || 5000;
