@@ -50,10 +50,23 @@ const AppContent = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      console.log('📡 Fetching tenant settings...');
       fetch(`${API_BASE_URL}/settings`)
-        .then(res => res.json())
-        .then(data => setSettings(data))
-        .catch(err => console.error('Error fetching settings:', err));
+        .then(async res => {
+          if (!res.ok) throw new Error(`Server returned ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          console.log('✅ Settings loaded:', data);
+          setSettings(data);
+        })
+        .catch(err => {
+          console.error('❌ Error fetching settings:', err);
+          // Fallback settings to keep UI alive
+          setSettings({
+            tenant: { restaurant_name: 'Zamzam Kitchen', tagline: 'Connection Error' }
+          });
+        });
     }
   }, [isAuthenticated]);
 
@@ -140,7 +153,10 @@ const AppContent = () => {
 
         <div className="p-6 mt-auto border-t border-white/5">
           <button 
-            onClick={logout}
+            onClick={() => {
+              logout();
+              window.location.href = '/pos/';
+            }}
             className="flex items-center gap-4 px-4 py-4 w-full rounded-2xl text-teal-100/40 hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 font-bold text-sm uppercase tracking-wider"
           >
             <LogOut className="w-5 h-5" />

@@ -33,10 +33,13 @@ export default function Settings() {
   const fetchSettings = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/settings`);
+      if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       setSettings(data);
+      setSaveStatus('idle');
     } catch (err) {
       console.error('Error fetching settings:', err);
+      setSaveStatus('error');
     }
   };
 
