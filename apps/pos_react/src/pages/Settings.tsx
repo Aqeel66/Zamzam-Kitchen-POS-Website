@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { 
   Store, 
+  CreditCard, 
   Trash2, 
   ChevronRight,
   ShieldAlert,
+  Coins,
+  Receipt,
   CheckCircle2,
   AlertCircle,
+  Clock,
   Image as ImageIcon,
   Settings2
 } from 'lucide-react';
