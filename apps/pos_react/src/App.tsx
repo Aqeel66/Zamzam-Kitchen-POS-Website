@@ -172,26 +172,26 @@ const AppContent = () => {
           })}
         </nav>
 
-        <div className="p-6 mt-auto border-t border-white/5 space-y-4">
-          <div className="px-4 py-3 bg-white/5 rounded-2xl flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-zamzam-yellow/10 flex items-center justify-center">
-              <User className="text-zamzam-yellow w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-black text-white truncate">{user?.first_name} {user?.last_name}</p>
-              <p className="text-[10px] font-bold text-teal-400/60 uppercase tracking-widest truncate">{user?.roles}</p>
-            </div>
-          </div>
-          
+        <div className="p-4 mt-auto border-t border-white/5 space-y-2">
           <button 
             onClick={() => {
               logout();
               window.location.href = '/pos/';
             }}
-            className="flex items-center gap-4 px-4 py-4 w-full rounded-2xl text-red-400 hover:bg-red-500/10 transition-all duration-300 font-bold text-sm uppercase tracking-wider border border-transparent hover:border-red-500/20"
+            className="flex items-center gap-4 px-4 py-3 w-full rounded-xl text-teal-100/40 hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 font-bold text-[10px] uppercase tracking-widest border border-transparent"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
+          </button>
+          
+          <button 
+            onClick={() => {
+              localStorage.removeItem('pos_user');
+              window.location.href = '/pos/';
+            }}
+            className="w-full text-center py-2 text-[8px] font-bold text-white/10 hover:text-white/40 uppercase tracking-[0.2em] transition-colors"
+          >
+            Emergency Reset
           </button>
         </div>
       </aside>
@@ -215,7 +215,16 @@ const AppContent = () => {
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
             </button>
             <div className="h-8 w-px bg-slate-200" />
-            {/* User profile moved to sidebar footer */}
+            
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-black text-slate-900 leading-none uppercase">{user?.first_name} {user?.last_name}</p>
+                <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mt-1">{user?.roles}</p>
+              </div>
+              <div className="w-10 h-10 bg-zamzam-yellow/10 rounded-xl flex items-center justify-center border border-zamzam-yellow/20 shadow-sm font-black text-zamzam-yellow">
+                {user?.first_name?.[0]}{user?.last_name?.[0]}
+              </div>
+            </div>
           </div>
         </header>
 
