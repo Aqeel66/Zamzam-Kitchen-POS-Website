@@ -4,7 +4,6 @@ import {
   UserPlus, 
   Mail, 
   Phone, 
-  MoreVertical, 
   Search,
   CheckCircle2,
   X,
