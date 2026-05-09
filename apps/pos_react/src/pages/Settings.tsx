@@ -11,16 +11,20 @@ import {
   AlertCircle,
   Clock,
   Image as ImageIcon,
+  MessageSquare,
+  Globe,
   Settings2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
+import Communications from './Communications';
+import Payments from './Payments';
 
 const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(Boolean).join(' ');
 
 export default function Settings() {
   const [settings, setSettings] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'operations' | 'reset'>('general');
+  const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'operations' | 'communications' | 'payments' | 'reset'>('general');
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
@@ -137,6 +141,8 @@ export default function Settings() {
             { id: 'general', label: 'General Info', icon: Store },
             { id: 'branding', label: 'Branding', icon: ImageIcon },
             { id: 'operations', label: 'Operations', icon: Settings2 },
+            { id: 'communications', label: 'Communications', icon: MessageSquare },
+            { id: 'payments', label: 'Payments', icon: CreditCard },
             { id: 'reset', label: 'System Reset', icon: ShieldAlert },
           ].map((item) => (
             <button
@@ -374,6 +380,30 @@ export default function Settings() {
                   </div>
                 </div>
               </motion.section>
+            )}
+
+            {activeSection === 'communications' && (
+              <motion.div
+                key="communications"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden min-h-[600px]"
+              >
+                <Communications />
+              </motion.div>
+            )}
+
+            {activeSection === 'payments' && (
+              <motion.div
+                key="payments"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden min-h-[600px]"
+              >
+                <Payments />
+              </motion.div>
             )}
 
             {activeSection === 'reset' && (

@@ -95,8 +95,6 @@ const AppContent = () => {
     { icon: Calendar, label: 'Reservations', path: '/reservations' },
     { icon: LayoutGrid, label: 'Menu Studio', path: '/menu' },
     { icon: Users, label: 'Customers', path: '/customers' },
-    { icon: MessageSquare, label: 'Communications', path: '/communications' },
-    { icon: CreditCard, label: 'Payments', path: '/payments' },
     { icon: Ticket, label: 'Promotions', path: '/promotions' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },
     { icon: Package, label: 'Inventory', path: '/inventory' },
