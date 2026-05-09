@@ -14,7 +14,8 @@ import {
   Ticket,
   Shield,
   Table2,
-  Calendar
+  Calendar,
+  User
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
