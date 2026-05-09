@@ -15,7 +15,8 @@ import {
   Shield,
   Table2,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  CreditCard
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
