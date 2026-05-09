@@ -40,6 +40,7 @@ import Permissions from './pages/Permissions';
 import Tables from './pages/Tables';
 import Reservations from './pages/Reservations';
 import Communications from './pages/Communications';
+import Payments from './pages/Payments';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -94,6 +95,7 @@ const AppContent = () => {
     { icon: LayoutGrid, label: 'Menu Studio', path: '/menu' },
     { icon: Users, label: 'Customers', path: '/customers' },
     { icon: MessageSquare, label: 'Communications', path: '/communications' },
+    { icon: CreditCard, label: 'Payments', path: '/payments' },
     { icon: Ticket, label: 'Promotions', path: '/promotions' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },
     { icon: Package, label: 'Inventory', path: '/inventory' },
@@ -242,6 +244,7 @@ const AppContent = () => {
             <Route path="/menu" element={<MenuDesigner />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/communications" element={<Communications />} />
+            <Route path="/payments" element={<Payments />} />
             <Route path="/promotions" element={<Promotions />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/inventory" element={<Inventory />} />
