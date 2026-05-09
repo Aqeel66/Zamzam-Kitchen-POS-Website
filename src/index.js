@@ -6,9 +6,9 @@ const PORT = process.env.PORT || 3000;
 
 // Resolve Waiter App Path based on Environment
 const waiterAppPaths = [
-    '/home/u824115399/persistent_assets/waiter', // Hostinger Path 1
-    '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter', // Hostinger Path 2
-    path.join(__dirname, '../apps/waiter_react/dist') // Local Path
+    path.join(__dirname, '../apps/waiter_react/dist'), // 1. Local Git Path (Prioritize)
+    '/home/u824115399/persistent_assets/waiter', // 2. Hostinger Path 1
+    '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter', // 3. Hostinger Path 2
 ];
 
 let waiterAppPath = waiterAppPaths[2]; // Default to local
