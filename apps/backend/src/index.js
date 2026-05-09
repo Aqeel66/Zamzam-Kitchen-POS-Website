@@ -14,7 +14,19 @@ process.on('uncaughtException', (err) => {
 const app = express();
 
 // --- WAITER APP PERSISTENT SERVING (ROOT PRIORITY) ---
-const waiterAppPath = '/home/u824115399/persistent_assets/waiter';
+const waiterAppPaths = [
+  '/home/u824115399/persistent_assets/waiter',
+  '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter',
+  path.resolve(__dirname, '../../../../persistent_assets/waiter')
+];
+
+let waiterAppPath = waiterAppPaths[0];
+for (const p of waiterAppPaths) {
+  if (fs.existsSync(path.join(p, 'index.html'))) {
+    waiterAppPath = p;
+    break;
+  }
+}
 
 // 1. Static Assets
 app.use('/waiter/assets', express.static(path.join(waiterAppPath, 'assets'), {
