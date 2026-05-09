@@ -123,25 +123,25 @@ const AppContent = () => {
     <div className="flex h-screen bg-bg-main overflow-hidden">
       {/* Sidebar */}
       <aside className="w-72 bg-zamzam-teal text-white flex flex-col shadow-2xl z-20">
-        <div className="p-8 flex items-center gap-3">
-          <div className="w-10 h-10 bg-zamzam-yellow rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/20 overflow-hidden">
+        <div className="p-6 flex items-center gap-3">
+          <div className="w-9 h-9 bg-zamzam-yellow rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/20 overflow-hidden">
             {settings?.tenant?.logo_url ? (
               <img src={settings.tenant.logo_url} className="w-full h-full object-contain" />
             ) : (
-              <ShoppingCart className="text-zamzam-teal w-6 h-6" />
+              <ShoppingCart className="text-zamzam-teal w-5 h-5" />
             )}
           </div>
           <div className="min-w-0">
-            <h1 className="font-black text-xl tracking-tighter uppercase leading-none truncate">
+            <h1 className="font-black text-lg tracking-tighter uppercase leading-none truncate">
               {settings?.tenant?.restaurant_name || 'Zamzam'}
             </h1>
-            <p className="text-[9px] font-bold text-teal-400/60 uppercase tracking-widest mt-1 truncate">
+            <p className="text-[8px] font-bold text-teal-400/60 uppercase tracking-widest mt-1 truncate">
               {settings?.tenant?.tagline || 'POS Terminal'}
             </p>
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto no-scrollbar">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -149,50 +149,40 @@ const AppContent = () => {
                 key={item.path} 
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group",
+                  "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group",
                   isActive 
                     ? "bg-white/10 text-zamzam-yellow shadow-inner shadow-black/10" 
-                    : "text-teal-100/50 hover:bg-white/5 hover:text-white"
+                    : "text-teal-100/40 hover:bg-white/5 hover:text-white"
                 )}
               >
                 <item.icon className={cn(
-                  "w-5 h-5 transition-transform duration-300",
+                  "w-4 h-4 transition-transform duration-300",
                   isActive ? "scale-110" : "group-hover:scale-110"
                 )} />
-                <span className="font-bold text-sm uppercase tracking-wider">{item.label}</span>
+                <span className="font-bold text-[13px] uppercase tracking-wider">{item.label}</span>
                 {isActive && (
                   <motion.div 
                     layoutId="active-pill"
-                    className="ml-auto w-1.5 h-1.5 bg-zamzam-yellow rounded-full shadow-[0_0_10px_#FFB300]"
+                    className="ml-auto w-1 h-1 bg-zamzam-yellow rounded-full shadow-[0_0_8px_#FFB300]"
                   />
                 )}
               </Link>
             );
           })}
+          
+          <div className="pt-8 pb-4 opacity-20 hover:opacity-100 transition-opacity">
+            <button 
+              onClick={() => {
+                localStorage.removeItem('pos_user');
+                window.location.href = '/pos/';
+              }}
+              className="w-full text-center text-[9px] font-bold text-white uppercase tracking-[0.2em]"
+            >
+              Emergency Session Reset
+            </button>
+          </div>
         </nav>
 
-        <div className="p-4 mt-auto border-t border-white/5 space-y-2">
-          <button 
-            onClick={() => {
-              logout();
-              window.location.href = '/pos/';
-            }}
-            className="flex items-center gap-4 px-4 py-3 w-full rounded-xl text-teal-100/40 hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 font-bold text-[10px] uppercase tracking-widest border border-transparent"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
-          </button>
-          
-          <button 
-            onClick={() => {
-              localStorage.removeItem('pos_user');
-              window.location.href = '/pos/';
-            }}
-            className="w-full text-center py-2 text-[8px] font-bold text-white/10 hover:text-white/40 uppercase tracking-[0.2em] transition-colors"
-          >
-            Emergency Reset
-          </button>
-        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -215,7 +205,7 @@ const AppContent = () => {
             </button>
             <div className="h-8 w-px bg-slate-200" />
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-black text-slate-900 leading-none uppercase">{user?.first_name} {user?.last_name}</p>
                 <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mt-1">{user?.roles}</p>
@@ -223,6 +213,17 @@ const AppContent = () => {
               <div className="w-10 h-10 bg-zamzam-yellow/10 rounded-xl flex items-center justify-center border border-zamzam-yellow/20 shadow-sm font-black text-zamzam-yellow">
                 {user?.first_name?.[0]}{user?.last_name?.[0]}
               </div>
+              
+              <button 
+                onClick={() => {
+                  logout();
+                  window.location.href = '/pos/';
+                }}
+                className="ml-2 p-2.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-100 shadow-sm"
+                title="Sign Out"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </header>
