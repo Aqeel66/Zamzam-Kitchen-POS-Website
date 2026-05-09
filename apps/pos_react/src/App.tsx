@@ -14,7 +14,8 @@ import {
   Ticket,
   Shield,
   Table2,
-  Calendar
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
@@ -38,6 +39,7 @@ import QRMenu from './pages/QRMenu';
 import Permissions from './pages/Permissions';
 import Tables from './pages/Tables';
 import Reservations from './pages/Reservations';
+import Communications from './pages/Communications';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -91,6 +93,7 @@ const AppContent = () => {
     { icon: Calendar, label: 'Reservations', path: '/reservations' },
     { icon: LayoutGrid, label: 'Menu Studio', path: '/menu' },
     { icon: Users, label: 'Customers', path: '/customers' },
+    { icon: MessageSquare, label: 'Communications', path: '/communications' },
     { icon: Ticket, label: 'Promotions', path: '/promotions' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },
     { icon: Package, label: 'Inventory', path: '/inventory' },
@@ -238,6 +241,7 @@ const AppContent = () => {
             <Route path="/reservations" element={<Reservations />} />
             <Route path="/menu" element={<MenuDesigner />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/communications" element={<Communications />} />
             <Route path="/promotions" element={<Promotions />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/inventory" element={<Inventory />} />
