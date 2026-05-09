@@ -19,7 +19,6 @@ const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(B
 export default function Payments() {
   const [activeTab, setActiveTab] = useState<'gateways' | 'qr' | 'local' | 'payouts'>('gateways');
   const [settings, setSettings] = useState<any>(null);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     fetchSettings();
@@ -32,23 +31,6 @@ export default function Payments() {
       setSettings(data);
     } catch (err) {
       console.error('Error fetching settings:', err);
-    }
-  };
-
-  const handleUpdateSettings = async (fields: any) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/settings/branch`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fields)
-      });
-      if (res.ok) {
-        setSaveStatus('success');
-        fetchSettings();
-        setTimeout(() => setSaveStatus('idle'), 3000);
-      }
-    } catch (err) {
-      setSaveStatus('error');
     }
   };
 
@@ -71,19 +53,6 @@ export default function Payments() {
         </div>
 
         <div className="flex items-center gap-3">
-          <AnimatePresence>
-            {saveStatus === 'success' && (
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="bg-green-50 text-green-600 px-4 py-2 rounded-xl flex items-center gap-2 border border-green-100"
-              >
-                <CheckCircle2 size={16} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Gateway Verified</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
 

@@ -3,7 +3,6 @@ import {
   MessageSquare, 
   Smartphone, 
   Mail, 
-  Send, 
   Settings2, 
   Bell, 
   CheckCircle2, 
