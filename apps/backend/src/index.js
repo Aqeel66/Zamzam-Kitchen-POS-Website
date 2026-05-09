@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const path = require('path');
 require('dotenv').config();
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -42,7 +41,6 @@ const syncSchema = require('./schemaSync');
 
 
 // Diagnostics
-const fs = require('fs');
 const pathsToCheck = [
   path.resolve(process.cwd(), '.env'),
   path.resolve(__dirname, '../.env'),
