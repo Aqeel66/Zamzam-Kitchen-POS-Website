@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -14,7 +16,6 @@ const app = express();
 
 // --- WAITER APP PERSISTENT SERVING (ROOT PRIORITY) ---
 const waiterAppPath = '/home/u824115399/persistent_assets/waiter';
-const fs = require('fs');
 
 // 1. Static Assets
 app.use('/waiter/assets', express.static(path.join(waiterAppPath, 'assets'), {
