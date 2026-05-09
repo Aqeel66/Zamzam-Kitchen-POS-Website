@@ -6,7 +6,6 @@ import {
   Phone, 
   MoreVertical, 
   Search,
-  Filter,
   CheckCircle2,
   X,
   User as UserIcon,

@@ -12,8 +12,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  Eye,
-  Settings2,
   Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
