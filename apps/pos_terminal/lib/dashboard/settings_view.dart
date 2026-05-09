@@ -308,35 +308,39 @@ class _SettingsViewState extends State<SettingsView> {
           SettingsGridCard(
             title: LocalizationService().translate('restaurant_info'),
             children: [
-              SettingDropdown(
-                label: LocalizationService().translate('primary_currency'),
-                description: LocalizationService().translate(
-                  'primary_currency_desc',
-                ),
-                value: tenant['currency'] ?? 'USD',
-                items: const ['USD', 'AUD', 'GBP', 'EUR', 'AED', 'SAR'],
-                onChanged: (val) =>
-                    widget.onUpdateSetting('tenant', {'currency': val}),
-              ),
-              SettingDropdown(
-                label: LocalizationService().translate('ui_theme'),
-                description: 'Select your preferred visual style',
-                value: tenant['theme_mode'] ?? 'Dark',
-                items: const [
-                  'Light',
-                  'Dark',
-                  'System',
-                  'Midnight Blue',
-                  'Emerald Green',
-                  'Aura Purple',
-                ],
+              SettingInput(
+                label: 'Restaurant Name',
+                description: 'Your business legal name',
+                initialValue:
+                    tenant['business_name'] ?? tenant['restaurant_name'] ?? '',
                 onChanged: (val) {
-                  if (val != null) {
-                    widget.onUpdateSetting('tenant', {'theme_mode': val});
-                    // Apply theme immediately
-                    ThemeService().setFlavorFromString(val);
-                  }
+                  widget.onUpdateSetting('tenant', {
+                    'business_name': val,
+                    'restaurant_name': val,
+                  });
+                  ThemeService().updateBranding(restaurantName: val);
                 },
+              ),
+              SettingInput(
+                label: 'Contact Email',
+                description: 'Support/Contact email for customers',
+                initialValue: tenant['business_email'] ?? '',
+                onChanged: (val) =>
+                    widget.onUpdateSetting('tenant', {'business_email': val}),
+              ),
+              SettingInput(
+                label: 'Contact Phone',
+                description: 'Contact number for orders/queries',
+                initialValue: tenant['business_phone'] ?? '',
+                onChanged: (val) =>
+                    widget.onUpdateSetting('tenant', {'business_phone': val}),
+              ),
+              SettingInput(
+                label: 'Business Address',
+                description: 'Full physical address',
+                initialValue: tenant['business_address'] ?? '',
+                onChanged: (val) =>
+                    widget.onUpdateSetting('tenant', {'business_address': val}),
               ),
             ],
           ),
@@ -353,6 +357,7 @@ class _SettingsViewState extends State<SettingsView> {
     Color hint,
   ) {
     final branch = widget.settings['branch'] ?? {};
+    final tenant = widget.settings['tenant'] ?? {};
     return SingleChildScrollView(
       padding: const EdgeInsets.all(40),
       child: Column(
@@ -363,6 +368,22 @@ class _SettingsViewState extends State<SettingsView> {
             subtitle: 'Configure your restaurant floor and kitchen rules.',
           ),
           const SizedBox(height: 32),
+          SettingsGridCard(
+            title: 'Financials & Localization',
+            children: [
+              SettingDropdown(
+                label: LocalizationService().translate('primary_currency'),
+                description: LocalizationService().translate(
+                  'primary_currency_desc',
+                ),
+                value: tenant['currency'] ?? 'USD',
+                items: const ['USD', 'AUD', 'GBP', 'EUR', 'AED', 'SAR'],
+                onChanged: (val) =>
+                    widget.onUpdateSetting('tenant', {'currency': val}),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           SettingsGridCard(
             title: 'Taxes & Fees',
             children: [
@@ -527,12 +548,73 @@ class _SettingsViewState extends State<SettingsView> {
             subtitle: 'Upload logos and customize your presence.',
           ),
           const SizedBox(height: 32),
+          // 1. Business Identity
           SettingsGridCard(
-            title: 'Visual Identity',
+            title: 'Business Identity',
+            children: [
+              SettingInput(
+                label: 'Business Tagline',
+                description:
+                    'A catchy slogan for your business (shown on login screen)',
+                initialValue: tenant['tagline'] ?? '',
+                onChanged: (val) {
+                  widget.onUpdateSetting('tenant', {'tagline': val});
+                  ThemeService().updateBranding(tagline: val);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          // 2. Appearance & Styling
+          SettingsGridCard(
+            title: 'Appearance & Styling',
+            children: [
+              SettingDropdown(
+                label: LocalizationService().translate('ui_theme'),
+                description: 'Select your preferred visual style',
+                value: tenant['theme_mode'] ?? 'Dark',
+                items: const [
+                  'Light',
+                  'Dark',
+                  'System',
+                  'Midnight Blue',
+                  'Emerald Green',
+                  'Aura Purple',
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    widget.onUpdateSetting('tenant', {'theme_mode': val});
+                    // Apply theme immediately
+                    ThemeService().setFlavorFromString(val);
+                  }
+                },
+              ),
+              SettingColorPicker(
+                label: 'Primary Accent Color',
+                description:
+                    'This color will be used for buttons, icons, and highlights across the terminal.',
+                value: tenant['primary_accent_color'],
+                onChanged: (val) {
+                  widget.onUpdateSetting('tenant', {
+                    'primary_accent_color': val,
+                  });
+                  // Apply immediately to the UI
+                  ThemeService().setFlavorFromString(
+                    tenant['theme_mode'],
+                    accentColorHex: val,
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          // 3. Visual Assets
+          SettingsGridCard(
+            title: 'Logos & Backgrounds',
             children: [
               _buildImagePickerSetting(
-                'Primary Logo',
-                'Appears on login and headers',
+                'Primary Logo (App Sidebar)',
+                'High-res transparent PNG recommended',
                 tenant['logo_url'] ?? '',
                 'logo_url',
                 primary,
@@ -540,8 +622,8 @@ class _SettingsViewState extends State<SettingsView> {
                 border,
               ),
               _buildImagePickerSetting(
-                'Secondary Logo',
-                'Used for dark themes/footers',
+                'Secondary Logo (Receipts)',
+                'Used for dark themes and footers',
                 tenant['secondary_logo_url'] ?? '',
                 'secondary_logo_url',
                 primary,
@@ -565,72 +647,6 @@ class _SettingsViewState extends State<SettingsView> {
                 primary,
                 card,
                 border,
-              ),
-              SettingInput(
-                label: 'Restaurant Tagline',
-                description:
-                    'A catchy slogan for your business (shown on login screen)',
-                initialValue: tenant['tagline'] ?? '',
-                onChanged: (val) {
-                  widget.onUpdateSetting('tenant', {'tagline': val});
-                  ThemeService().updateBranding(tagline: val);
-                },
-              ),
-              SettingColorPicker(
-                label: 'Primary Accent Color',
-                description:
-                    'This color will be used for buttons, icons, and highlights across the terminal.',
-                value: tenant['primary_accent_color'],
-                onChanged: (val) {
-                  widget.onUpdateSetting('tenant', {
-                    'primary_accent_color': val,
-                  });
-                  // Apply immediately to the UI
-                  ThemeService().setFlavorFromString(
-                    tenant['theme_mode'],
-                    accentColorHex: val,
-                  );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SettingsGridCard(
-            title: 'Business Contact Details',
-            children: [
-              SettingInput(
-                label: 'Business Legal Name',
-                description: 'Full name for official documents',
-                initialValue:
-                    tenant['business_name'] ?? tenant['restaurant_name'] ?? '',
-                onChanged: (val) {
-                  widget.onUpdateSetting('tenant', {
-                    'business_name': val,
-                    'restaurant_name': val,
-                  });
-                  ThemeService().updateBranding(restaurantName: val);
-                },
-              ),
-              SettingInput(
-                label: 'Business Email',
-                description: 'Support/Contact email for customers',
-                initialValue: tenant['business_email'] ?? '',
-                onChanged: (val) =>
-                    widget.onUpdateSetting('tenant', {'business_email': val}),
-              ),
-              SettingInput(
-                label: 'Business Phone #',
-                description: 'Contact number for orders/queries',
-                initialValue: tenant['business_phone'] ?? '',
-                onChanged: (val) =>
-                    widget.onUpdateSetting('tenant', {'business_phone': val}),
-              ),
-              SettingInput(
-                label: 'Business Address',
-                description: 'Full physical address',
-                initialValue: tenant['business_address'] ?? '',
-                onChanged: (val) =>
-                    widget.onUpdateSetting('tenant', {'business_address': val}),
               ),
             ],
           ),
