@@ -10,19 +10,25 @@ import {
   CheckCircle2,
   X,
   User as UserIcon,
-  ShieldCheck
+  ShieldCheck,
+  Shield,
+  ChefHat,
+  Timer,
+  Smartphone,
+  Trash2,
+  UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
 
 const cn = (...inputs: any[]) => inputs.filter(Boolean).join(' ');
 
-const roleColors: Record<string, string> = {
-  'Admin': 'bg-red-50 text-red-600 border-red-100',
-  'Manager': 'bg-purple-50 text-purple-600 border-purple-100',
-  'Waiter': 'bg-blue-50 text-blue-600 border-blue-100',
-  'Chef': 'bg-orange-50 text-orange-600 border-orange-100',
-  'Cashier': 'bg-green-50 text-green-600 border-green-100',
+const roleConfigs: Record<string, { color: string, icon: any, bg: string }> = {
+  'Admin': { color: 'text-red-600', bg: 'bg-red-50', icon: ShieldCheck },
+  'Manager': { color: 'text-purple-600', bg: 'bg-purple-50', icon: Shield },
+  'Waiter': { color: 'text-blue-600', bg: 'bg-blue-50', icon: Timer },
+  'Chef': { color: 'text-orange-600', bg: 'bg-orange-50', icon: ChefHat },
+  'Cashier': { color: 'text-green-600', bg: 'bg-green-50', icon: Smartphone },
 };
 
 export default function Staff() {
@@ -30,6 +36,7 @@ export default function Staff() {
   const [roles, setRoles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -87,7 +94,15 @@ export default function Staff() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ first_name: '', last_name: '', username: '', password: '', email: '', phone: '', role_id: roles[0]?.id.toString() || '' });
+        setFormData({ 
+          first_name: '', 
+          last_name: '', 
+          username: '', 
+          password: '', 
+          email: '', 
+          phone: '', 
+          role_id: roles[0]?.id.toString() || '' 
+        });
         fetchUsers();
       } else {
         const error = await res.json();
@@ -95,235 +110,281 @@ export default function Staff() {
       }
     } catch (err) {
       console.error('Add Staff Error:', err);
-      alert('Connection failed. Please check your network.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const filteredUsers = users.filter(user => 
-    `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = (user.first_name + " " + user.last_name).toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         user.username.toLowerCase().includes(searchQuery.toLowerCase());
+    const roleName = user.roles?.[0]?.name || 'Staff';
+    const matchesFilter = activeFilter === 'All' || roleName === activeFilter;
+    return matchesSearch && matchesFilter;
+  });
 
   return (
-    <div className="p-10 max-w-[1600px] mx-auto space-y-10 min-h-full">
-      {/* Header */}
+    <div className="p-10 max-w-[1400px] mx-auto space-y-10 min-h-full pb-20">
+      {/* Header Section */}
       <div className="flex items-end justify-between">
-        <div>
-          <span className="text-[10px] font-black text-zamzam-teal uppercase tracking-[0.4em] mb-2 block">Team Management</span>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Staff <span className="text-zamzam-teal">Directory</span></h1>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 text-zamzam-teal">
+            <div className="w-10 h-10 bg-zamzam-teal/10 rounded-xl flex items-center justify-center">
+              <Users size={20} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em]">Internal Operations</span>
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Team <span className="text-zamzam-teal">Management</span></h1>
         </div>
-        <div className="flex gap-3">
-          <button className="bg-white border border-slate-200 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-colors flex items-center gap-2">
-            <Filter size={18} />
-            Filter Roles
-          </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-zamzam-yellow px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-zamzam-teal shadow-lg shadow-yellow-500/20 hover:scale-105 transition-transform flex items-center gap-2"
-          >
-            <UserPlus size={18} />
-            Add Staff Member
-          </button>
+
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-zamzam-teal hover:bg-teal-700 text-white font-black px-8 py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-teal-900/20 active:scale-95 transition-all flex items-center gap-3"
+        >
+          <UserPlus size={18} />
+          Add Team Member
+        </button>
+      </div>
+
+      {/* Filters & Search */}
+      <div className="flex flex-col md:flex-row gap-6 items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
+          {['All', 'Admin', 'Manager', 'Waiter', 'Chef', 'Cashier'].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={cn(
+                "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                activeFilter === filter 
+                  ? "bg-zamzam-teal text-white shadow-lg shadow-teal-900/10" 
+                  : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+              )}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative w-full md:w-96 group">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-zamzam-teal transition-colors" size={18} />
+          <input 
+            type="text"
+            placeholder="Search by name or username..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 focus:bg-white rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
+          />
         </div>
       </div>
+
+      {/* Staff Grid */}
+      {isLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-slate-100 border-t-zamzam-teal rounded-full animate-spin" />
+        </div>
+      ) : (
+        <motion.div 
+          layout
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          <AnimatePresence mode='popLayout'>
+            {filteredUsers.map((user) => {
+              const roleName = user.roles?.[0]?.name || 'Staff';
+              const config = roleConfigs[roleName] || { color: 'text-slate-600', bg: 'bg-slate-50', icon: UserIcon };
+              
+              return (
+                <motion.div
+                  key={user.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden"
+                >
+                  {/* Role Badge Floating */}
+                  <div className={cn("absolute top-0 right-0 px-6 py-3 rounded-bl-3xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2", config.bg, config.color)}>
+                    <config.icon size={14} />
+                    {roleName}
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* User Profile Info */}
+                    <div className="flex items-center gap-5">
+                      <div className="w-20 h-20 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center justify-center text-slate-300 relative group-hover:border-zamzam-teal/30 transition-colors overflow-hidden">
+                        <UserIcon size={32} />
+                        <div className="absolute inset-0 bg-zamzam-teal/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">
+                          {user.first_name} {user.last_name}
+                        </h3>
+                        <p className="text-xs font-black text-zamzam-teal uppercase tracking-widest opacity-60">
+                          @{user.username}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Contact Details */}
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center gap-3 text-slate-400 group-hover:text-slate-600 transition-colors">
+                        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
+                          <Mail size={14} />
+                        </div>
+                        <span className="text-xs font-bold">{user.email || 'No email set'}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-slate-400 group-hover:text-slate-600 transition-colors">
+                        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
+                          <Phone size={14} />
+                        </div>
+                        <span className="text-xs font-bold">{user.phone || 'No phone set'}</span>
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="flex items-center gap-3 pt-4 border-t border-slate-50">
+                      <button className="flex-1 bg-slate-50 hover:bg-zamzam-teal hover:text-white text-slate-400 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+                        <UserCheck size={14} />
+                        Update Profile
+                      </button>
+                      <button className="w-12 h-12 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-xl flex items-center justify-center transition-all">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       {/* Add Staff Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden"
             >
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">New Staff <span className="text-zamzam-teal">Member</span></h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure account access</p>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} className="p-3 text-slate-400 hover:bg-white hover:text-slate-900 rounded-2xl transition-all border border-transparent hover:border-slate-100">
-                  <X size={24} />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddStaff} className="p-8 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
-                    <input required type="text" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none" />
+              <div className="p-10 space-y-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 uppercase">New Team Member</h2>
+                    <p className="text-sm font-bold text-slate-400">Add a new professional to your restaurant staff.</p>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
-                    <input required type="text" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username</label>
-                    <input required type="text" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Initial Password</label>
-                    <input required type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none" />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Role</label>
-                  <select 
-                    value={formData.role_id} 
-                    onChange={e => setFormData({...formData, role_id: e.target.value})}
-                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none appearance-none cursor-pointer"
-                  >
-                    {roles.map(role => (
-                      <option key={role.id} value={role.id.toString()}>{role.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="pt-4">
-                  <button 
-                    disabled={isSubmitting}
-                    className="w-full bg-zamzam-teal text-white py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-sm shadow-xl shadow-teal-900/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Onboarding...' : 'Register Staff Member'}
+                  <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 bg-slate-50 hover:bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center transition-all">
+                    <X size={20} />
                   </button>
                 </div>
-              </form>
+
+                <form onSubmit={handleAddStaff} className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">First Name</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.first_name}
+                        onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
+                        placeholder="John"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Last Name</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.last_name}
+                        onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Username</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.username}
+                        onChange={(e) => setFormData({...formData, username: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
+                        placeholder="johndoe123"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Password</label>
+                      <input 
+                        required
+                        type="password" 
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Role</label>
+                      <select 
+                        required
+                        value={formData.role_id}
+                        onChange={(e) => setFormData({...formData, role_id: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all appearance-none cursor-pointer"
+                      >
+                        {roles.map(role => (
+                          <option key={role.id} value={role.id}>{role.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Phone Number</label>
+                      <input 
+                        type="text" 
+                        value={formData.phone}
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
+                        placeholder="+1 234 567 890"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <button 
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-zamzam-teal hover:bg-teal-700 text-white font-black py-5 rounded-[2rem] text-xs uppercase tracking-[0.2em] shadow-2xl shadow-teal-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <CheckCircle2 size={18} />
+                          Finalize Team Member
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {[
-          { title: 'Total Staff', value: users.length, icon: Users, color: 'text-blue-500 bg-blue-50' },
-          { title: 'Active Now', value: users.length > 0 ? Math.floor(users.length * 0.7) : 0, icon: CheckCircle2, color: 'text-green-500 bg-green-50' },
-          { title: 'Managers', value: users.filter(u => u.roles?.includes('Manager') || u.roles?.includes('Admin')).length, icon: ShieldCheck, color: 'text-purple-500 bg-purple-50' },
-          { title: 'Service Team', value: users.filter(u => u.roles?.includes('Waiter')).length, icon: UserIcon, color: 'text-orange-500 bg-orange-50' },
-        ].map((stat, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center", stat.color)}>
-              <stat.icon size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.title}</p>
-              <p className="text-2xl font-black text-slate-900">{stat.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative group max-w-2xl">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-zamzam-teal transition-colors" size={20} />
-        <input 
-          type="text"
-          placeholder="Search by name, email, or role..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white border border-slate-100 rounded-[1.5rem] py-4 pl-14 pr-6 text-sm font-bold shadow-sm shadow-slate-200/50 outline-none focus:ring-4 focus:ring-zamzam-teal/5 transition-all"
-        />
-      </div>
-
-      {/* User Table */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden min-h-[400px] relative">
-        <AnimatePresence mode="wait">
-          {isLoading ? (
-            <motion.div 
-              key="loader"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center"
-            >
-              <div className="w-12 h-12 border-4 border-slate-100 border-t-zamzam-teal rounded-full animate-spin" />
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="table"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="overflow-x-auto"
-            >
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    <th className="px-10 py-6">Staff Member</th>
-                    <th className="px-10 py-6">Role</th>
-                    <th className="px-10 py-6">Contact Details</th>
-                    <th className="px-10 py-6">Status</th>
-                    <th className="px-10 py-6 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id} className="group hover:bg-slate-50/50 transition-colors">
-                      <td className="px-10 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 font-black text-lg border border-slate-200 shadow-inner group-hover:bg-zamzam-teal/10 group-hover:text-zamzam-teal group-hover:border-zamzam-teal/20 transition-all">
-                            {user.first_name?.[0]}{user.last_name?.[0]}
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{user.first_name} {user.last_name}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">@{user.username}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-10 py-6">
-                        <div className="flex flex-wrap gap-2">
-                          {(user.roles || 'Staff').split(',').map((role: string) => (
-                            <span 
-                              key={role}
-                              className={cn(
-                                "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border",
-                                roleColors[role] || 'bg-slate-50 text-slate-500 border-slate-100'
-                              )}
-                            >
-                              {role}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-10 py-6">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
-                            <Mail size={12} className="text-slate-300" />
-                            {user.email || 'No email provided'}
-                          </div>
-                          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
-                            <Phone size={12} className="text-slate-300" />
-                            {user.phone || 'No phone provided'}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-10 py-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                          <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Active</span>
-                        </div>
-                      </td>
-                      <td className="px-10 py-6 text-right">
-                        <button className="p-3 text-slate-300 hover:text-slate-900 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100">
-                          <MoreVertical size={20} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
     </div>
   );
 }
