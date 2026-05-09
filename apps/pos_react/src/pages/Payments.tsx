@@ -3,7 +3,6 @@ import {
   CreditCard, 
   Globe, 
   ShieldCheck, 
-  CheckCircle2, 
   ArrowRight,
   Coins,
   QrCode,

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { 
   MessageSquare, 
   Smartphone, 
-  Mail, 
   Settings2, 
   Bell, 
   CheckCircle2, 
