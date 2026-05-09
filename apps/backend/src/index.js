@@ -219,23 +219,7 @@ app.get(/^\/pos/, (req, res, next) => {
   });
 });
 
-// Handle Waiter App routing (Sub-folder /waiter)
-// Handle Waiter App routing (Sub-folder /waiter)
-const waiterAppPaths = [
-  path.join(__dirname, '../public/waiter'),         // Preferred: Persistent public folder
-  path.join(__dirname, '../../waiter_app'),         // Legacy location
-  path.join(__dirname, '../../../waiter_app'),      // Root location
-  path.join(process.cwd(), 'apps/waiter_app'),
-  path.join(process.cwd(), 'waiter_app')
-];
-
-let waiterAppPath = waiterAppPaths[0];
-for (const p of waiterAppPaths) {
-  if (fs.existsSync(path.join(p, 'index.html'))) {
-    waiterAppPath = p;
-    break;
-  }
-}
+// Legacy Waiter App routing removed. New routing is handled at the top of the file.
 // SPA Routing for Waiter App is now handled by the Root Entry Point
 // to ensure persistent asset serving. No action needed here.
 
