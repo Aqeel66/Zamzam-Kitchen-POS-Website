@@ -17,6 +17,7 @@ const app = express();
 const waiterAppPaths = [
   '/home/u824115399/persistent_assets/waiter',
   '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter',
+  path.resolve(__dirname, '../../waiter_react/dist'), // Local Path
   path.resolve(__dirname, '../../../../persistent_assets/waiter')
 ];
 
@@ -153,6 +154,8 @@ const serveAsset = (req, res, next) => {
 };
 
 app.use('/assets', serveAsset);
+const websiteDistPath = path.join(__dirname, '../../website/dist');
+app.use(express.static(websiteDistPath));
 app.use(express.static(webPath));
 
 // Fallback for 404 assets

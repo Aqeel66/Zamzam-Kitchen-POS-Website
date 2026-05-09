@@ -4,9 +4,31 @@
   --color-teal-900: #006064;
   --color-yellow-500: #FFB300;
   --color-bg-gray: #F8F9FA;
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  --animate-shake: shake 0.5s ease-in-out;
 }
 
 body {
   @apply bg-bg-gray text-slate-800 antialiased;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Custom Scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #00606420;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00606440;
 }

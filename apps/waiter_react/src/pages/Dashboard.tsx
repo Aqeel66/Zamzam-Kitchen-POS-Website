@@ -168,7 +168,7 @@ const Dashboard = () => {
                     <OrderListItem 
                       key={order.id}
                       id={order.order_number?.slice(-3) || order.id} 
-                      name={order.customer_name || `Table ${order.table_number}`} 
+                      name={order.customer_name || (order.table_number ? `Table ${order.table_number}` : 'No Table')} 
                       items={order.item_count || 0} 
                       status={order.status} 
                       subStatus={order.order_type}
