@@ -113,9 +113,9 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
       </header>
 
       {/* Step Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden">
         {step === 'table' && (
-          <div className="p-6 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="p-6 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 overflow-y-auto h-full">
             {tables.map((table) => (
               <button
                 key={table.id}
@@ -141,26 +141,26 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
         )}
 
         {step === 'menu' && (
-          <div className="flex h-full">
-            {/* Categories Sidebar */}
-            <aside className="w-24 border-r border-slate-100 flex flex-col gap-4 p-4 bg-slate-50 overflow-y-auto">
+          <div className="flex flex-col lg:flex-row h-full relative">
+            {/* Categories Sidebar/TopBar */}
+            <aside className="w-full lg:w-24 border-b lg:border-b-0 lg:border-r border-slate-100 flex flex-row lg:flex-col gap-3 p-4 bg-slate-50 overflow-x-auto lg:overflow-y-auto whitespace-nowrap lg:whitespace-normal no-scrollbar">
               {categories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat)}
-                  className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 transition-all p-2 ${
+                  className={`px-6 lg:px-2 py-3 lg:aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 transition-all flex-shrink-0 ${
                     activeCategory?.id === cat.id
                       ? 'bg-teal-900 text-white shadow-lg'
                       : 'bg-white text-slate-400 border border-slate-200'
                   }`}
                 >
-                  <span className="text-[10px] font-black text-center uppercase leading-tight">{cat.name}</span>
+                  <span className="text-[10px] font-black uppercase leading-tight">{cat.name}</span>
                 </button>
               ))}
             </aside>
 
             {/* Items Grid */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col overflow-hidden">
               <div className="p-4 border-b border-slate-100 bg-white">
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -211,8 +211,8 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
               </div>
             </div>
 
-            {/* Mini Cart Sidebar */}
-            <aside className="w-80 border-l border-slate-100 flex flex-col bg-white">
+            {/* Desktop Cart Sidebar (Hidden on Mobile) */}
+            <aside className="hidden lg:flex w-80 border-l border-slate-100 flex-col bg-white">
               <div className="p-6 border-b border-slate-100">
                 <h3 className="font-black text-slate-800">Review Selection</h3>
                 <p className="text-xs text-slate-400 font-medium">{cart.length} items added</p>
@@ -247,6 +247,27 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
                 </button>
               </div>
             </aside>
+
+            {/* Mobile Floating Cart Summary */}
+            {cart.length > 0 && (
+              <div className="lg:hidden fixed bottom-6 left-6 right-6 z-50">
+                <button
+                  onClick={() => setStep('cart')}
+                  className="w-full bg-teal-900 text-white p-4 rounded-3xl shadow-2xl shadow-teal-900/40 flex items-center justify-between animate-in slide-in-from-bottom-10"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center font-black">
+                      {cart.reduce((acc, item) => acc + item.quantity, 0)}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold uppercase opacity-70">Review Order</p>
+                      <p className="text-sm font-black">£{total.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <ArrowRight size={20} />
+                </button>
+              </div>
+            )}
           </div>
         )}
 

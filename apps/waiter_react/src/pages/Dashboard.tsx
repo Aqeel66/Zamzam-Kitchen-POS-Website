@@ -45,11 +45,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#F8F9FA]">
+    <div className="flex flex-col lg:flex-row h-screen bg-[#F8F9FA] overflow-hidden">
       {showNewOrder && <NewOrder onClose={() => setShowNewOrder(false)} />}
       
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
+      {/* Desktop Sidebar (Hidden on Mobile) */}
+      <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col">
         <div className="p-8 flex items-center gap-3">
           <div className="bg-teal-900/10 p-2 rounded-xl">
             <UtensilsCrossed className="text-teal-900 w-6 h-6" />
@@ -91,7 +91,7 @@ const Dashboard = () => {
             </div>
             <div>
               <p className="text-sm font-bold text-slate-800">{user?.first_name} {user?.last_name}</p>
-              <p className="text-xs text-slate-500 font-medium">Waiters</p>
+              <p className="text-xs text-slate-500 font-medium">Waiter</p>
             </div>
           </div>
           <button 
@@ -103,6 +103,15 @@ const Dashboard = () => {
           </button>
         </div>
       </aside>
+
+      {/* Mobile Bottom Navigation (Hidden on Desktop) */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around items-center p-2 z-[60] pb-safe">
+        <MobileNavItem icon={<LayoutDashboard size={22} />} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+        <MobileNavItem icon={<UtensilsCrossed size={22} />} active={activeTab === 'menu'} onClick={() => setActiveTab('menu')} />
+        <button onClick={() => setShowNewOrder(true)} className="bg-zamzam-yellow p-4 rounded-2xl -mt-8 shadow-lg shadow-yellow-500/30 active:scale-90 transition-all"><Plus size={24} /></button>
+        <MobileNavItem icon={<ClipboardList size={22} />} active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} />
+        <MobileNavItem icon={<LogOut size={22} />} onClick={logout} />
+      </nav>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-8">
@@ -124,13 +133,13 @@ const Dashboard = () => {
         ) : (
           <>
             {/* Stats Row */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <StatCard 
                 title="New Orders" 
                 value={stats.new} 
                 icon={<Bell size={20} />} 
                 theme="teal" 
-                subtitle="* Updated every new order"
+                subtitle="* Newest"
               />
               <StatCard 
                 title="Total Orders" 
@@ -157,9 +166,9 @@ const Dashboard = () => {
             </div>
 
             {/* Lists Grid */}
-            <div className="grid grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-24 lg:pb-0">
               {/* Order List */}
-              <section className="col-span-8 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+              <section className="col-span-1 lg:col-span-8 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-bold text-teal-900">Live Order Tracking</h3>
                 </div>
@@ -182,7 +191,7 @@ const Dashboard = () => {
               </section>
 
               {/* Sidebar Info */}
-              <div className="col-span-4 space-y-6">
+              <div className="col-span-1 lg:col-span-4 space-y-6">
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold">Popular Dishes</h3>
@@ -221,6 +230,17 @@ const SidebarItem = ({ icon, label, active, onClick }: any) => (
   >
     {icon}
     <span className="text-sm">{label}</span>
+  </button>
+);
+
+const MobileNavItem = ({ icon, active, onClick }: any) => (
+  <button 
+    onClick={onClick}
+    className={`p-3 rounded-xl transition-all ${
+      active ? 'text-teal-900 bg-teal-50' : 'text-slate-400 hover:text-slate-600'
+    }`}
+  >
+    {icon}
   </button>
 );
 
