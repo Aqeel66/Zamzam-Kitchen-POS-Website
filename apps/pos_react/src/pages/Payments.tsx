@@ -35,6 +35,23 @@ export default function Payments() {
     }
   };
 
+  const handleUpdateSettings = async (fields: any) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/branch`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields)
+      });
+      if (res.ok) {
+        setSaveStatus('success');
+        fetchSettings();
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+    } catch (err) {
+      setSaveStatus('error');
+    }
+  };
+
   if (!settings) return (
     <div className="h-full flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-slate-100 border-t-zamzam-yellow rounded-full animate-spin" />

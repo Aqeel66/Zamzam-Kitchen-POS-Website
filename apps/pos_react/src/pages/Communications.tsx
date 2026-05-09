@@ -35,7 +35,6 @@ export default function Communications() {
   };
 
   const handleUpdateSettings = async (fields: any) => {
-    setIsSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/settings/branch`, {
         method: 'PATCH',
@@ -49,8 +48,6 @@ export default function Communications() {
       }
     } catch (err) {
       setSaveStatus('error');
-    } finally {
-      setIsSaving(false);
     }
   };
 
