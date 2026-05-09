@@ -7,10 +7,7 @@ import {
   Settings2, 
   Bell, 
   CheckCircle2, 
-  AlertCircle,
   Plus,
-  ArrowRight,
-  ExternalLink,
   MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +18,6 @@ const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(B
 export default function Communications() {
   const [activeTab, setActiveTab] = useState<'whatsapp' | 'sms' | 'templates' | 'history'>('whatsapp');
   const [settings, setSettings] = useState<any>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   useEffect(() => {

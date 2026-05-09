@@ -2,16 +2,11 @@ import { useState, useEffect } from 'react';
 import { 
   CreditCard, 
   Globe, 
-  Smartphone, 
   ShieldCheck, 
   CheckCircle2, 
-  AlertCircle,
-  ArrowRight,
-  ExternalLink,
   Coins,
   QrCode,
   Zap,
-  Lock,
   Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,7 +17,6 @@ const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(B
 export default function Payments() {
   const [activeTab, setActiveTab] = useState<'gateways' | 'qr' | 'local' | 'payouts'>('gateways');
   const [settings, setSettings] = useState<any>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   useEffect(() => {
@@ -36,26 +30,6 @@ export default function Payments() {
       setSettings(data);
     } catch (err) {
       console.error('Error fetching settings:', err);
-    }
-  };
-
-  const handleUpdateSettings = async (fields: any) => {
-    setIsSaving(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/settings/branch`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fields)
-      });
-      if (res.ok) {
-        setSaveStatus('success');
-        fetchSettings();
-        setTimeout(() => setSaveStatus('idle'), 3000);
-      }
-    } catch (err) {
-      setSaveStatus('error');
-    } finally {
-      setIsSaving(false);
     }
   };
 
