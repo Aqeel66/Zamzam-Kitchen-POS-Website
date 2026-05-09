@@ -4,9 +4,11 @@ import {
   Globe, 
   ShieldCheck, 
   CheckCircle2, 
+  ArrowRight,
   Coins,
   QrCode,
   Zap,
+  Lock,
   Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
