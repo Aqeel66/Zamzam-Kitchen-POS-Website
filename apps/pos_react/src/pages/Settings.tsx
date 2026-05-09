@@ -1,18 +1,12 @@
 import { useState, useEffect } from 'react';
 import { 
   Store, 
-  CreditCard, 
   Trash2, 
   ChevronRight,
   ShieldAlert,
-  Coins,
-  Receipt,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Image as ImageIcon,
-  MessageSquare,
-  Globe,
   Settings2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,7 +16,7 @@ const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(B
 
 export default function Settings() {
   const [settings, setSettings] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'operations' | 'communications' | 'payments' | 'reset'>('general');
+  const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'operations' | 'reset'>('general');
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
