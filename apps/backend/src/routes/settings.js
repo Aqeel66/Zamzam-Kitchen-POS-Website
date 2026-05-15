@@ -25,6 +25,30 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET /api/settings/branch/:id
+// @desc    Get specific branch settings
+router.get('/branch/:id', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM branch_settings WHERE branch_id = ? LIMIT 1', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Branch not found' });
+    res.json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @route   GET /api/settings/branding
+// @desc    Get website branding info
+router.get('/branding', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT restaurant_name, tagline, business_email as email, business_phone as phone, business_address as address, logo_url, secondary_logo_url, hero_background_url FROM tenant_settings LIMIT 1');
+    res.json(rows[0] || {});
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // @route   PATCH /api/settings/tenant
 router.patch('/tenant', async (req, res) => {
   try {

@@ -18,19 +18,49 @@ export default function Home() {
     name: 'Zamzam Kitchen',
     heroBg: null as string | null
   });
+  const [businessHours, setBusinessHours] = useState({
+    openingTime: '12:00 PM',
+    closingTime: '11:00 PM'
+  });
+
+  const formatTime12hr = (timeStr: string) => {
+    if (!timeStr || timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      const h = parseInt(hours);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${h12}:${minutes} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/settings`)
+    fetch(`${API_BASE_URL}/settings/branch/1?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
-        if (data.tenant) {
-          setBranding({
-            email: data.tenant.business_email || 'info@zamzamkitchen.com',
-            phone: data.tenant.business_phone || '+61 3 9939 2479',
-            address: data.tenant.business_address || '329 Racecourse Road, VIC, Melbourne, Australia',
-            name: data.tenant.restaurant_name || 'Zamzam Kitchen',
-            heroBg: data.tenant.hero_background_url ? resolveImageUrl(data.tenant.hero_background_url) : null
+        if (data && data.opening_time && data.closing_time) {
+          setBusinessHours({
+            openingTime: formatTime12hr(data.opening_time),
+            closingTime: formatTime12hr(data.closing_time)
           });
+        }
+      })
+      .catch(err => console.error('Error fetching timings:', err));
+
+    fetch(`${API_BASE_URL}/settings/branding?t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          setBranding(prev => ({
+            ...prev,
+            email: data.email || prev.email,
+            phone: data.phone || prev.phone,
+            address: data.address || prev.address,
+            name: data.restaurant_name || prev.name,
+            heroBg: data.hero_background_url ? resolveImageUrl(data.hero_background_url) : prev.heroBg
+          }));
         }
       })
       .catch(err => console.error('Error fetching branding:', err));
@@ -40,19 +70,10 @@ export default function Home() {
     const fetchMenu = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/menu?v=${Date.now()}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
         const data = await response.json();
-        if (Array.isArray(data)) {
-          setMenuData(data);
-        } else {
-          console.error('Expected array from /menu, got:', data);
-          setMenuData([]);
-        }
-      } catch (error) {
-        console.error('Error fetching menu:', error);
-        setMenuData([]);
+        if (Array.isArray(data)) setMenuData(data);
+      } catch (err) {
+        console.error('Failed to fetch menu:', err);
       } finally {
         setIsLoading(false);
       }
@@ -60,214 +81,94 @@ export default function Home() {
     fetchMenu();
   }, []);
 
-  const categories = ["All Items", ...(Array.isArray(menuData) ? menuData.map(cat => cat.name) : [])];
-  
-  // Get items for the grid
-  const displayedItems = Array.isArray(menuData) 
-    ? menuData
-        .filter(cat => activeCategory === 'All Items' || activeCategory === cat.name)
-        .flatMap(cat => cat.items || [])
-        .slice(0, 4) // Show only top 4 on home
-    : [];
+  const categories = ["All Items", ...new Set(menuData.map(item => item.category_name))];
+  const filteredMenu = activeCategory === "All Items" 
+    ? menuData 
+    : menuData.filter(item => item.category_name === activeCategory);
 
-  // Filter featured items for the carousel with de-duplication
-  const featuredItems = Array.isArray(menuData)
-    ? menuData
-        .flatMap(cat => cat.items || [])
-        .filter(item => item.is_featured === true || item.is_featured === 1 || item.is_featured === '1')
-        .reduce((acc: any[], current: any) => {
-          const x = acc.find(item => item.id === current.id);
-          if (!x) {
-            return acc.concat([current]);
-          } else {
-            return acc;
-          }
-        }, [])
-    : [];
-  
   return (
     <div className="home-page">
-      {/* Hero Section - Matching Image */}
-      <section className="hero-section" style={branding.heroBg ? { backgroundImage: `url(${branding.heroBg})` } : {}}>
-        <div className="hero-overlay"></div>
-        
-        {/* Photography-focused Hero (Matching Menu Page Style) */}
-
-        <div className="hero-content text-center">
-            <h1 className="hero-title white">
-                We Serve <span className="text-orange">Best Halal Food</span>
-            </h1>
-            <p className="hero-subtitle white">
-                Experience the finest local ingredients and artisanal recipes at Zamzam Kitchen. Order online for pickup or delivery within minutes.
-            </p>
-            <div className="hero-actions justify-center">
-                <button className="btn-primary" onClick={() => navigate('/menu')}>Order Online Now</button>
-                <button className="book-table-btn" onClick={() => navigate('/reservation')}>Book Table Now</button>
-            </div>
+      <section className="hero" style={{ 
+        backgroundImage: branding.heroBg ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${branding.heroBg})` : undefined 
+      }}>
+        <div className="hero-content">
+          <h1>Experience Authentic Halal Flavors</h1>
+          <p>Hand-crafted dishes made with passion and the finest traditional ingredients.</p>
+          <div className="hero-btns">
+            <button className="btn btn-primary" onClick={() => navigate('/menu')}>Order Online Now</button>
+            <button className="btn btn-outline" onClick={() => navigate('/reservation')}>Book a Table</button>
+          </div>
         </div>
       </section>
 
-      {/* Chef's Specials Carousel */}
-      {featuredItems.length > 0 && (
-        <section className="specials-section section-padding">
-          <div className="section-header text-center mb-5">
-            <span className="overline text-orange">CHEF'S SELECTION</span>
-            <h2 className="section-title">Today's Specials</h2>
-            <p className="section-subtitle">Hand-picked delicacies prepared with passion by our executive chef.</p>
+      <section className="quick-info">
+        <div className="info-grid">
+          <div className="info-item">
+            <div className="info-icon"><MapPin size={24} /></div>
+            <div className="info-text">
+              <h3>Our Location</h3>
+              <p>{branding.address}</p>
+            </div>
           </div>
-          
-          <div className="menu-preview-grid">
-              {featuredItems.map(item => (
-                  <div key={`special-${item.id}`} className="menu-card-premium">
-                      <div className="card-img-large" style={{ 
-                        backgroundImage: `url(${resolveImageUrl(item.image)})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
-                      }}>
-                          {item.badge && <span className="card-badge orange-gold">{item.badge}</span>}
-                      </div>
-                      <div className="card-body">
-                          <div className="title-price-row">
-                              <h4>{item.name}</h4>
-                              <span className="price">${parseFloat(item.price).toFixed(2)}</span>
-                          </div>
-                          <p className="card-text">{item.description || 'A masterpiece of flavor and fresh ingredients.'}</p>
-                          <button 
-                             className="btn-add-cart-outline" 
-                             onClick={() => addToCart({ id: item.id, name: item.name, price: parseFloat(item.price), image: item.image })}
-                          >
-                             <Plus size={18}/> Add to Cart
-                          </button>
-                      </div>
-                  </div>
-              ))}
+          <div className="info-item">
+            <div className="info-icon"><Clock size={24} /></div>
+            <div className="info-text">
+              <h3>Opening Hours</h3>
+              <p>Daily: {businessHours.openingTime} - {businessHours.closingTime}</p>
+            </div>
           </div>
-        </section>
-      )}
+          <div className="info-item">
+            <div className="info-icon"><Phone size={24} /></div>
+            <div className="info-text">
+              <h3>Call Us</h3>
+              <p>{branding.phone}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Our Menu Section - Matching Image */}
-      <section className="section-padding section-bg-light">
-          <div className="section-header-row mb-5">
-              <div className="header-left">
-                  <h2 className="section-title">Our Menu</h2>
-                  <p className="section-subtitle">Fresh ingredients, prepared daily by our master chefs.</p>
-              </div>
-              <div className="category-nav-pills">
-                  {categories.map(cat => (
-                      <button 
-                        key={cat} 
-                        className={`nav-pill ${activeCategory === cat ? 'active' : ''}`}
-                        onClick={() => setActiveCategory(cat)}
-                      >
-                        {cat}
-                      </button>
-                  ))}
-              </div>
+      <section className="featured-menu">
+        <div className="section-header">
+          <h2>Our Popular Dishes</h2>
+          <div className="category-tabs">
+            {categories.map(cat => (
+              <button 
+                key={cat} 
+                className={`category-tab ${activeCategory === cat ? 'active' : ''}`}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="menu-preview-grid">
-              {isLoading ? (
-                <div className="text-center py-10 w-full col-span-full">
-                  <p className="text-gray-500">Loading featured items...</p>
+        {isLoading ? (
+          <div className="loading-state">Loading delicious food...</div>
+        ) : (
+          <div className="menu-grid">
+            {filteredMenu.slice(0, 8).map((item: any) => (
+              <div key={item.id} className="menu-card">
+                <div className="card-image">
+                  <img src={resolveImageUrl(item.image_url)} alt={item.name} />
+                  <button className="add-to-cart-btn" onClick={() => addToCart(item)}>
+                    <Plus size={20} />
+                  </button>
                 </div>
-              ) : displayedItems.map(item => (
-                  <div key={item.id} className="menu-card-premium">
-                      <div className="card-img-large" style={{ 
-                        backgroundImage: `url(${resolveImageUrl(item.image)})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
-                      }}>
-                          {item.badge && <span className="card-badge orange-gold">{item.badge}</span>}
-                      </div>
-                      <div className="card-body">
-                          <div className="title-price-row">
-                              <h4>{item.name}</h4>
-                              <span className="price">${parseFloat(item.price).toFixed(2)}</span>
-                          </div>
-                          <p className="card-text">{item.description}</p>
-                          <button 
-                             className="btn-add-cart-outline" 
-                             onClick={() => addToCart({ id: item.id, name: item.name, price: parseFloat(item.price), image: item.image })}
-                          >
-                             <Plus size={18}/> Add to Cart
-                          </button>
-                      </div>
+                <div className="card-body">
+                  <div className="card-header">
+                    <h3>{item.name}</h3>
+                    <span className="price">${item.price}</span>
                   </div>
-              ))}
-          </div>
-
-          <div className="center-action mt-5">
-              <button className="btn-primary" onClick={() => navigate('/menu')}>View Full Menu</button>
-          </div>
-      </section>
-
-      {/* Our Story Section - Matching Image */}
-      <section className="story-premium-section section-padding">
-          <div className="grid-2 align-center gap-5">
-              <div className="story-visuals">
-                  <div className="main-story-img"></div>
-                  <div className="experience-badge">
-                      <strong className="text-3xl">15+</strong>
-                      <p>Years of Culinary Excellence</p>
-                  </div>
+                  <p className="description">{item.description}</p>
+                </div>
               </div>
-              <div className="story-content">
-                  <span className="overline text-orange">OUR STORY</span>
-                  <h2 className="mb-4">Crafting Memories <br/> Through Fine Dining</h2>
-                  <p className="mb-3 lead">Founded in 2008, Zamzam Kitchen began with a simple mission: to bring world-class culinary experiences to our local community.</p>
-                  <p className="mb-4">We source only the freshest organic ingredients from regional farmers to ensure every dish tells a story of quality and passion. Whether you're dining in our elegant main hall or ordering for a cozy night at home, our commitment to excellence remains the same. Our kitchen merges traditional techniques with modern innovation.</p>
-                  
-                  <div className="chef-signature">
-                      <div className="chef-avatar"></div>
-                      <div className="chef-info">
-                          <h5 className="mb-0">Abdur Rahman Farrah</h5>
-                          <p className="text-muted mb-0">Executive Chef & Founder</p>
-                      </div>
-                  </div>
-              </div>
+            ))}
           </div>
-      </section>
-
-      {/* Find Us Section - Matching Image */}
-      <section className="section-padding section-bg-light">
-          <div className="grid-2 gap-5 align-center">
-              <div className="contact-details-box">
-                  <h2 className="mb-4">Find Us</h2>
-                  <p className="mb-5">Located in the heart of the city's culinary district.</p>
-                  
-                  <div className="info-item mb-4">
-                      <div className="icon-circle"><MapPin size={22}/></div>
-                      <div className="text-col">
-                          <strong>Address</strong>
-                          <span>{branding.address}</span>
-                      </div>
-                  </div>
-                  <div className="info-item mb-4">
-                      <div className="icon-circle"><Clock size={22}/></div>
-                      <div className="text-col">
-                          <strong>Hours</strong>
-                          <span>Opens Daily From: 12:00 PM - 11:00 PM</span>
-                      </div>
-                  </div>
-                  <div className="info-item">
-                      <div className="icon-circle"><Phone size={22}/></div>
-                      <div className="text-col">
-                          <strong>Contact</strong>
-                          <span>{branding.phone} <br/> {branding.email}</span>
-                      </div>
-                  </div>
-              </div>
-               <div className="map-visual" style={{ height: '400px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
-                   <iframe 
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.83296030999!2d144.912!3d-37.7853756!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6ad65d7c3d2d0b55%3A0x2a04561a355f342b!2s329%20Racecourse%20Rd%2C%20Flemington%20VIC%203031%2C%20Australia!5e0!3m2!1sen!2sau!4v1711555555555!5m2!1sen!2sau" 
-                      width="100%" 
-                      height="100%" 
-                      style={{ border: 0 }} 
-                      allowFullScreen={true} 
-                      loading="lazy">
-                   </iframe>
-               </div>
-          </div>
+        )}
+        <div className="view-all-container">
+          <button className="btn btn-primary" onClick={() => navigate('/menu')}>View Full Menu</button>
+        </div>
       </section>
     </div>
   );
