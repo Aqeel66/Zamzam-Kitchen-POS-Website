@@ -19,22 +19,27 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       try {
-        const data = await orderService.fetchOrders();
-        setOrders(data);
+        const [ordersData, statsData] = await Promise.all([
+          orderService.fetchOrders(),
+          orderService.fetchDashboardStats()
+        ]);
+        setOrders(ordersData);
+        setDashboardStats(statsData);
       } catch (err) {
-        console.error('Failed to fetch orders:', err);
+        console.error('Failed to fetch dashboard data:', err);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 30000); // Refresh every 30s
+    fetchData();
+    const interval = setInterval(fetchData, 30000); // Refresh every 30s
     return () => clearInterval(interval);
   }, []);
 
@@ -132,88 +137,137 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            {/* Stats Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard 
-                title="New Orders" 
-                value={stats.new} 
-                icon={<Bell size={20} />} 
-                theme="teal" 
-                subtitle="* Newest"
-              />
-              <StatCard 
-                title="Total Orders" 
-                value={stats.total} 
-                icon={<CheckCircle2 size={20} />} 
-                theme="white" 
-                trend="+2,5% than usual"
-              />
-              <StatCard 
-                title="Waiting List" 
-                value={stats.waiting} 
-                icon={<Clock size={20} />} 
-                theme="white" 
-                trend="+3,2% than usual"
-                trendColor="text-yellow-600"
-              />
-              <button 
-                onClick={() => setShowNewOrder(true)}
-                className="bg-[#FFB300] hover:bg-[#FFA000] transition-all rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-yellow-500/20 active:scale-95 group"
-              >
-                <Plus className="group-hover:rotate-90 transition-transform" />
-                <span className="font-bold uppercase">Create New Order</span>
-              </button>
-            </div>
-
-            {/* Lists Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-24 lg:pb-0">
-              {/* Order List */}
-              <section className="col-span-1 lg:col-span-8 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold text-teal-900">Live Order Tracking</h3>
-                </div>
-                <div className="space-y-4">
-                  {orders.slice(0, 10).map((order) => (
-                    <OrderListItem 
-                      key={order.id}
-                      id={order.order_number?.slice(-3) || order.id} 
-                      name={order.customer_name || (order.table_number ? `Table ${order.table_number}` : 'No Table')} 
-                      items={order.item_count || 0} 
-                      status={order.status} 
-                      subStatus={order.order_type}
-                      color={order.status === 'Completed' ? 'bg-teal-600' : order.status === 'Pending' ? 'bg-yellow-500' : 'bg-teal-900'} 
-                    />
-                  ))}
-                  {orders.length === 0 && (
-                    <div className="text-center py-12 text-slate-400 font-medium">No active orders found</div>
-                  )}
-                </div>
-              </section>
-
-              {/* Sidebar Info */}
-              <div className="col-span-1 lg:col-span-4 space-y-6">
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold">Popular Dishes</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <DishItem rank="01" name="Scrambled Eggs With Toast" orders={23} />
-                    <DishItem rank="02" name="Tacos With Chicken Grilled" orders={16} />
-                    <DishItem rank="03" name="Spaghetti Bolognese" orders={13} />
-                  </div>
+            {activeTab === 'dashboard' && (
+              <>
+                {/* Stats Row */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                  <StatCard 
+                    title="New Orders" 
+                    value={stats.new} 
+                    icon={<Bell size={20} />} 
+                    theme="teal" 
+                    subtitle="* Newest"
+                  />
+                  <StatCard 
+                    title="Total Orders" 
+                    value={stats.total} 
+                    icon={<CheckCircle2 size={20} />} 
+                    theme="white" 
+                    trend="+2,5% than usual"
+                  />
+                  <StatCard 
+                    title="Waiting List" 
+                    value={stats.waiting} 
+                    icon={<Clock size={20} />} 
+                    theme="white" 
+                    trend="+3,2% than usual"
+                    trendColor="text-yellow-600"
+                  />
+                  <button 
+                    onClick={() => setShowNewOrder(true)}
+                    className="bg-[#FFB300] hover:bg-[#FFA000] transition-all rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-yellow-500/20 active:scale-95 group"
+                  >
+                    <Plus className="group-hover:rotate-90 transition-transform" />
+                    <span className="font-bold uppercase">Create New Order</span>
+                  </button>
                 </div>
 
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-red-500">Out of Stock</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <StockItem name="Hawaiian Chicken Skewers" time="04:00 PM" />
-                    <StockItem name="Veggie Supreme Pizza" time="03:30 PM" />
+                {/* Lists Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-24 lg:pb-0">
+                  {/* Order List */}
+                  <section className="col-span-1 lg:col-span-8 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-bold text-teal-900">Live Order Tracking</h3>
+                    </div>
+                    <div className="space-y-4">
+                      {orders.slice(0, 10).map((order) => (
+                        <OrderListItem 
+                          key={order.id}
+                          id={order.order_number?.slice(-3) || order.id} 
+                          name={order.customer_name || (order.table_number ? `Table ${order.table_number}` : 'No Table')} 
+                          items={order.item_count || 0} 
+                          status={order.status} 
+                          subStatus={order.order_type}
+                          color={order.status === 'Completed' ? 'bg-teal-600' : order.status === 'Pending' ? 'bg-yellow-500' : 'bg-teal-900'} 
+                        />
+                      ))}
+                      {orders.length === 0 && (
+                        <div className="text-center py-12 text-slate-400 font-medium">No active orders found</div>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Sidebar Info */}
+                  <div className="col-span-1 lg:col-span-4 space-y-6">
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-bold">Popular Dishes</h3>
+                      </div>
+                      <div className="space-y-4">
+                        {dashboardStats?.popularDishes?.map((dish: any, idx: number) => (
+                          <DishItem 
+                            key={idx}
+                            rank={(idx + 1).toString().padStart(2, '0')} 
+                            name={dish.name} 
+                            orders={dish.orders} 
+                          />
+                        ))}
+                        {(!dashboardStats?.popularDishes || dashboardStats.popularDishes.length === 0) && (
+                          <p className="text-xs text-slate-400 text-center py-4">No data for today yet</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-bold text-red-500">Out of Stock</h3>
+                      </div>
+                      <div className="space-y-4">
+                        {dashboardStats?.outOfStock?.map((item: any, idx: number) => (
+                          <StockItem key={idx} name={item.name} time="N/A" />
+                        ))}
+                        {(!dashboardStats?.outOfStock || dashboardStats.outOfStock.length === 0) && (
+                          <p className="text-xs text-slate-400 text-center py-4">All items in stock</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </>
+            )}
+
+            {activeTab === 'menu' && (
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 min-h-[400px] flex flex-col items-center justify-center text-center">
+                <UtensilsCrossed size={48} className="text-slate-200 mb-4" />
+                <h3 className="text-xl font-bold text-teal-900 mb-2">Digital Menu</h3>
+                <p className="text-slate-500 max-w-xs">Use the "Create New Order" button to browse full menu and place orders.</p>
               </div>
-            </div>
+            )}
+
+            {activeTab === 'orders' && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-teal-900 mb-6">All Active Orders</h3>
+                {orders.map((order) => (
+                  <OrderListItem 
+                    key={order.id}
+                    id={order.order_number?.slice(-3) || order.id} 
+                    name={order.customer_name || (order.table_number ? `Table ${order.table_number}` : 'No Table')} 
+                    items={order.item_count || 0} 
+                    status={order.status} 
+                    subStatus={order.order_type}
+                    color={order.status === 'Completed' ? 'bg-teal-600' : order.status === 'Pending' ? 'bg-yellow-500' : 'bg-teal-900'} 
+                  />
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'table' && (
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 min-h-[400px] flex flex-col items-center justify-center text-center">
+                <LayoutDashboard size={48} className="text-slate-200 mb-4" />
+                <h3 className="text-xl font-bold text-teal-900 mb-2">Table Management</h3>
+                <p className="text-slate-500 max-w-xs">Coming soon: Live table occupancy tracking.</p>
+              </div>
+            )}
           </>
         )}
       </main>

@@ -240,4 +240,44 @@ router.get('/inventory-log', async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/reports/waiter-dashboard
+ * @desc    Get data for the waiter app dashboard (popular dishes, out of stock, etc.)
+ */
+router.get('/waiter-dashboard', async (req, res) => {
+  try {
+    // 1. Popular Dishes (Top 5 today)
+    const [popular] = await db.query(`
+      SELECT 
+        mi.name,
+        COUNT(oi.id) as orders
+      FROM order_items oi
+      JOIN menu_items mi ON oi.menu_item_id = mi.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE DATE(o.order_time) = CURDATE() AND o.status != 'Cancelled'
+      GROUP BY mi.id
+      ORDER BY orders DESC
+      LIMIT 3
+    `);
+
+    // 2. Out of Stock / Low Stock
+    // For now, we use is_available flag. In future, check inventory levels.
+    const [outOfStock] = await db.query(`
+      SELECT name 
+      FROM menu_items 
+      WHERE is_available = FALSE
+      LIMIT 5
+    `);
+
+    res.json({
+      popularDishes: popular,
+      outOfStock: outOfStock,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('Waiter Dashboard Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;
