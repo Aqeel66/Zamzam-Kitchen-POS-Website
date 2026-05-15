@@ -24,6 +24,16 @@ export const orderService = {
   fetchSettings: async () => {
     const response = await api.get('settings');
     return response.data;
+  },
+  
+  fetchReservations: async () => {
+    const response = await api.get('reservations');
+    return response.data;
+  },
+  
+  fetchCustomers: async () => {
+    const response = await api.get('customers');
+    return response.data;
   }
 };
 
