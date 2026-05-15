@@ -17,7 +17,9 @@
     "nodemailer": "^6.9.13",
     "stripe": "^15.10.0",
     "axios": "^1.7.2",
-    "form-data": "^4.0.0"
+    "form-data": "^4.0.0",
+    "pdfkit": "^0.18.0",
+    "twilio": "^6.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
