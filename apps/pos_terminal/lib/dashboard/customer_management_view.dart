@@ -99,8 +99,8 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
         final themePrimary = theme.primaryColor;
         final themeCard = theme.cardColor;
-        final themeBorder = themeText.withValues(alpha: 0.1);
-        final themeHint = themeText.withValues(alpha: 0.6);
+        final themeBorder = themeText.withOpacity(0.1);
+        final themeHint = themeText.withOpacity(0.6);
 
         final filteredCustomers = _customers.where((c) {
           final query = _searchQuery.toLowerCase();
@@ -163,7 +163,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 4,
-                      shadowColor: themePrimary.withValues(alpha: 0.3),
+                      shadowColor: themePrimary.withOpacity(0.3),
                     ),
                   ),
                 ],
@@ -178,7 +178,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -258,7 +258,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withOpacity(0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -268,7 +268,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: primary.withValues(alpha: 0.1),
+            backgroundColor: primary.withOpacity(0.1),
             child: Text(
               '${c['first_name']?[0] ?? 'C'}'.toUpperCase(),
               style: TextStyle(
@@ -334,7 +334,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
           IconButton(
             icon: Icon(
               Icons.delete_outline_rounded,
-              color: Colors.redAccent.withValues(alpha: 0.7),
+              color: Colors.redAccent.withOpacity(0.7),
             ),
             onPressed: () => _showDeleteConfirm(c, card, text),
             tooltip: 'Delete Customer',
@@ -346,7 +346,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
 
   void _showCustomerDialog(dynamic customer, ThemeData theme) {
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
     final themeCard = theme.cardColor;
     final themePrimary = theme.primaryColor;
 
@@ -443,7 +443,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
                     labelStyle: TextStyle(color: themeHint),
                     enabledBorder: UnderlineInputBorder(
                       borderSide: BorderSide(
-                        color: themeText.withValues(alpha: 0.1),
+                        color: themeText.withOpacity(0.1),
                       ),
                     ),
                     focusedBorder: UnderlineInputBorder(
@@ -534,7 +534,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         labelStyle: TextStyle(color: hint, fontSize: 13),
         prefixIcon: icon != null ? Icon(icon, size: 18, color: hint) : null,
         enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: text.withValues(alpha: 0.1)),
+          borderSide: BorderSide(color: text.withOpacity(0.1)),
         ),
         focusedBorder: UnderlineInputBorder(
           borderSide: BorderSide(color: primary),
@@ -551,7 +551,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
         title: Text('Delete Customer?', style: TextStyle(color: text)),
         content: Text(
           'Are you sure you want to remove ${customer['first_name']}? this will delete their history from the directory.',
-          style: TextStyle(color: text.withValues(alpha: 0.7)),
+          style: TextStyle(color: text.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
@@ -596,3 +596,4 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
     );
   }
 }
+

@@ -9,6 +9,7 @@ router.post('/', async (req, res) => {
     const { 
       items, 
       total, 
+      total_amount,
       table_id, 
       status, 
       order_type, 
@@ -32,46 +33,74 @@ router.post('/', async (req, res) => {
       if (customer_details && (customer_details.phone || customer_details.email)) {
         finalCustomerId = await upsertCustomer({
           ...customer_details,
-          origin: origin || 'In-Store'
+          origin: origin || 'Counter'
         });
       }
   
   
-      // 0. Generate Order Number (Daily Format: DDMMYYXXXXX)
-      // Using local time +05:00 for the prefix
+      // 0. Generate Centralized Order Number (Format: 0000DDMMYY)
+      // Resets every month. Format: [4-digit sequence][DD][MM][YY]
       const now = new Date();
-      const localNow = new Date(now.getTime() + (5 * 60 * 60 * 1000));
+      const localNow = new Date(now.getTime() + (5 * 60 * 60 * 1000)); // UTC+5
       
       const day = String(localNow.getUTCDate()).padStart(2, '0');
       const month = String(localNow.getUTCMonth() + 1).padStart(2, '0');
       const year = String(localNow.getUTCFullYear()).slice(-2);
-      const prefix = `${day}${month}${year}`;
-      
+      const datePart = `${day}${month}${year}`;
+      const monthPrefix = `${month}${year}`; // To track the monthly reset
+
+      // Find the highest sequence number for the current month
+      // We look for orders ending in the current month/year and extract the leading 5 digits
       const [lastOrder] = await connection.execute(
-        'SELECT order_number FROM orders WHERE order_number LIKE ? AND LENGTH(order_number) = 11 ORDER BY id DESC LIMIT 1',
-        [`${prefix}%`]
+        'SELECT order_number FROM orders WHERE order_number LIKE ? AND LENGTH(order_number) = 10 ORDER BY id DESC LIMIT 1',
+        [`${datePart}%`]
       );
 
       let nextSequence = 1;
       if (lastOrder.length > 0 && lastOrder[0].order_number) {
         const lastOrderNum = lastOrder[0].order_number;
-        // The last 5 digits are the sequence
-        const sequencePart = lastOrderNum.slice(-5);
+        // The last 4 digits are the sequence
+        const sequencePart = lastOrderNum.slice(-4);
         if (!isNaN(parseInt(sequencePart))) {
           nextSequence = parseInt(sequencePart) + 1;
         }
       }
-      const orderNumber = `${prefix}${String(nextSequence).padStart(5, '0')}`;
+      
+      const orderNumber = `${datePart}${String(nextSequence).padStart(4, '0')}`;
 
       // Normalize order_type for database ENUM compatibility
       const normalizedOrderType = (order_type === 'Pickup' || order_type === 'pickup') ? 'Takeaway' : (order_type || 'Dine-In');
 
       const orderStatus = status || (payment_method ? 'Paid' : 'Pending');
       const [orderResult] = await connection.execute(
-        'INSERT INTO orders (order_number, branch_id, table_id, customer_id, user_id, order_type, status, total_amount, discount_amount, origin, party_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [orderNumber, branch_id || 1, table_id || null, finalCustomerId || null, user_id || 1, normalizedOrderType, orderStatus, total, discount_amount || 0, origin || 'In-Store', req.body.party_size || 1]
+        'INSERT INTO orders (order_number, branch_id, table_id, waiter_id, waiter_name, customer_id, user_id, order_type, status, total_amount, discount_amount, promo_id, origin, party_size, estimated_release_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          orderNumber, 
+          branch_id || 1, 
+          table_id || null, 
+          req.body.waiter_id || null, 
+          req.body.waiter_name || null, 
+          finalCustomerId || null, 
+          user_id || 1, 
+          normalizedOrderType, 
+          orderStatus, 
+          total !== undefined ? total : (total_amount || 0), 
+          discount_amount || 0,
+          req.body.promo_id || null,
+          origin || 'In-Store', 
+          req.body.guest_count || req.body.party_size || 1,
+          req.body.estimated_release_time || null
+        ]
       );
-    const orderId = orderResult.insertId;
+      const orderId = orderResult.insertId;
+
+      // 1.5 Update Table Status if Dine-In
+      if (table_id && normalizedOrderType === 'Dine-In' && orderStatus !== 'Paid') {
+        await connection.execute(
+          'UPDATE restaurant_tables SET status = "Occupied" WHERE id = ?',
+          [table_id]
+        );
+      }
 
     // 2. Insert items
     if (items && items.length > 0) {
@@ -152,20 +181,51 @@ router.post('/', async (req, res) => {
 
     // 3. Create Payment record if method is provided
     if (payment_method) {
+      const finalTotalAmount = total !== undefined ? total : (total_amount || 0);
       await connection.execute(
         'INSERT INTO payments (order_id, payment_method, amount, tip_amount) VALUES (?, ?, ?, ?)',
-        [orderId, payment_method, total, tip_amount || 0]
+        [orderId, payment_method, finalTotalAmount, tip_amount || 0]
       );
     }
 
     await connection.commit();
-    res.status(201).json({ message: 'Order processed', orderId, orderNumber });
+    res.status(201).json({ success: true, orderId, orderNumber });
   } catch (err) {
     await connection.rollback();
-    console.error('API Error:', err.message);
-    res.status(500).json({ success: false, message: 'Server Error', error: err.message });
+    console.error('Order Creation Error:', err);
+    res.status(500).json({ success: false, message: 'Failed to create order' });
   } finally {
     connection.release();
+  }
+});
+
+// @route   GET api/orders/staff-stats
+// @desc    Get performance metrics for all staff members
+router.get('/staff-stats', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        u.id as user_id, 
+        u.first_name, 
+        u.last_name,
+        u.email,
+        GROUP_CONCAT(DISTINCT r.name) as roles,
+        COUNT(DISTINCT o.id) as order_count,
+        COALESCE(SUM(DISTINCT o.total_amount), 0) as total_sales,
+        COALESCE(SUM(DISTINCT p.tip_amount), 0) as total_tips
+      FROM users u
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      LEFT JOIN roles r ON ur.role_id = r.id
+      LEFT JOIN orders o ON (u.id = o.waiter_id OR (o.waiter_id IS NULL AND u.id = o.user_id))
+      LEFT JOIN payments p ON o.id = p.order_id
+      WHERE (o.id IS NULL OR o.status NOT IN ('Cancelled', 'Rejected'))
+      GROUP BY u.id
+      ORDER BY total_sales DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('Staff Stats Error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -210,10 +270,27 @@ router.get('/summary', async (req, res) => {
       WHERE ${dateFilter} AND status != "Cancelled" AND status != "Rejected"
     `);
 
+    // Today's Expenses
+    const [todayExpenses] = await db.query(`
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM expenses
+      WHERE DATE(date) ${startDate && endDate ? `BETWEEN '${startDate}' AND '${endDate}'` : (startDate ? `= '${startDate}'` : '= CURDATE()')}
+    `);
+
+    // Estimated COGS (Sum of ingredients cost for items sold in the range)
+    const [cogsStats] = await db.query(`
+      SELECT COALESCE(SUM(mi_ing.quantity_required * inv.cost_per_unit * oi.quantity), 0) as total_cogs
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      JOIN menu_item_ingredients mi_ing ON oi.menu_item_id = mi_ing.menu_item_id
+      JOIN inventory_items inv ON mi_ing.inventory_item_id = inv.id
+      WHERE ${oDateFilter} AND o.status NOT IN ("Cancelled", "Rejected")
+    `);
+
     // Live Operational Status (All time active orders)
     const [livePending] = await db.query('SELECT COUNT(*) as count FROM orders WHERE status = "Pending"');
-    const [liveActive] = await db.query('SELECT COUNT(*) as count FROM orders WHERE status IN ("Ordered", "Preparing", "Ready")');
-    const [liveUnpaid] = await db.query('SELECT COUNT(*) as count FROM orders WHERE status IN ("Ready", "Served")');
+    const [liveActive] = await db.query('SELECT COUNT(*) as count FROM orders WHERE status IN ("Ordered", "Pending", "Preparing", "Paid", "Partially Paid")');
+    const [liveUnpaid] = await db.query('SELECT COUNT(*) as count FROM orders WHERE status IN ("Ordered", "Pending", "Preparing", "Partially Paid")');
 
     // Breakdown by Order Type (Filtering invalid orders)
     const [typeStats] = await db.query(
@@ -263,6 +340,14 @@ router.get('/summary', async (req, res) => {
       GROUP BY name, type ORDER BY count DESC LIMIT 10
     `);
 
+    // Orders per Hour (Velocity) - Last 24 hours or Today
+    const [velocityStats] = await db.query(`
+      SELECT HOUR(order_time) as hour, COUNT(*) as count
+      FROM orders
+      WHERE ${dateFilter} AND status NOT IN ("Cancelled", "Rejected")
+      GROUP BY hour ORDER BY hour
+    `);
+
     const todayObj = todayStats[0] || { count: 0, total: 0 };
     todayObj.tips = parseFloat(todayTips[0]?.tips ?? 0);
     todayObj.discounts = parseFloat(todayDiscounts[0]?.discounts ?? 0);
@@ -271,10 +356,17 @@ router.get('/summary', async (req, res) => {
     res.json({
       today: todayObj,
       lifetime: lifetimeStats[0] || { count: 0, total: 0 },
+      financials: {
+        gross_sales: todayObj.total,
+        expenses: parseFloat(todayExpenses[0]?.total ?? 0),
+        cogs: parseFloat(cogsStats[0]?.total_cogs ?? 0),
+        net_profit: todayObj.total - parseFloat(cogsStats[0]?.total_cogs ?? 0) - parseFloat(todayExpenses[0]?.total ?? 0)
+      },
       live: {
         pending: livePending[0]?.count ?? 0,
         active: liveActive[0]?.count ?? 0,
-        unpaid: liveUnpaid[0]?.count ?? 0
+        unpaid: liveUnpaid[0]?.count ?? 0,
+        velocity: velocityStats
       },
       types: typeStats,
       payments: payStats,
@@ -292,7 +384,7 @@ router.get('/summary', async (req, res) => {
 // @desc    Get orders with optional filtering by date, type, and status
 router.get('/', async (req, res) => {
   try {
-    const { startDate, endDate, type, status } = req.query;
+    const { startDate, endDate, type, status, customer_id } = req.query;
     let query = `
       SELECT o.*, rt.table_number 
       FROM orders o 
@@ -301,15 +393,14 @@ router.get('/', async (req, res) => {
     `;
     const params = [];
 
+    if (customer_id) {
+      query += ` AND o.customer_id = ?`;
+      params.push(customer_id);
+    }
+
     if (startDate && req.query.kds !== 'true') {
       query += ` AND DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) >= ?`;
       params.push(startDate);
-    } else if (!startDate && req.query.kds !== 'true') {
-      // Default to current month only if NOT in KDS mode
-      const now = new Date();
-      const firstDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-      query += ` AND DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) >= ?`;
-      params.push(firstDayOfMonth);
     }
 
     if (req.query.kds === 'true') {
@@ -349,6 +440,11 @@ router.get('/', async (req, res) => {
     }
 
     query += ` ORDER BY o.id DESC LIMIT 200`;
+    
+    console.log('--- FETCH ORDERS QUERY ---');
+    console.log('Query:', query);
+    console.log('Params:', params);
+    console.log('---------------------------');
     
     const [orders] = await db.query(query, params);
     const detailedOrders = await Promise.all(orders.map(async (order) => {
@@ -442,6 +538,17 @@ router.patch('/:id', async (req, res) => {
         await connection.rollback();
         return res.status(404).json({ error: 'Order not found' });
       }
+
+      // If status changed to Paid, Cancelled, or Rejected, release the table
+      if (status && ['Paid', 'Cancelled', 'Rejected'].includes(status)) {
+        const [orderData] = await connection.execute('SELECT table_id FROM orders WHERE id = ?', [id]);
+        if (orderData.length > 0 && orderData[0].table_id) {
+          await connection.execute(
+            'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
+            [orderData[0].table_id]
+          );
+        }
+      }
     }
 
     if (tip_amount !== undefined) {
@@ -491,6 +598,15 @@ router.post('/:id/checkout', async (req, res) => {
       [id]
     );
 
+    // 3. Release the table
+    const [orderData] = await connection.execute('SELECT table_id FROM orders WHERE id = ?', [id]);
+    if (orderData.length > 0 && orderData[0].table_id) {
+      await connection.execute(
+        'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
+        [orderData[0].table_id]
+      );
+    }
+
     await connection.commit();
     res.json({ message: 'Payment processed and order marked as Paid' });
   } catch (err) {
@@ -529,14 +645,14 @@ router.put('/:id', async (req, res) => {
     if (customer_details && (customer_details.phone || customer_details.email)) {
       finalCustomerId = await upsertCustomer({
         ...customer_details,
-        origin: req.body.origin || 'In-Store'
+        origin: req.body.origin || 'Counter'
       });
     }
 
     // 1. Update order-level details
     await connection.execute(
       'UPDATE orders SET table_id = ?, user_id = ?, customer_id = ?, order_type = ?, status = ?, total_amount = ?, discount_amount = ?, rejection_reason = ?, origin = ?, party_size = ? WHERE id = ?',
-      [table_id || null, user_id || 1, finalCustomerId || null, order_type || 'Dine-In', status || 'Pending', total, discount_amount || 0, req.body.rejection_reason || null, req.body.origin || 'In-Store', req.body.party_size || 1, id]
+      [table_id || null, user_id || 1, finalCustomerId || null, order_type || 'Dine-In', status || 'Pending', total, discount_amount || 0, req.body.rejection_reason || null, req.body.origin || 'Counter', req.body.party_size || 1, id]
     );
 
     // 1.5 Restore inventory for existing items before deleting them
@@ -692,6 +808,151 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// @route   GET api/orders/:id/pdf
+// @desc    Generate and download PDF invoice
+router.get('/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { filename } = req.query;
+    const PDFDocument = require('pdfkit');
+    const path = require('path');
+
+    // Fetch order details
+    const [orders] = await db.query(`
+      SELECT o.*, rt.table_number 
+      FROM orders o 
+      LEFT JOIN restaurant_tables rt ON o.table_id = rt.id 
+      WHERE o.id = ?
+    `, [id]);
+
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const order = orders[0];
+    const [items] = await db.query(`
+      SELECT oi.*, mi.name as item_name, mi.price as menu_price
+      FROM order_items oi
+      LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id
+      WHERE oi.order_id = ?
+    `, [id]);
+
+    // Create PDF
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    
+    // Set response headers
+    const { mode = 'attachment' } = req.query;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${mode}; filename=${filename || 'Invoice'}.pdf`);
+    
+    doc.pipe(res);
+
+    // LOGOS
+    const assetsDir = path.resolve(__dirname, '../../assets');
+    const logo1 = path.join(assetsDir, 'images/menu_items/1778095107934-742298469.png');
+    const logo2 = path.join(assetsDir, 'images/menu_items/1777653390798-9582574.png');
+
+    try {
+      doc.image(logo1, 40, 20, { width: 90 });
+      doc.image(logo2, 460, 20, { width: 90 });
+    } catch (err) {
+      console.warn('Logo image failed to load:', err.message);
+    }
+
+    // HEADER INFO
+    doc.fillColor('#000000').font('Helvetica-Bold').fontSize(14).text('ZAMZAM KITCHEN', 40, 165);
+    doc.font('Helvetica').fontSize(9).fillColor('#666666');
+    doc.text('329 Racecourse Rd, Kensington VIC 3031, Melbourne, Australia');
+    doc.text('Tel: 0399392479 | Email: info@zamzamkitchen.com');
+
+    // INVOICE TITLE & BADGES
+    const headerRight = 350;
+    doc.fillColor('#333333').font('Helvetica-Bold').fontSize(32).text('INVOICE', headerRight, 140, { align: 'right', width: 200 });
+    
+    // Status Badges
+    const badgeY = 185;
+    doc.roundedRect(420, badgeY, 70, 15, 3).fill('#eeeeee');
+    doc.fillColor('#333333').fontSize(7).font('Helvetica-Bold').text('POS TERMINAL', 420, badgeY + 4, { width: 70, align: 'center' });
+    
+    doc.roundedRect(495, badgeY, 55, 15, 3).fill('#ff9800');
+    doc.fillColor('#ffffff').text(order.status.toUpperCase(), 495, badgeY + 4, { width: 55, align: 'center' });
+
+    doc.fillColor('#000000').fontSize(11).font('Helvetica-Bold').text(`Order No: ${order.order_number}`, headerRight, 210, { align: 'right', width: 200 });
+    doc.font('Helvetica').fontSize(9).text(`Date: ${new Date(order.order_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date(order.order_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`, headerRight, 225, { align: 'right', width: 200 });
+
+    doc.moveDown(6);
+
+    // BILL TO
+    doc.font('Helvetica').fontSize(10).fillColor('#666666').text('BILL TO:');
+    doc.font('Helvetica-Bold').fontSize(14).fillColor('#000000').text(order.customer_name || 'Counter');
+    doc.font('Helvetica').fontSize(10).text(`Order Type: ${order.order_type || 'Takeaway'}`);
+    if (order.table_number) doc.text(`Table: ${order.table_number}`);
+
+    doc.moveDown(2);
+
+    // TABLE HEADER
+    const tableTop = doc.y;
+    const tableHeaderHeight = 25;
+    doc.rect(40, tableTop, 515, tableHeaderHeight).fill('#1a237e'); // Dark Blue
+    
+    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10);
+    doc.text('DESCRIPTION', 40 + 10, tableTop + 8);
+    doc.text('QTY', 360, tableTop + 8, { width: 40, align: 'center' });
+    doc.text('UNIT PRICE', 400, tableTop + 8, { width: 70, align: 'center' });
+    doc.text('SUBTOTAL', 475, tableTop + 8, { width: 80, align: 'center' });
+
+    // ITEMS
+    let currentY = tableTop + tableHeaderHeight;
+    doc.font('Helvetica').fontSize(10).fillColor('#000000');
+    
+    items.forEach((item) => {
+      const rowHeight = 25;
+      
+      // Zebra striping (optional but clean)
+      // doc.rect(40, currentY, 515, rowHeight).fill('#f9f9f9');
+      
+      // Borders
+      doc.rect(40, currentY, 515, rowHeight).strokeColor('#e0e0e0').stroke();
+      doc.moveTo(360, currentY).lineTo(360, currentY + rowHeight).stroke();
+      doc.moveTo(400, currentY).lineTo(400, currentY + rowHeight).stroke();
+      doc.moveTo(475, currentY).lineTo(475, currentY + rowHeight).stroke();
+
+      doc.fillColor('#000000');
+      doc.text(item.item_name || item.name || 'Unknown Item', 40 + 10, currentY + 8);
+      doc.text(item.quantity.toString(), 360, currentY + 8, { width: 40, align: 'center' });
+      
+      // Fix: Calculate unit price if missing from subtotal/quantity
+      const price = item.unit_price || item.menu_price || (item.subtotal / item.quantity) || 0;
+      doc.text(`AUD ${parseFloat(price).toFixed(2)}`, 400, currentY + 8, { width: 70, align: 'center' });
+      doc.text(`AUD ${parseFloat(item.subtotal).toFixed(2)}`, 475, currentY + 8, { width: 80, align: 'center' });
+      
+      currentY += rowHeight;
+    });
+
+    // TOTALS
+    const totalsY = currentY + 20;
+    doc.font('Helvetica').fontSize(12).text('Subtotal:', 300, totalsY, { width: 150, align: 'right' });
+    doc.font('Helvetica-Bold').text(`AUD ${parseFloat(order.total_amount).toFixed(2)}`, 450, totalsY, { width: 105, align: 'right' });
+
+    doc.moveTo(300, totalsY + 20).lineTo(555, totalsY + 20).strokeColor('#e0e0e0').stroke();
+
+    doc.moveDown(1.5);
+    const grandTotalY = doc.y;
+    // Shifted "GRAND TOTAL:" left by setting x to 280
+    doc.fontSize(18).fillColor('#1a237e').font('Helvetica-Bold').text('GRAND TOTAL:', 280, grandTotalY, { width: 170, align: 'right' });
+    doc.text(`AUD ${parseFloat(order.total_amount).toFixed(2)}`, 450, grandTotalY, { width: 105, align: 'right' });
+
+    // Footer
+    doc.fontSize(8).fillColor('#999999').text('ZAMZAM KITCHEN - PROUDLY SERVING FRESH MANDI', 40, 780, { align: 'center', width: 515 });
+    
+    doc.end();
+
+  } catch (err) {
+    console.error('PDF Generation Error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate PDF' });
+  }
+});
+
 router.delete('/:orderId/items/:itemId', async (req, res) => {
   const { orderId, itemId } = req.params;
   const connection = await db.getConnection();
@@ -705,9 +966,10 @@ router.delete('/:orderId/items/:itemId', async (req, res) => {
       await connection.rollback();
       return res.status(404).json({ error: 'Order not found' });
     }
-    if (orders[0].status !== 'Pending') {
+    const validModificationStatuses = ['Ordered', 'Pending', 'Paid', 'Partially Paid'];
+    if (!validModificationStatuses.includes(orders[0].status)) {
       await connection.rollback();
-      return res.status(400).json({ error: 'Only pending orders can be modified' });
+      return res.status(400).json({ error: 'Only pending or newly ordered items can be modified' });
     }
 
     // 2. Find the item
@@ -780,5 +1042,6 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error', error: err.message });
   }
 });
+
 
 module.exports = router;

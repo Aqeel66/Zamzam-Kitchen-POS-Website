@@ -5,7 +5,13 @@ import {
   Bell, 
   CheckCircle2, 
   Plus,
-  MessageCircle
+  MessageCircle,
+  Mail,
+  Server,
+  Lock,
+  User,
+  Hash,
+  Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
@@ -13,8 +19,9 @@ import { API_BASE_URL } from '../config';
 const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(Boolean).join(' ');
 
 export default function Communications() {
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'sms' | 'templates' | 'history'>('whatsapp');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'sms' | 'email' | 'templates' | 'history'>('whatsapp');
   const [settings, setSettings] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   useEffect(() => {
@@ -23,7 +30,7 @@ export default function Communications() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/settings`);
+      const res = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
       const data = await res.json();
       setSettings(data);
     } catch (err) {
@@ -31,7 +38,54 @@ export default function Communications() {
     }
   };
 
-  const handleUpdateSettings = async (fields: any) => {
+  const handleUpdateMessaging = async (provider: string, fields: any) => {
+    setIsSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/messaging`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider_name: provider, ...fields })
+      });
+      if (res.ok) {
+        setSaveStatus('success');
+        fetchSettings();
+        window.dispatchEvent(new CustomEvent('show-toast', { 
+          detail: { message: `${provider} Settings Updated`, type: 'success' } 
+        }));
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+    } catch (err) {
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateEmail = async (provider: string, fields: any) => {
+    setIsSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider_name: provider, ...fields })
+      });
+      if (res.ok) {
+        setSaveStatus('success');
+        fetchSettings();
+        window.dispatchEvent(new CustomEvent('show-toast', { 
+          detail: { message: `${provider} Settings Updated`, type: 'success' } 
+        }));
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+    } catch (err) {
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateBranch = async (fields: any) => {
+    setIsSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/settings/branch`, {
         method: 'PATCH',
@@ -41,10 +95,15 @@ export default function Communications() {
       if (res.ok) {
         setSaveStatus('success');
         fetchSettings();
+        window.dispatchEvent(new CustomEvent('show-toast', { 
+          detail: { message: 'Operational Settings Updated', type: 'success' } 
+        }));
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
     } catch (err) {
       setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -53,6 +112,9 @@ export default function Communications() {
       <div className="w-12 h-12 border-4 border-slate-100 border-t-zamzam-teal rounded-full animate-spin" />
     </div>
   );
+
+  const twilio = settings.messaging?.find((m: any) => m.provider_name === 'Twilio') || {};
+  const smtp = settings.email?.find((e: any) => e.provider_name === 'SMTP') || {};
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto space-y-8 min-h-full">
@@ -88,8 +150,9 @@ export default function Communications() {
         {[
           { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
           { id: 'sms', label: 'SMS Gateway', icon: Smartphone },
-          { id: 'templates', label: 'Message Templates', icon: Settings2 },
-          { id: 'history', label: 'Log History', icon: Bell },
+          { id: 'email', label: 'Email (SMTP)', icon: Mail },
+          { id: 'templates', label: 'Templates', icon: Settings2 },
+          { id: 'history', label: 'Logs', icon: Bell },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -111,9 +174,9 @@ export default function Communications() {
         {/* Main Content */}
         <div className="col-span-8">
           <AnimatePresence mode="wait">
-            {activeTab === 'whatsapp' && (
+            {(activeTab === 'whatsapp' || activeTab === 'sms') && (
               <motion.div
-                key="whatsapp"
+                key="twilio"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -123,38 +186,78 @@ export default function Communications() {
                   <div className="flex items-start justify-between mb-8">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-500">
-                        <MessageCircle size={32} />
+                        {activeTab === 'whatsapp' ? <MessageCircle size={32} /> : <Smartphone size={32} />}
                       </div>
                       <div>
-                        <h2 className="text-xl font-black text-slate-900 uppercase">WhatsApp Business API</h2>
-                        <p className="text-sm font-bold text-slate-400">Powered by Twilio / Meta Business Suite</p>
+                        <h2 className="text-xl font-black text-slate-900 uppercase">Twilio {activeTab === 'whatsapp' ? 'WhatsApp' : 'SMS'} API</h2>
+                        <p className="text-sm font-bold text-slate-400">Global messaging infrastructure for Zamzam Kitchen</p>
                       </div>
                     </div>
-                    <div className="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-green-100">
-                      Live Connection
-                    </div>
+                    <button 
+                      onClick={() => handleUpdateMessaging('Twilio', { is_active: !twilio.is_active })}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                        twilio.is_active 
+                          ? "bg-green-50 text-green-600 border-green-100" 
+                          : "bg-slate-50 text-slate-400 border-slate-100"
+                      )}
+                    >
+                      {twilio.is_active ? 'Active' : 'Disabled'}
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Account SID / API Key</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <User size={12} /> Account SID
+                      </label>
                       <input 
-                        type="password" 
-                        defaultValue="SKXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                        type="text" 
+                        defaultValue={twilio.account_sid || ''}
+                        onBlur={(e) => handleUpdateMessaging('Twilio', { account_sid: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-mono outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">WhatsApp Number</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Lock size={12} /> Auth Token
+                      </label>
+                      <input 
+                        type="password" 
+                        defaultValue={twilio.auth_token || ''}
+                        onBlur={(e) => handleUpdateMessaging('Twilio', { auth_token: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-mono outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Hash size={12} /> Sender Number
+                      </label>
                       <input 
                         type="text" 
-                        defaultValue="+966XXXXXXXXX"
+                        defaultValue={twilio.sender_number || ''}
+                        onBlur={(e) => handleUpdateMessaging('Twilio', { sender_number: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                        placeholder="+966XXXXXXXXX"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Activity size={12} /> Environment
+                      </label>
+                      <select 
+                        defaultValue={twilio.environment || 'sandbox'}
+                        onChange={(e) => handleUpdateMessaging('Twilio', { environment: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all appearance-none"
+                      >
+                        <option value="sandbox">Sandbox / Testing</option>
+                        <option value="production">Production / Live</option>
+                      </select>
                     </div>
                   </div>
                 </div>
 
+                {/* Status Triggers (Parity with Flutter) */}
                 <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8">
                   <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6 px-2">Automatic Event Triggers</h3>
                   <div className="space-y-4">
@@ -177,19 +280,124 @@ export default function Communications() {
                           </div>
                         </div>
                         <button 
-                          onClick={() => handleUpdateSettings({ [trigger.id]: !settings.branch[trigger.id] })}
+                          onClick={() => handleUpdateBranch({ [trigger.id]: !settings.branch[trigger.id] })}
                           className={cn(
                             "w-12 h-6 rounded-full transition-all relative",
                             settings.branch[trigger.id] ? "bg-zamzam-teal" : "bg-slate-300"
                           )}
                         >
                           <div className={cn(
-                            "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+                            "absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm",
                             settings.branch[trigger.id] ? "right-1" : "left-1"
                           )} />
                         </button>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'email' && (
+              <motion.div
+                key="email"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8">
+                  <div className="flex items-start justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500">
+                        <Mail size={32} />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black text-slate-900 uppercase">SMTP Email Gateway</h2>
+                        <p className="text-sm font-bold text-slate-400">Configure your professional email relay</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleUpdateEmail('SMTP', { is_active: !smtp.is_active })}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                        smtp.is_active 
+                          ? "bg-blue-50 text-blue-600 border-blue-100" 
+                          : "bg-slate-50 text-slate-400 border-slate-100"
+                      )}
+                    >
+                      {smtp.is_active ? 'Active' : 'Disabled'}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Server size={12} /> SMTP Host
+                      </label>
+                      <input 
+                        type="text" 
+                        defaultValue={smtp.smtp_host || ''}
+                        onBlur={(e) => handleUpdateEmail('SMTP', { smtp_host: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/5 focus:bg-white transition-all"
+                        placeholder="smtp.gmail.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Hash size={12} /> SMTP Port
+                      </label>
+                      <input 
+                        type="number" 
+                        defaultValue={smtp.smtp_port || 587}
+                        onBlur={(e) => handleUpdateEmail('SMTP', { smtp_port: parseInt(e.target.value) })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <User size={12} /> SMTP Username
+                      </label>
+                      <input 
+                        type="text" 
+                        defaultValue={smtp.smtp_user || ''}
+                        onBlur={(e) => handleUpdateEmail('SMTP', { smtp_user: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Lock size={12} /> SMTP Password
+                      </label>
+                      <input 
+                        type="password" 
+                        defaultValue={smtp.smtp_pass || ''}
+                        onBlur={(e) => handleUpdateEmail('SMTP', { smtp_pass: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Mail size={12} /> From Email
+                      </label>
+                      <input 
+                        type="email" 
+                        defaultValue={smtp.from_email || ''}
+                        onBlur={(e) => handleUpdateEmail('SMTP', { from_email: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <User size={12} /> From Name
+                      </label>
+                      <input 
+                        type="text" 
+                        defaultValue={smtp.from_name || ''}
+                        onBlur={(e) => handleUpdateEmail('SMTP', { from_name: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/5 focus:bg-white transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -256,11 +464,15 @@ export default function Communications() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Twilio Status</span>
-                  <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">99.9% Online</span>
+                  <span className={cn("text-[10px] font-black uppercase tracking-widest", twilio.is_active ? "text-green-400" : "text-slate-500")}>
+                    {twilio.is_active ? '99.9% Online' : 'Disabled'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Meta API Status</span>
-                  <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">Operational</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">SMTP Status</span>
+                  <span className={cn("text-[10px] font-black uppercase tracking-widest", smtp.is_active ? "text-green-400" : "text-slate-500")}>
+                    {smtp.is_active ? 'Operational' : 'Disabled'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Local Gateway</span>

@@ -39,6 +39,8 @@ export default function Checkout() {
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [tipPercentage, setTipPercentage] = useState(0);
+  const [customTip, setCustomTip] = useState('');
+  const [tipType, setTipType] = useState<'percent' | 'amount'>('percent');
   const [guestName, setGuestName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -63,7 +65,9 @@ export default function Checkout() {
 
         let disc = 0;
         const discountValue = parseFloat(promo.discount_value) || 0;
-        if (promo.discount_type === 'fixed') {
+        const dType = promo.discount_type?.toString().toLowerCase();
+        
+        if (dType === 'fixed') {
           disc = discountValue;
         } else {
           disc = totalPrice * (discountValue / 100);
@@ -91,8 +95,21 @@ export default function Checkout() {
   };
 
   const deliveryFee = orderType === 'delivery' ? 5.00 : 0.00;
-  const tipAmount = (totalPrice - discount) * (tipPercentage / 100);
-  const finalTotal = totalPrice - discount + deliveryFee + tipAmount;
+  
+  const taxAmount = useMemo(() => {
+    if (branchSettings?.is_tax_enabled === 0) return 0;
+    const rate = parseFloat(branchSettings?.tax_rate || 0) / 100;
+    return (totalPrice - discount) * rate;
+  }, [totalPrice, discount, branchSettings]);
+  
+  const calculatedTip = tipPercentage > 0 
+    ? (totalPrice - discount) * (tipPercentage / 100)
+    : (tipType === 'percent' 
+        ? (totalPrice - discount) * (Number(customTip) / 100) 
+        : Number(customTip));
+  
+  const tipAmount = isNaN(calculatedTip) ? 0 : calculatedTip;
+  const finalTotal = totalPrice - discount + taxAmount + deliveryFee + tipAmount;
 
   useEffect(() => {
     const fetchGateways = async () => {
@@ -119,12 +136,14 @@ export default function Checkout() {
     const orderData: Record<string, any> = {
       items: [...items],
       subtotal: totalPrice,
-      discount: discount,
       discount_amount: discount,
-      tip: tipAmount,
+      promo_id: appliedPromo?.id || null,
+      promo_discount: appliedPromo ? discount : 0,
+      manual_discount: 0, // No manual discount on website
+      tax_amount: taxAmount,
       tip_amount: tipAmount,
-      deliveryFee: deliveryFee,
-      total: finalTotal,
+      delivery_fee: deliveryFee,
+      total_amount: finalTotal,
       order_type: apiOrderType,
       payment_method: paymentMethod === 'card' ? 'Credit/Debit' : (paymentMethod === 'cash' ? 'Cash' : 'Counter'),
       status: paymentMethod === 'card' ? 'Paid' : 'Pending',
@@ -441,7 +460,7 @@ export default function Checkout() {
                       <span>$5.00</span>
                    </div>
                 )}
-
+                
                 <div style={{ margin: '1rem 0', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
                    <p style={{ fontSize: '0.9rem', color: '#9ca3af', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Heart size={16} /> Add a tip for the staff
@@ -451,19 +470,48 @@ export default function Checkout() {
                          <button 
                             type="button" 
                             key={pct}
-                            onClick={() => setTipPercentage(pct)}
-                            className={`tip-btn ${tipPercentage === pct ? 'active' : ''}`}
+                            onClick={() => {
+                               setTipPercentage(pct);
+                               setCustomTip('');
+                            }}
+                            className={`tip-btn ${tipPercentage === pct && !customTip ? 'active' : ''}`}
                          >
                             {pct === 0 ? 'None' : `${pct}%`}
                          </button>
                       ))}
                    </div>
+                   
+                   <div className="tip-input-group">
+                      <input 
+                         type="number"
+                         step="0.01"
+                         placeholder="Custom Amount"
+                         className="tip-custom-input"
+                         value={customTip}
+                         onChange={(e) => {
+                            setCustomTip(e.target.value);
+                            setTipPercentage(0);
+                         }}
+                      />
+                      <button 
+                         type="button" 
+                         className="tip-type-toggle"
+                         onClick={() => setTipType(tipType === 'percent' ? 'amount' : 'percent')}
+                      >
+                         {tipType === 'percent' ? '%' : '$'}
+                      </button>
+                   </div>
+                </div>
+
+                <div className="summary-row">
+                   <span style={{ color: '#9ca3af' }}>Tax (10%)</span>
+                   <span>${taxAmount.toFixed(2)}</span>
                 </div>
 
                 {tipAmount > 0 && (
-                   <div className="summary-row">
-                      <span style={{ color: '#9ca3af' }}>Tip</span>
-                      <span>${tipAmount.toFixed(2)}</span>
+                   <div className="summary-row" style={{ color: '#ec4899', fontWeight: 600 }}>
+                      <span>Tip</span>
+                      <span>+${tipAmount.toFixed(2)}</span>
                    </div>
                 )}
 

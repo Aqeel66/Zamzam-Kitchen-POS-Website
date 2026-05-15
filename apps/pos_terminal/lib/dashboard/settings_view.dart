@@ -84,7 +84,7 @@ class _SettingsViewState extends State<SettingsView> {
         final Color themeCard = Theme.of(context).cardColor;
         final Color themeBorder = Theme.of(context).dividerColor;
         final Color themePrimary = Theme.of(context).primaryColor;
-        final Color themeHint = themeText.withValues(alpha: 0.6);
+        final Color themeHint = themeText.withOpacity(0.6);
         final themeBg = Theme.of(context).scaffoldBackgroundColor;
 
         if (widget.isLoading && widget.settings.isEmpty) {
@@ -124,7 +124,7 @@ class _SettingsViewState extends State<SettingsView> {
               Container(
                 width: 240,
                 decoration: BoxDecoration(
-                  color: themeCard.withValues(alpha: 0.5),
+                  color: themeCard.withOpacity(0.5),
                   border: Border(right: BorderSide(color: themeBorder)),
                 ),
                 child: Column(
@@ -467,6 +467,40 @@ class _SettingsViewState extends State<SettingsView> {
                 onChanged: (val) => widget.onUpdateSetting('branch', {
                   'order_sort_direction': val,
                 }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SettingsGridCard(
+            title: 'Operating Hours',
+            children: [
+              SettingTimePicker(
+                label: 'Opening Time',
+                description: 'When the restaurant opens for business',
+                value: branch['opening_time'] ?? '09:00:00',
+                onChanged: (val) =>
+                    widget.onUpdateSetting('branch', {'opening_time': val}),
+              ),
+              SettingTimePicker(
+                label: 'Closing Time',
+                description: 'When the restaurant closes',
+                value: branch['closing_time'] ?? '22:00:00',
+                onChanged: (val) =>
+                    widget.onUpdateSetting('branch', {'closing_time': val}),
+              ),
+              SettingTimePicker(
+                label: 'First Order Time',
+                description: 'Earliest time customers can place orders',
+                value: branch['first_order_time'] ?? '09:30:00',
+                onChanged: (val) =>
+                    widget.onUpdateSetting('branch', {'first_order_time': val}),
+              ),
+              SettingTimePicker(
+                label: 'Last Order Time',
+                description: 'Latest time customers can place orders',
+                value: branch['last_order_time'] ?? '21:30:00',
+                onChanged: (val) =>
+                    widget.onUpdateSetting('branch', {'last_order_time': val}),
               ),
             ],
           ),
@@ -1218,7 +1252,7 @@ class _SettingsViewState extends State<SettingsView> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
+                        color: Colors.red.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -1392,8 +1426,8 @@ class _SettingsViewState extends State<SettingsView> {
                 : LocalizationService().translate('will_be_preserved'),
             style: TextStyle(
               color: isDeleted
-                  ? Colors.red.withValues(alpha: 0.7)
-                  : Colors.green.withValues(alpha: 0.7),
+                  ? Colors.red.withOpacity(0.7)
+                  : Colors.green.withOpacity(0.7),
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -1421,7 +1455,7 @@ class _SettingsViewState extends State<SettingsView> {
               style: TextStyle(
                 color: Theme.of(
                   context,
-                ).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+                ).textTheme.bodyLarge?.color?.withOpacity(0.5),
               ),
             ),
           ),
@@ -1441,3 +1475,4 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 }
+

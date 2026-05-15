@@ -119,7 +119,7 @@ class _UserManagementViewState extends State<UserManagementView> {
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? primary : text.withValues(alpha: 0.6),
+              color: isSelected ? primary : text.withOpacity(0.6),
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               fontSize: 16,
             ),
@@ -140,9 +140,9 @@ class _UserManagementViewState extends State<UserManagementView> {
 
   Widget _buildUsersList(ThemeData theme) {
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
     final themeCard = theme.cardColor;
-    final themeBorder = themeText.withValues(alpha: 0.15);
+    final themeBorder = themeText.withOpacity(0.15);
     final themePrimary = theme.primaryColor;
 
     return Padding(
@@ -223,7 +223,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
                             headingRowColor: WidgetStateProperty.all(
-                              themePrimary.withValues(alpha: 0.05),
+                              themePrimary.withOpacity(0.05),
                             ),
                             dataRowMinHeight: 70,
                             dataRowMaxHeight: 70,
@@ -289,7 +289,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                                         CircleAvatar(
                                           radius: 18,
                                           backgroundColor: themePrimary
-                                              .withValues(alpha: 0.1),
+                                              .withOpacity(0.1),
                                           child: Text(
                                             (user['first_name'] ?? 'U')[0]
                                                 .toUpperCase(),
@@ -324,9 +324,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: themePrimary.withValues(
-                                          alpha: 0.1,
-                                        ),
+                                        color: themePrimary.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
@@ -411,9 +409,9 @@ class _UserManagementViewState extends State<UserManagementView> {
 
   Widget _buildRolesList(ThemeData theme) {
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
     final themeCard = theme.cardColor;
-    final themeBorder = themeText.withValues(alpha: 0.15);
+    final themeBorder = themeText.withOpacity(0.15);
     final themePrimary = theme.primaryColor;
 
     return Padding(
@@ -494,7 +492,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
                             headingRowColor: WidgetStateProperty.all(
-                              themePrimary.withValues(alpha: 0.05),
+                              themePrimary.withOpacity(0.05),
                             ),
                             dataRowMinHeight: 70,
                             dataRowMaxHeight: 70,
@@ -564,7 +562,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                                         CircleAvatar(
                                           radius: 18,
                                           backgroundColor: themePrimary
-                                              .withValues(alpha: 0.1),
+                                              .withOpacity(0.1),
                                           child: Icon(
                                             Icons.admin_panel_settings_rounded,
                                             color: themePrimary,
@@ -603,9 +601,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                                         vertical: 6,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: themePrimary.withValues(
-                                          alpha: 0.1,
-                                        ),
+                                        color: themePrimary.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -682,7 +678,7 @@ class _UserManagementViewState extends State<UserManagementView> {
 
   void _showUserDialog(ThemeData theme, {dynamic user}) {
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
     final themeCard = theme.cardColor;
     final themePrimary = theme.primaryColor;
 
@@ -874,7 +870,7 @@ class _UserManagementViewState extends State<UserManagementView> {
 
   void _showRoleDialog(ThemeData theme, {dynamic role}) {
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
     final themeCard = theme.cardColor;
     final themePrimary = theme.primaryColor;
 
@@ -957,7 +953,7 @@ class _UserManagementViewState extends State<UserManagementView> {
         title: Text('Delete Staff Member?', style: TextStyle(color: themeText)),
         content: Text(
           'Are you sure you want to delete ${user['first_name']}? This action cannot be undone.',
-          style: TextStyle(color: themeText.withValues(alpha: 0.7)),
+          style: TextStyle(color: themeText.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
@@ -984,7 +980,7 @@ class _UserManagementViewState extends State<UserManagementView> {
         title: Text('Delete Role?', style: TextStyle(color: themeText)),
         content: Text(
           'Are you sure you want to delete the "${role['name']}" role? Staff members assigned to this role will lose their permissions.',
-          style: TextStyle(color: themeText.withValues(alpha: 0.7)),
+          style: TextStyle(color: themeText.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
@@ -1088,3 +1084,4 @@ class _UserManagementViewState extends State<UserManagementView> {
     );
   }
 }
+

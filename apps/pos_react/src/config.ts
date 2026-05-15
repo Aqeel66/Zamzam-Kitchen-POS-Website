@@ -1,8 +1,8 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const BASE_URL = API_BASE_URL.replace('/api', '');
 
-export const resolveImageUrl = (path: string | null) => {
-  if (!path) return null;
+export const resolveImageUrl = (path: any) => {
+  if (!path || typeof path !== 'string') return undefined;
   if (path.startsWith('http')) return path;
   
   // Ensure the path starts with /assets/ for the backend to serve it correctly
@@ -11,5 +11,7 @@ export const resolveImageUrl = (path: string | null) => {
     normalizedPath = `assets/${normalizedPath.startsWith('/') ? normalizedPath.slice(1) : normalizedPath}`;
   }
   
-  return `${BASE_URL}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
+  const url = `${BASE_URL}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
+  // Add a simple cache buster using a daily timestamp or similar
+  return `${url}?t=${new Date().getMinutes()}`; // Busts every minute to stay fresh during configuration
 };

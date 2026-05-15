@@ -78,86 +78,6 @@ CREATE TABLE IF NOT EXISTS branches (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================================
--- Zamzam Kitchen — Full MySQL Schema
--- Run this to initialize the entire database
--- ============================================================
-
-CREATE DATABASE IF NOT EXISTS zamzam_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE zamzam_db;
-
--- ─── SETTINGS ───────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS tenant_settings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    restaurant_name VARCHAR(100) DEFAULT 'ZAMZAM KITCHEN',
-    theme_mode ENUM('Light', 'Dark', 'Adaptive') DEFAULT 'Adaptive',
-    primary_accent_color VARCHAR(10) DEFAULT '#F15A24',
-    logo_url VARCHAR(255) DEFAULT NULL,
-    secondary_logo_url VARCHAR(255) DEFAULT NULL,
-    login_background_url VARCHAR(255) DEFAULT NULL,
-    hero_background_url VARCHAR(255) DEFAULT NULL,
-    tagline VARCHAR(255) DEFAULT NULL,
-    typography_primary VARCHAR(50) DEFAULT 'Manrope',
-    typography_secondary VARCHAR(50) DEFAULT 'Inter',
-    currency VARCHAR(10) DEFAULT 'USD',
-    business_name VARCHAR(100) DEFAULT NULL,
-    business_email VARCHAR(255) DEFAULT NULL,
-    business_phone VARCHAR(20) DEFAULT NULL,
-    business_address TEXT DEFAULT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- ─── ROLES & PERMISSIONS ────────────────────────────────────
-CREATE TABLE IF NOT EXISTS roles (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL,
-    description TEXT
-);
-
-CREATE TABLE IF NOT EXISTS permissions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS role_permissions (
-    role_id INT,
-    permission_id INT,
-    PRIMARY KEY (role_id, permission_id),
-    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
-);
-
--- ─── USERS ──────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    email VARCHAR(255) UNIQUE,
-    phone VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS user_roles (
-    user_id INT,
-    role_id INT,
-    PRIMARY KEY (user_id, role_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
-);
-
--- ─── BRANCHES ───────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS branches (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    location VARCHAR(255),
-    contact_number VARCHAR(20),
-    status ENUM('Active', 'Inactive') DEFAULT 'Active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE IF NOT EXISTS branch_settings (
     branch_id INT PRIMARY KEY,
     kds_timer_minutes INT DEFAULT 15,
@@ -167,10 +87,11 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     booking_fee_amount DECIMAL(10,2) DEFAULT 10.00,
     is_booking_fee_enabled BOOLEAN DEFAULT TRUE,
     order_sort_direction VARCHAR(20) DEFAULT 'Descending',
-    opening_time TIME DEFAULT '11:00:00',
-    closing_time TIME DEFAULT '23:00:00',
-    first_order_time TIME DEFAULT '11:30:00',
-    last_order_time TIME DEFAULT '22:30:00',
+    allow_delivery TINYINT(1) DEFAULT 1,
+    allow_pickup TINYINT(1) DEFAULT 1,
+    is_tax_enabled TINYINT(1) DEFAULT 1,
+    tax_rate DECIMAL(5,2) DEFAULT 10.00,
+    payment_policy VARCHAR(50) DEFAULT 'Pay Last',
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 
@@ -388,5 +309,5 @@ CREATE TABLE IF NOT EXISTS delivery_details (
 );
 -- ─── INITIAL DATA ───────────────────────────────────────────
 INSERT IGNORE INTO branches (id, name, location, contact_number, status) VALUES (1, 'Zamzam Main', 'Main Street', '123456789', 'Active');
-INSERT IGNORE INTO branch_settings (branch_id, kds_timer_minutes, allow_qr_pay, booking_fee_amount, is_booking_fee_enabled, opening_time, closing_time, first_order_time, last_order_time) VALUES (1, 15, 1, 10.00, 1, '11:00:00', '23:00:00', '11:30:00', '22:30:00');
+INSERT IGNORE INTO branch_settings (branch_id, kds_timer_minutes, allow_qr_pay, booking_fee_amount, is_booking_fee_enabled) VALUES (1, 15, 1, 10.00, 1);
 INSERT IGNORE INTO tenant_settings (id, theme_mode, primary_accent_color, currency) VALUES (1, 'Dark', '#F25C05', 'USD');

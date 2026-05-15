@@ -32,8 +32,8 @@ class _VariantManagerState extends State<VariantManager> {
   Color get themeBg => _theme.scaffoldBackgroundColor;
   Color get themeCard => _theme.cardColor;
   Color get themeText => _theme.textTheme.bodyMedium?.color ?? Colors.white;
-  Color get themeHint => themeText.withValues(alpha: 0.6);
-  Color get themeBorder => themeText.withValues(alpha: 0.15);
+  Color get themeHint => themeText.withOpacity(0.6);
+  Color get themeBorder => themeText.withOpacity(0.15);
   Color get themePrimary => _theme.primaryColor;
 
   @override
@@ -340,3 +340,4 @@ class _VariantManagerState extends State<VariantManager> {
     );
   }
 }
+

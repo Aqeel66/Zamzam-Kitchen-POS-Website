@@ -16,7 +16,7 @@ class SettingsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,7 +51,7 @@ class SettingsGridCard extends StatelessWidget {
     final theme = ThemeService().themeData;
     final themeCard = theme.cardColor;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeBorder = themeText.withValues(alpha: 0.15);
+    final themeBorder = themeText.withOpacity(0.15);
 
     return Container(
       decoration: BoxDecoration(
@@ -132,7 +132,7 @@ class _SettingInputState extends State<SettingInput> {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
     final themePrimary = theme.primaryColor;
 
     return ListTile(
@@ -214,7 +214,7 @@ class SettingToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
     final themePrimary = theme.primaryColor;
 
     return ListTile(
@@ -231,7 +231,7 @@ class SettingToggle extends StatelessWidget {
         value: value,
         onChanged: onChanged,
         activeThumbColor: themePrimary,
-        activeTrackColor: themePrimary.withValues(alpha: 0.3),
+        activeTrackColor: themePrimary.withOpacity(0.3),
       ),
     );
   }
@@ -260,7 +260,7 @@ class SettingDropdown extends StatelessWidget {
     final theme = ThemeService().themeData;
     final themeCard = theme.cardColor;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -309,7 +309,7 @@ class SettingColorPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
 
     final presets = [
       {
@@ -366,9 +366,7 @@ class SettingColorPicker extends StatelessWidget {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: (p['color'] as Color).withValues(
-                                alpha: 0.4,
-                              ),
+                              color: (p['color'] as Color).withOpacity(0.4),
                               blurRadius: 8,
                               spreadRadius: 2,
                             ),
@@ -434,7 +432,7 @@ class SettingActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -462,3 +460,88 @@ class SettingActionRow extends StatelessWidget {
     );
   }
 }
+
+class SettingTimePicker extends StatelessWidget {
+  final String label;
+  final String description;
+  final String value;
+  final Function(String) onChanged;
+
+  const SettingTimePicker({
+    super.key,
+    required this.label,
+    required this.description,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeService().themeData;
+    final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
+    final themeHint = themeText.withOpacity(0.6);
+    final themePrimary = theme.primaryColor;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      title: Text(
+        label,
+        style: TextStyle(color: themeText, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(color: themeHint, fontSize: 13),
+      ),
+      trailing: OutlinedButton.icon(
+        onPressed: () async {
+          final parts = value.split(':');
+          final initialTime = parts.length >= 2
+              ? TimeOfDay(
+                  hour: int.tryParse(parts[0]) ?? 9,
+                  minute: int.tryParse(parts[1]) ?? 0,
+                )
+              : const TimeOfDay(hour: 9, minute: 0);
+
+          final TimeOfDay? picked = await showTimePicker(
+            context: context,
+            initialTime: initialTime,
+            builder: (context, child) {
+              return Theme(
+                data: Theme.of(context).copyWith(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: themePrimary,
+                    primary: themePrimary,
+                    onPrimary: Colors.white,
+                    surface: theme.cardColor,
+                  ),
+                ),
+                child: child!,
+              );
+            },
+          );
+
+          if (picked != null) {
+            final String hour = picked.hour.toString().padLeft(2, '0');
+            final String minute = picked.minute.toString().padLeft(2, '0');
+            onChanged('$hour:$minute:00');
+          }
+        },
+        icon: Icon(Icons.access_time_rounded, size: 18, color: themePrimary),
+        label: Text(
+          value.length >= 5 ? value.substring(0, 5) : 'Select Time',
+          style: TextStyle(
+            color: themePrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: themePrimary.withOpacity(0.5)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+}
+

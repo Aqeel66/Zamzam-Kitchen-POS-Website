@@ -1,18 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+:root {
+  --zamzam-teal-rgb: 0 96 100; /* Default hex #006064 */
+}
+
 @theme {
-  --color-teal-50: #e0f2f1;
-  --color-teal-100: #b2dfdb;
-  --color-teal-200: #80cbc4;
-  --color-teal-300: #4db6ac;
-  --color-teal-400: #26a69a;
-  --color-teal-500: #009688;
-  --color-teal-600: #00897b;
-  --color-teal-700: #00796b;
-  --color-teal-800: #00695c;
-  --color-teal-900: #004d40;
-  
-  --color-zamzam-teal: #006064;
+  --color-zamzam-teal: rgb(var(--zamzam-teal-rgb));
   --color-zamzam-yellow: #FFB300;
   
   --color-bg-main: #F4F7F6;
@@ -50,4 +44,21 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.glow-yellow {
+  box-shadow: 0 0 15px rgba(255, 179, 0, 0.4);
+}
+
+.glow-teal {
+  box-shadow: 0 0 15px rgba(13, 148, 136, 0.3);
 }

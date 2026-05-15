@@ -11,45 +11,16 @@ export default function Contact() {
     phone: '+61 3 9939 2479',
     address: '329 Racecourse Road, VIC, Melbourne, Australia'
   });
-  const [businessHours, setBusinessHours] = useState({
-    openingTime: '12:00 PM',
-    closingTime: '11:00 PM'
-  });
-
-  const formatTime12hr = (timeStr: string) => {
-    if (!timeStr || timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
-    try {
-      const [hours, minutes] = timeStr.split(':');
-      const h = parseInt(hours);
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const h12 = h % 12 || 12;
-      return `${h12}:${minutes} ${ampm}`;
-    } catch (e) {
-      return timeStr;
-    }
-  };
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/settings/branch/1?t=${Date.now()}`)
+    fetch(`${API_BASE_URL}/settings`)
       .then(res => res.json())
       .then(data => {
-        if (data && data.opening_time && data.closing_time) {
-          setBusinessHours({
-            openingTime: formatTime12hr(data.opening_time),
-            closingTime: formatTime12hr(data.closing_time)
-          });
-        }
-      })
-      .catch(err => console.error('Error fetching settings:', err));
-
-    fetch(`${API_BASE_URL}/settings/branding?t=${Date.now()}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data) {
+        if (data.tenant) {
           setBranding({
-            email: data.email || 'info@zamzamkitchen.com',
-            phone: data.phone || '+61 3 9939 2479',
-            address: data.address || '329 Racecourse Road, VIC, Melbourne, Australia'
+            email: data.tenant.email || 'info@zamzamkitchen.com',
+            phone: data.tenant.phone || '+61 3 9939 2479',
+            address: data.tenant.address || '329 Racecourse Road, VIC, Melbourne, Australia'
           });
         }
       })
@@ -75,122 +46,121 @@ export default function Contact() {
       setStatus('error');
     }
   };
-
   return (
     <div className="contact-page">
-      <section className="contact-hero">
-        <h1>Contact Us</h1>
-        <p>We'd love to hear from you. Get in touch with our team.</p>
-      </section>
+      <div className="common-hero contact-hero">
+        <div className="hero-overlay"></div>
+        <div className="hero-content">
+          <h1 className="white mb-3">Contact <span className="text-orange">Us</span></h1>
+          <p className="white opacity-90 max-w-2xl mx-auto">Have a question about our menu, need to book a large event, or just want to say hello? We'd love to hear from you.</p>
+        </div>
+      </div>
 
-      <section className="contact-content">
-        <div className="contact-container">
-          <div className="contact-grid">
-            <div className="contact-info">
-              <h2>Get In Touch</h2>
-              <p className="contact-intro">Have a question or feedback? Our team is here to help you.</p>
-              
-              <div className="info-list">
-                <div className="info-card">
-                  <div className="card-icon"><MapPin size={24} /></div>
-                  <div className="card-text">
-                    <h3>Address</h3>
-                    <p>{branding.address}</p>
-                  </div>
-                </div>
-                <div className="info-card">
-                  <div className="card-icon"><Phone size={24} /></div>
-                  <div className="card-text">
-                    <h3>Phone</h3>
-                    <p>{branding.phone}</p>
-                  </div>
-                </div>
-                <div className="info-card">
-                  <div className="card-icon"><Mail size={24} /></div>
-                  <div className="card-text">
-                    <h3>Email</h3>
-                    <p>{branding.email}</p>
-                  </div>
-                </div>
-                <div className="info-card">
-                  <div className="card-icon"><Clock size={24} /></div>
-                  <div className="card-text">
-                    <h3>Opening Hours</h3>
-                    <p>Daily: {businessHours.openingTime} - {businessHours.closingTime}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="contact-form-container">
-              <form className="contact-form" onSubmit={handleSubmit}>
-                <div className="form-group">
-                  <label>Full Name</label>
-                  <input 
-                    type="text" 
-                    value={formData.name} 
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                    placeholder="Enter your name" 
-                    required 
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Email Address</label>
-                  <input 
-                    type="email" 
-                    value={formData.email} 
-                    onChange={e => setFormData({...formData, email: e.target.value})}
-                    placeholder="Enter your email" 
-                    required 
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Subject</label>
-                  <input 
-                    type="text" 
-                    value={formData.subject} 
-                    onChange={e => setFormData({...formData, subject: e.target.value})}
-                    placeholder="How can we help?" 
-                    required 
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Message</label>
-                  <textarea 
-                    rows={5} 
-                    value={formData.message} 
-                    onChange={e => setFormData({...formData, message: e.target.value})}
-                    placeholder="Your message here..." 
-                    required
-                  ></textarea>
-                </div>
-                <button type="submit" className="btn btn-primary submit-btn" disabled={status === 'loading'}>
-                  {status === 'loading' ? 'Sending...' : (
-                    <>
-                      <span>Send Message</span>
-                      <Send size={18} />
-                    </>
-                  )}
-                </button>
-                {status === 'success' && <p className="status-msg success">Message sent successfully!</p>}
-                {status === 'error' && <p className="status-msg error">Failed to send message. Please try again.</p>}
-              </form>
-            </div>
+      <div className="section-padding container-simple">
+        {/* Contact info Side - Now TOP */}
+        <div className="contact-info-side mb-12">
+          <div className="info-grid-simple">
+             <div className="info-box-item">
+                <div className="icon-wrap"><MapPin size={28}/></div>
+                <h4 className="font-bold">Visit Us</h4>
+                <p className="text-muted text-sm">{branding.address}</p>
+             </div>
+             <div className="info-box-item">
+                <div className="icon-wrap"><Phone size={28}/></div>
+                <h4 className="font-bold">Call Us</h4>
+                <p className="text-muted text-sm">Main: {branding.phone}<br/>Reservations: +61 460 033 893</p>
+             </div>
+             <div className="info-box-item">
+                <div className="icon-wrap"><Mail size={28}/></div>
+                <h4 className="font-bold">Email Us</h4>
+                <p className="text-muted text-sm">{branding.email}</p>
+             </div>
+             <div className="info-box-item">
+                <div className="icon-wrap"><Clock size={28}/></div>
+                <h4 className="font-bold">Business Hours</h4>
+                <p className="text-muted text-sm">Opens Daily From:<br/>12PM - 11PM</p>
+             </div>
           </div>
         </div>
-      </section>
 
-      <section className="contact-map">
-        <iframe 
-          title="Zamzam Kitchen Location"
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.250495818461!2d144.92546417666248!3d-37.78421033230193!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6ad65d1667d4f61b%3A0x6e9a7a9a7a9a7a9a!2sZamzam%20Kitchen!5e0!3m2!1sen!2sau!4v1715432123456!5m2!1sen!2sau" 
-          width="100%" 
-          height="450" 
-          style={{ border: 0 }} 
-          allowFullScreen 
-          loading="lazy"
-        ></iframe>
-      </section>
+        {/* Action Row: Map & Form - Now Together in a grid below */}
+        <div className="grid-2 gap-10">
+          <div className="map-side">
+            <div className="map-simple">
+               <iframe 
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.83296030999!2d144.912!3d-37.7853756!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6ad65d7c3d2d0b55%3A0x2a04561a355f342b!2s329%20Racecourse%20Rd%2C%20Flemington%20VIC%203031%2C%20Australia!5e0!3m2!1sen!2sau!4v1711555555555!5m2!1sen!2sau" 
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0 }} 
+                  allowFullScreen={true} 
+                  loading="lazy">
+               </iframe>
+            </div>
+          </div>
+
+          {/* Contact Form Side - Now effectively 'one row down' if stacked or part of a 2nd section */}
+          <div className="contact-form-side">
+            <h2 className="section-title mb-8">Send us a Message</h2>
+            <form className="cf-form-simple" onSubmit={handleSubmit}>
+              <div className="form-row-2 mb-4">
+                <div className="input-group">
+                  <label>Name</label>
+                  <input 
+                    required 
+                    type="text" 
+                    placeholder="Your name" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Email</label>
+                  <input 
+                    required 
+                    type="email" 
+                    placeholder="yourname@email.com" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <div className="input-group mb-4">
+                <label>Subject</label>
+                <input 
+                  required 
+                  type="text" 
+                  placeholder="How can we help?" 
+                  value={formData.subject}
+                  onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                />
+              </div>
+ 
+              <div className="input-group mb-5">
+                <label>Message</label>
+                <textarea 
+                  required 
+                  placeholder="Your message..." 
+                  rows={6} 
+                  value={formData.message}
+                  onChange={(e) => setFormData({...formData, message: e.target.value})}
+                ></textarea>
+              </div>
+
+              {status === 'success' && <p style={{ color: 'green', marginBottom: '1rem' }}>Message sent successfully!</p>}
+              {status === 'error' && <p style={{ color: 'red', marginBottom: '1rem' }}>Failed to send message. Please try again.</p>}
+
+              <button 
+                type="submit" 
+                disabled={status === 'loading'}
+                className="btn-primary w-full py-4 font-bold flex items-center justify-center gap-2"
+              >
+                 {status === 'loading' ? 'Sending...' : <><Send size={18}/> Send Message</>}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

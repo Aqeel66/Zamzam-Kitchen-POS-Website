@@ -5,6 +5,11 @@ import '../localization_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 class ReportsView extends StatefulWidget {
   final Map<String, dynamic> summaryData;
@@ -13,6 +18,7 @@ class ReportsView extends StatefulWidget {
   final List<dynamic> placedOrders;
   final List<dynamic> shifts;
   final bool isLoading;
+  final int? resetToken;
 
   const ReportsView({
     super.key,
@@ -22,6 +28,7 @@ class ReportsView extends StatefulWidget {
     required this.placedOrders,
     required this.shifts,
     required this.isLoading,
+    this.resetToken,
   });
 
   @override
@@ -30,6 +37,16 @@ class ReportsView extends StatefulWidget {
 
 class _ReportsViewState extends State<ReportsView> {
   int _selectedTab = 0;
+
+  @override
+  void didUpdateWidget(ReportsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.resetToken != null && widget.resetToken != oldWidget.resetToken) {
+      setState(() {
+        _selectedTab = 0;
+      });
+    }
+  }
   DateTimeRange? _reportDateRange;
   String _reportTypeFilter = 'ALL';
   String _reportStatusFilter = 'ALL';
@@ -40,11 +57,9 @@ class _ReportsViewState extends State<ReportsView> {
     2023,
   ); // Reset to 2023 to allow navigation while loading
   List<dynamic> _inventoryItems = [];
-  List<dynamic> _suppliers = [];
   List<dynamic> _expenses = [];
   List<dynamic> _menuData = [];
   List<dynamic> _purchases = [];
-  String _invItemFilter = 'ALL';
   String _invSupplierFilter = 'ALL';
   String _invStatusFilter = 'ALL';
   DateTimeRange? _invDateRange;
@@ -59,6 +74,11 @@ class _ReportsViewState extends State<ReportsView> {
   String _finSearchQuery = '';
   String _invSearchQuery = '';
   String _orderItemFilter = 'ALL';
+  String _orderCategoryFilter = 'ALL';
+  String _reportOriginFilter = 'ALL';
+  String _reportStaffFilter = 'ALL';
+  String _invCategoryFilter = 'ALL';
+  List<dynamic> _inventoryCategories = [];
 
   @override
   void initState() {
@@ -66,10 +86,23 @@ class _ReportsViewState extends State<ReportsView> {
     _reportOrders = widget.placedOrders;
     _fetchAvailableDates();
     _fetchInventory();
-    _fetchSuppliers();
     _fetchExpenses();
     _fetchMenuData();
     _fetchPurchases();
+    _fetchInventoryCategories();
+  }
+
+  Future<void> _fetchInventoryCategories() async {
+    try {
+      final res = await http.get(
+        Uri.parse('${ThemeService.apiBaseUrl}/api/inventory/categories'),
+      );
+      if (res.statusCode == 200) {
+        setState(() => _inventoryCategories = json.decode(res.body));
+      }
+    } catch (e) {
+      if (kDebugMode) print('Fetch Inventory Categories Error: $e');
+    }
   }
 
   Future<void> _fetchPurchases() async {
@@ -111,24 +144,17 @@ class _ReportsViewState extends State<ReportsView> {
     }
   }
 
-  Future<void> _fetchSuppliers() async {
-    try {
-      final res = await http.get(
-        Uri.parse('${ThemeService.apiBaseUrl}/api/purchases/suppliers'),
-      );
-      if (res.statusCode == 200) {
-        setState(() => _suppliers = json.decode(res.body));
-      }
-    } catch (e) {
-      if (kDebugMode) print('Fetch Suppliers Error: $e');
-    }
-  }
 
   Future<void> _fetchInventory() async {
     try {
-      final res = await http.get(
-        Uri.parse('${ThemeService.apiBaseUrl}/api/inventory'),
-      );
+      String url = '${ThemeService.apiBaseUrl}/api/inventory';
+      if (_invDateRange != null) {
+        final start = _invDateRange!.start.toIso8601String().split('T')[0];
+        final end = _invDateRange!.end.toIso8601String().split('T')[0];
+        url = '${ThemeService.apiBaseUrl}/api/reports/inventory-log?startDate=$start&endDate=$end';
+      }
+
+      final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
         setState(() => _inventoryItems = json.decode(res.body));
       }
@@ -172,9 +198,9 @@ class _ReportsViewState extends State<ReportsView> {
         final themeBg = theme.scaffoldBackgroundColor;
         final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
         final themeCard = theme.cardColor;
-        final themeBorder = themeText.withValues(alpha: 0.15);
+        final themeBorder = themeText.withOpacity(0.15);
         final themePrimary = theme.primaryColor;
-        final themeHint = themeText.withValues(alpha: 0.6);
+        final themeHint = themeText.withOpacity(0.6);
 
         return Container(
           color: themeBg,
@@ -355,7 +381,7 @@ class _ReportsViewState extends State<ReportsView> {
         border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -516,13 +542,141 @@ class _ReportsViewState extends State<ReportsView> {
     Color primary,
     Color hint,
   ) {
+    // Calculate Summaries for the Bar
+    double totalSales = 0;
+    int ordersCount = _reportOrders.length;
+    int totalItems = 0;
+
+    for (var order in _reportOrders) {
+      totalSales += double.tryParse(order['total_amount'].toString()) ?? 0;
+      if (order['items'] != null) {
+        for (var item in (order['items'] as List)) {
+          totalItems += (int.tryParse(item['quantity'].toString()) ?? 1);
+        }
+      }
+    }
+
+    double avgValue = ordersCount > 0 ? totalSales / ordersCount : 0;
+
     return Column(
       children: [
+        // --- SUMMARY BAR ---
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: card,
+            border: Border(bottom: BorderSide(color: border)),
+          ),
+          child: Row(
+            children: [
+              _buildSmallMetric(
+                'Report Sales',
+                '\$${totalSales.toStringAsFixed(2)}',
+                Icons.account_balance_wallet_outlined,
+                Colors.green,
+                text,
+                hint,
+              ),
+              _buildMetricDivider(border),
+              _buildSmallMetric(
+                'Orders Count',
+                ordersCount.toString(),
+                Icons.shopping_bag_outlined,
+                Colors.amber,
+                text,
+                hint,
+              ),
+              _buildMetricDivider(border),
+              _buildSmallMetric(
+                'Avg Value',
+                '\$${avgValue.toStringAsFixed(2)}',
+                Icons.analytics_outlined,
+                Colors.indigo,
+                text,
+                hint,
+              ),
+              _buildMetricDivider(border),
+              _buildSmallMetric(
+                'Items Sold',
+                totalItems.toString(),
+                Icons.shopping_cart_outlined,
+                Colors.purple,
+                text,
+                hint,
+              ),
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: card,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (ctx) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: Icon(Icons.table_chart_outlined, color: primary),
+                            title: const Text('Export as CSV Spreadsheet'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _exportToCSV();
+                            },
+                          ),
+                          ListTile(
+                            leading: Icon(Icons.picture_as_pdf_outlined, color: Colors.red),
+                            title: const Text('Export as PDF Document'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _exportToPDF();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.download_outlined, size: 18),
+                label: const Text('EXPORT'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(width: 16),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _orderSearchQuery = '';
+                    _reportDateRange = null;
+                    _orderItemFilter = 'ALL';
+                    _orderCategoryFilter = 'ALL';
+                    _reportOriginFilter = 'ALL';
+                    _reportTypeFilter = 'ALL';
+                    _reportStatusFilter = 'ALL';
+                    _reportStaffFilter = 'ALL';
+                  });
+                  _fetchFilteredReport();
+                },
+                icon: Icon(Icons.refresh_outlined, size: 18, color: hint),
+                label: Text(
+                  LocalizationService().translate('clear_filters'),
+                  style: TextStyle(color: hint),
+                ),
+              ),
+            ],
+          ),
+        ),
+
         // Filter Header
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
           decoration: BoxDecoration(
-            color: card.withValues(alpha: 0.3),
+            color: card.withOpacity(0.3),
             border: Border(bottom: BorderSide(color: border)),
           ),
           child: SingleChildScrollView(
@@ -542,12 +696,33 @@ class _ReportsViewState extends State<ReportsView> {
                     (val) => setState(() => _orderSearchQuery = val),
                   ),
                 ),
+                const SizedBox(width: 16),
+                _buildFilterDropdown(
+                  'CATEGORIES',
+                  _orderCategoryFilter,
+                  [
+                    'ALL',
+                    ..._menuData.map((c) => c['name'].toString()).toList()
+                      ..sort(),
+                  ],
+                  (val) => setState(() => _orderCategoryFilter = val!),
+                  text,
+                  card,
+                  border,
+                  primary,
+                ),
                 const SizedBox(width: 32),
                 TextButton.icon(
                   onPressed: () {
                     setState(() {
                       _orderSearchQuery = '';
                       _reportDateRange = null;
+                      _orderItemFilter = 'ALL';
+                      _orderCategoryFilter = 'ALL';
+                      _reportOriginFilter = 'ALL';
+                      _reportTypeFilter = 'ALL';
+                      _reportStatusFilter = 'ALL';
+                      _reportStaffFilter = 'ALL';
                     });
                     _fetchFilteredReport();
                   },
@@ -585,7 +760,7 @@ class _ReportsViewState extends State<ReportsView> {
                             width: double.infinity,
                             child: DataTable(
                               headingRowColor: WidgetStateProperty.all(
-                                primary.withValues(alpha: 0.05),
+                                primary.withOpacity(0.05),
                               ),
                               columns: [
                                 DataColumn(
@@ -600,6 +775,15 @@ class _ReportsViewState extends State<ReportsView> {
                                 DataColumn(
                                   label: Text(
                                     LocalizationService().translate('time_col'),
+                                    style: TextStyle(
+                                      color: text,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Items',
                                     style: TextStyle(
                                       color: text,
                                       fontWeight: FontWeight.bold,
@@ -654,6 +838,25 @@ class _ReportsViewState extends State<ReportsView> {
                                           !orderId.contains(query))
                                         return false;
                                     }
+                                    // 3. Category Filter
+                                    if (_orderCategoryFilter != 'ALL') {
+                                      bool hasCategory = (o['items'] as List?)
+                                              ?.any((item) {
+                                            final cat = _menuData.firstWhere(
+                                              (c) =>
+                                                  c['name'] ==
+                                                  _orderCategoryFilter,
+                                              orElse: () => null,
+                                            );
+                                            if (cat == null) return false;
+                                            return (cat['items'] as List).any(
+                                              (mi) =>
+                                                  mi['id'] == item['product_id'],
+                                            );
+                                          }) ??
+                                          false;
+                                      if (!hasCategory) return false;
+                                    }
                                     return true;
                                   })
                                   .map((o) {
@@ -697,7 +900,7 @@ class _ReportsViewState extends State<ReportsView> {
                                                   (o['status'] == 'completed'
                                                           ? Colors.green
                                                           : primary)
-                                                      .withValues(alpha: 0.1),
+                                                      .withOpacity(0.1),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
@@ -779,7 +982,7 @@ class _ReportsViewState extends State<ReportsView> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: primary.withValues(alpha: 0.1),
+                                  color: primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -860,9 +1063,135 @@ class _ReportsViewState extends State<ReportsView> {
     Color primary,
     Color hint,
   ) {
+    // Calculate Summaries for the Bar
+    double totalSales = 0;
+    int ordersCount = _reportOrders.length;
+    int totalItems = 0;
+
+    for (var order in _reportOrders) {
+      totalSales += double.tryParse(order['total_amount'].toString()) ?? 0;
+      if (order['items'] != null) {
+        for (var item in (order['items'] as List)) {
+          totalItems += (int.tryParse(item['quantity'].toString()) ?? 1);
+        }
+      }
+    }
+
+    double avgValue = ordersCount > 0 ? totalSales / ordersCount : 0;
+
     return Column(
       children: [
-        // Top KPIs (Now in Header)
+        // --- SUMMARY BAR ---
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: card,
+            border: Border(bottom: BorderSide(color: border)),
+          ),
+          child: Row(
+            children: [
+              _buildSmallMetric(
+                'Report Sales',
+                '\$${totalSales.toStringAsFixed(2)}',
+                Icons.account_balance_wallet_outlined,
+                Colors.green,
+                text,
+                hint,
+              ),
+              _buildMetricDivider(border),
+              _buildSmallMetric(
+                'Orders Count',
+                ordersCount.toString(),
+                Icons.shopping_bag_outlined,
+                Colors.amber,
+                text,
+                hint,
+              ),
+              _buildMetricDivider(border),
+              _buildSmallMetric(
+                'Avg Value',
+                '\$${avgValue.toStringAsFixed(2)}',
+                Icons.analytics_outlined,
+                Colors.indigo,
+                text,
+                hint,
+              ),
+              _buildMetricDivider(border),
+              _buildSmallMetric(
+                'Items Sold',
+                totalItems.toString(),
+                Icons.shopping_cart_outlined,
+                Colors.purple,
+                text,
+                hint,
+              ),
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: card,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (ctx) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: Icon(Icons.table_chart_outlined, color: primary),
+                            title: const Text('Export as CSV Spreadsheet'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _exportToCSV();
+                            },
+                          ),
+                          ListTile(
+                            leading: Icon(Icons.picture_as_pdf_outlined, color: Colors.red),
+                            title: const Text('Export as PDF Document'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _exportToPDF();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.download_outlined, size: 18),
+                label: const Text('EXPORT'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(width: 16),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _orderSearchQuery = '';
+                    _reportDateRange = null;
+                    _orderItemFilter = 'ALL';
+                    _orderCategoryFilter = 'ALL';
+                    _reportOriginFilter = 'ALL';
+                    _reportTypeFilter = 'ALL';
+                    _reportStatusFilter = 'ALL';
+                    _reportStaffFilter = 'ALL';
+                  });
+                  _fetchFilteredReport();
+                },
+                icon: Icon(Icons.refresh_outlined, size: 18, color: hint),
+                label: Text(
+                  LocalizationService().translate('clear_filters'),
+                  style: TextStyle(color: hint),
+                ),
+              ),
+            ],
+          ),
+        ),
 
         // Filter Bar
         Container(
@@ -878,7 +1207,7 @@ class _ReportsViewState extends State<ReportsView> {
                 _buildReportDatePicker(text, card, border, primary),
                 const SizedBox(width: 16),
                 SizedBox(
-                  width: 300,
+                  width: 180,
                   child: _buildSearchBar(
                     text,
                     card,
@@ -889,13 +1218,32 @@ class _ReportsViewState extends State<ReportsView> {
                   ),
                 ),
                 const SizedBox(width: 16),
+                // Category Filter
+                _buildFilterDropdown(
+                  'CATEGORIES',
+                  _orderCategoryFilter,
+                  [
+                    'ALL',
+                    ..._menuData.map((c) => c['name'].toString()).toList()
+                      ..sort(),
+                  ],
+                  (val) => setState(() => _orderCategoryFilter = val!),
+                  text,
+                  card,
+                  border,
+                  primary,
+                ),
+                const SizedBox(width: 16),
                 // Item Filter
                 _buildFilterDropdown(
-                  'Food Item',
+                  'ITEMS',
                   _orderItemFilter,
                   [
                     'ALL',
                     ..._menuData
+                        .where((c) =>
+                            _orderCategoryFilter == 'ALL' ||
+                            c['name'] == _orderCategoryFilter)
                         .expand((c) => (c['items'] as List))
                         .map((i) => i['name'].toString())
                         .toSet()
@@ -909,11 +1257,45 @@ class _ReportsViewState extends State<ReportsView> {
                   primary,
                 ),
                 const SizedBox(width: 16),
+                // Staff Filter
+                _buildFilterDropdown(
+                  'STAFF',
+                  _reportStaffFilter,
+                  [
+                    'ALL',
+                    ..._reportOrders
+                        .map((o) => (o['waiter_name'] ?? o['user_name'] ?? 'System').toString())
+                        .where((name) => name.isNotEmpty)
+                        .toSet()
+                        .toList()
+                      ..sort(),
+                  ],
+                  (val) => setState(() => _reportStaffFilter = val!),
+                  text,
+                  card,
+                  border,
+                  primary,
+                ),
+                const SizedBox(width: 16),
+                // Origin Filter
+                _buildFilterDropdown(
+                  'ORIGINS',
+                  _reportOriginFilter,
+                  ['ALL', 'Counter', 'Website', 'QR Menu'],
+                  (val) {
+                    setState(() => _reportOriginFilter = val!);
+                  },
+                  text,
+                  card,
+                  border,
+                  primary,
+                ),
+                const SizedBox(width: 16),
                 // Type Filter
                 _buildFilterDropdown(
-                  LocalizationService().translate('filter_by_type'),
+                  'TYPES',
                   _reportTypeFilter,
-                  ['ALL', 'Dine-In', 'Takeaway', 'Website', 'QR Menu'],
+                  ['ALL', 'Dine-In', 'Takeaway', 'Delivery'],
                   (val) {
                     setState(() => _reportTypeFilter = val!);
                     _fetchFilteredReport();
@@ -926,7 +1308,7 @@ class _ReportsViewState extends State<ReportsView> {
                 const SizedBox(width: 16),
                 // Status Filter
                 _buildFilterDropdown(
-                  LocalizationService().translate('filter_by_status'),
+                  'STATUS',
                   _reportStatusFilter,
                   [
                     'ALL',
@@ -948,22 +1330,6 @@ class _ReportsViewState extends State<ReportsView> {
                   primary,
                 ),
                 const SizedBox(width: 32),
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _reportTypeFilter = 'ALL';
-                      _reportStatusFilter = 'ALL';
-                      _orderSearchQuery = '';
-                      _orderItemFilter = 'ALL';
-                      _reportOrders = widget.placedOrders;
-                    });
-                  },
-                  icon: Icon(Icons.refresh_outlined, size: 18, color: hint),
-                  label: Text(
-                    LocalizationService().translate('clear_filters'),
-                    style: TextStyle(color: hint),
-                  ),
-                ),
               ],
             ),
           ),
@@ -992,7 +1358,7 @@ class _ReportsViewState extends State<ReportsView> {
                             width: double.infinity,
                             child: DataTable(
                               headingRowColor: WidgetStateProperty.all(
-                                primary.withValues(alpha: 0.05),
+                                primary.withOpacity(0.05),
                               ),
                               columns: [
                                 DataColumn(
@@ -1007,6 +1373,15 @@ class _ReportsViewState extends State<ReportsView> {
                                 DataColumn(
                                   label: Text(
                                     LocalizationService().translate('time_col'),
+                                    style: TextStyle(
+                                      color: text,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Items',
                                     style: TextStyle(
                                       color: text,
                                       fontWeight: FontWeight.bold,
@@ -1067,16 +1442,63 @@ class _ReportsViewState extends State<ReportsView> {
                                           !table.contains(query))
                                         return false;
                                     }
+                                    
+                                    // Category Filter
+                                    if (_orderCategoryFilter != 'ALL') {
+                                      bool hasCategory = (o['items'] as List?)
+                                              ?.any((item) {
+                                            final cat = _menuData.firstWhere(
+                                              (c) =>
+                                                  c['name'] ==
+                                                  _orderCategoryFilter,
+                                              orElse: () => null,
+                                            );
+                                            if (cat == null) return false;
+                                            return (cat['items'] as List).any(
+                                              (mi) =>
+                                                  mi['id'] == item['product_id'],
+                                            );
+                                          }) ??
+                                          false;
+                                      if (!hasCategory) return false;
+                                    }
+
                                     // Item Filter
                                     if (_orderItemFilter != 'ALL') {
-                                      final items = o['items'] as List? ?? [];
-                                      if (!items.any(
-                                        (i) =>
-                                            i['name'].toString() ==
-                                            _orderItemFilter,
-                                      ))
-                                        return false;
+                                      bool hasItem = (o['items'] as List?)?.any(
+                                            (item) =>
+                                                item['name'] == _orderItemFilter,
+                                          ) ??
+                                          false;
+                                      if (!hasItem) return false;
                                     }
+
+                                    // Origin Filter
+                                    if (_reportOriginFilter != 'ALL' &&
+                                        (o['origin'] ?? 'Counter') !=
+                                            _reportOriginFilter)
+                                      return false;
+
+                                    // Staff Filter
+                                    if (_reportStaffFilter != 'ALL') {
+                                      final staff = (o['waiter_name'] ??
+                                              o['user_name'] ??
+                                              'System')
+                                          .toString();
+                                      if (staff != _reportStaffFilter) return false;
+                                    }
+
+                                    // Type Filter
+                                    if (_reportTypeFilter != 'ALL' &&
+                                        o['order_type'] != _reportTypeFilter)
+                                      return false;
+
+                                    // Status Filter
+                                    if (_reportStatusFilter != 'ALL' &&
+                                        o['status'].toString().toLowerCase() !=
+                                            _reportStatusFilter.toLowerCase())
+                                      return false;
+
                                     return true;
                                   })
                                   .map((o) {
@@ -1095,6 +1517,90 @@ class _ReportsViewState extends State<ReportsView> {
                                               color: hint,
                                               fontSize: 12,
                                             ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Builder(
+                                            builder: (context) {
+                                              final items =
+                                                  o['items'] as List? ?? [];
+                                              if (items.isEmpty) {
+                                                return Text(
+                                                  'No items',
+                                                  style: TextStyle(
+                                                    color: hint,
+                                                    fontStyle: FontStyle.italic,
+                                                    fontSize: 11,
+                                                  ),
+                                                );
+                                              }
+                                              return Wrap(
+                                                spacing: 4,
+                                                runSpacing: 4,
+                                                children: [
+                                                  if (_orderItemFilter != 'ALL')
+                                                    ...items
+                                                        .where((i) =>
+                                                            i['name']
+                                                                .toString()
+                                                                .toUpperCase() ==
+                                                            _orderItemFilter
+                                                                .toUpperCase())
+                                                        .take(1)
+                                                        .map((i) => Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                              decoration: BoxDecoration(
+                                                                color: primary.withOpacity(0.1),
+                                                                borderRadius: BorderRadius.circular(4),
+                                                                border: Border.all(color: primary.withOpacity(0.2)),
+                                                              ),
+                                                              child: Text('${i['quantity']}x ${i['name']}', style: TextStyle(color: primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                            ))
+                                                  else if (_orderCategoryFilter != 'ALL')
+                                                    ...(() {
+                                                      final menuCategory = _menuData.firstWhere((c) => c['name'].toString().toUpperCase() == _orderCategoryFilter.toUpperCase(), orElse: () => null);
+                                                      if (menuCategory != null) {
+                                                        final catItems = items.where((i) {
+                                                          final catProducts = (menuCategory['items'] as List?) ?? [];
+                                                          return catProducts.any((cp) => cp['id'] == i['product_id']);
+                                                        }).toList();
+                                                        final totalQty = catItems.fold<int>(0, (sum, item) => sum + (item['quantity'] as int? ?? 1));
+                                                        if (totalQty > 0) {
+                                                          return [
+                                                            Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.blue.withOpacity(0.1),
+                                                                borderRadius: BorderRadius.circular(4),
+                                                                border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                                                              ),
+                                                              child: Text('${_orderCategoryFilter.toUpperCase()}: $totalQty ITEMS', style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                            )
+                                                          ];
+                                                        }
+                                                      }
+                                                      return <Widget>[];
+                                                    })()
+                                                  else ...[
+                                                    if (items.isNotEmpty)
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                        decoration: BoxDecoration(
+                                                          color: primary.withOpacity(0.05),
+                                                          borderRadius: BorderRadius.circular(4),
+                                                          border: Border.all(color: primary.withOpacity(0.1)),
+                                                        ),
+                                                        child: Text('${items[0]['quantity']}x ${items[0]['name']}', style: TextStyle(color: primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                      ),
+                                                    if (items.length > 1)
+                                                      Padding(
+                                                        padding: const EdgeInsets.only(top: 4),
+                                                        child: Text('+${items.length - 1} more', style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                      ),
+                                                  ],
+                                                ],
+                                              );
+                                            },
                                           ),
                                         ),
                                         DataCell(
@@ -1141,7 +1647,7 @@ class _ReportsViewState extends State<ReportsView> {
                                             decoration: BoxDecoration(
                                               color: _getStatusColor(
                                                 o['status'],
-                                              ).withValues(alpha: 0.1),
+                                              ).withOpacity(0.1),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
@@ -1237,7 +1743,7 @@ class _ReportsViewState extends State<ReportsView> {
           dropdownColor: card,
           style: TextStyle(
             color: text,
-            fontSize: 13,
+            fontSize: 9,
             fontWeight: FontWeight.w500,
           ),
           items: items
@@ -1372,189 +1878,96 @@ class _ReportsViewState extends State<ReportsView> {
     Color primary,
     Color hint,
   ) {
-    // 1. Calculate KPIs (Now moved to header via _buildCondensedInventoryMetrics)
+    // Determine if we are in History Mode (Date Range Selected)
+    final bool isHistoryMode = _invDateRange != null;
 
-    // 2. Apply Filters to the list
-    List<dynamic> filteredItems = _inventoryItems.where((item) {
-      // Item Filter
-      if (_invItemFilter != 'ALL' && item['name'] != _invItemFilter)
-        return false;
-
-      // Supplier Filter
-      if (_invSupplierFilter != 'ALL' &&
-          (item['supplier_name'] ?? 'N/A') != _invSupplierFilter)
-        return false;
-
-      // Status Filter
-      double qty = double.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
-      double min =
-          double.tryParse(item['min_stock_level']?.toString() ?? '0') ?? 0;
-      if (_invStatusFilter == 'LOW STOCK' && qty > min) return false;
-      if (_invStatusFilter == 'HEALTHY' && qty <= min) return false;
-
+    // Apply Search/Filters locally
+    List<dynamic> displayItems = _inventoryItems.where((item) {
+      if (_invSearchQuery.isNotEmpty) {
+        final name = (item['name'] ?? item['items'] ?? '').toString().toLowerCase();
+        if (!name.contains(_invSearchQuery.toLowerCase())) return false;
+      }
+      
+      if (!isHistoryMode) {
+        if (_invSupplierFilter != 'ALL' && (item['supplier_name'] ?? 'N/A') != _invSupplierFilter) return false;
+        if (_invCategoryFilter != 'ALL' && (item['category_name'] ?? 'Uncategorized') != _invCategoryFilter) return false;
+        
+        double qty = double.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
+        double min = double.tryParse(item['min_stock_level']?.toString() ?? '0') ?? 0;
+        if (_invStatusFilter == 'LOW STOCK' && qty > min) return false;
+        if (_invStatusFilter == 'OUT OF STOCK' && qty > 0) return false;
+        if (_invStatusFilter == 'IN STOCK' && qty <= 0) return false;
+      }
+      
       return true;
     }).toList();
 
     return Column(
       children: [
-        // Main Content
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(24),
             children: [
               _buildCard(
-                'Inventory Breakdown',
+                isHistoryMode ? 'PURCHASE LOG' : 'INVENTORY BREAKDOWN',
                 SizedBox(
                   width: double.infinity,
                   child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(
-                      primary.withValues(alpha: 0.05),
-                    ),
-                    columns: [
-                      DataColumn(
-                        label: Text(
-                          'Item Name',
-                          style: TextStyle(
-                            color: text,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Supplier',
-                          style: TextStyle(
-                            color: text,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Stock Level',
-                          style: TextStyle(
-                            color: text,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Cost/Unit',
-                          style: TextStyle(
-                            color: text,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Total Value',
-                          style: TextStyle(
-                            color: text,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Status',
-                          style: TextStyle(
-                            color: text,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                    rows: filteredItems.map((item) {
-                      double qty =
-                          double.tryParse(
-                            item['quantity']?.toString() ?? '0',
-                          ) ??
-                          0;
-                      double min =
-                          double.tryParse(
-                            item['min_stock_level']?.toString() ?? '0',
-                          ) ??
-                          0;
-                      double cost =
-                          double.tryParse(
-                            item['cost_per_unit']?.toString() ?? '0',
-                          ) ??
-                          0;
-                      bool isLow = qty <= min;
-
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  item['name'] ?? 'N/A',
-                                  style: TextStyle(
-                                    color: text,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  item['sku'] ?? '',
-                                  style: TextStyle(color: hint, fontSize: 10),
-                                ),
-                              ],
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              item['supplier_name'] ?? 'Not Set',
-                              style: TextStyle(color: text),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              '$qty ${item['unit'] ?? ''}',
-                              style: TextStyle(color: text),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              '\$${cost.toStringAsFixed(2)}',
-                              style: TextStyle(color: text),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              '\$${(qty * cost).toStringAsFixed(2)}',
-                              style: TextStyle(
-                                color: primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: (isLow ? Colors.red : Colors.green)
-                                    .withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                isLow ? 'LOW STOCK' : 'HEALTHY',
-                                style: TextStyle(
-                                  color: isLow ? Colors.red : Colors.green,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
+                    horizontalMargin: 0,
+                    columnSpacing: 24,
+                    headingRowHeight: 56,
+                    dataRowMinHeight: 64,
+                    dataRowMaxHeight: 72,
+                    headingRowColor: WidgetStateProperty.all(primary.withOpacity(0.04)),
+                    columns: isHistoryMode 
+                      ? [
+                          DataColumn(label: _headerText('ID', text)),
+                          DataColumn(label: _headerText('TIME', text)),
+                          DataColumn(label: _headerText('ITEMS', text)),
+                          DataColumn(label: _headerText('SUPPLIER', text)),
+                          DataColumn(label: _headerText('TOTAL', text)),
+                          DataColumn(label: _headerText('STATUS', text)),
+                        ]
+                      : [
+                          DataColumn(label: _headerText('ITEM NAME', text)),
+                          DataColumn(label: _headerText('SUPPLIER', text)),
+                          DataColumn(label: _headerText('STOCK', text)),
+                          DataColumn(label: _headerText('COST', text)),
+                          DataColumn(label: _headerText('VALUE', text)),
+                          DataColumn(label: _headerText('STATUS', text)),
                         ],
-                      );
+                    rows: displayItems.map((item) {
+                      if (isHistoryMode) {
+                        return DataRow(cells: [
+                          DataCell(Text('#${item['id']}', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                          DataCell(Text(_formatDate(item['time']), style: TextStyle(color: text.withOpacity(0.8)))),
+                          DataCell(SizedBox(
+                            width: 200,
+                            child: Text(item['items'] ?? 'N/A', 
+                              style: TextStyle(color: text, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )),
+                          DataCell(Text(item['supplier'] ?? 'N/A', style: TextStyle(color: text))),
+                          DataCell(Text('\$${item['total']}', style: TextStyle(color: primary, fontWeight: FontWeight.bold))),
+                          DataCell(_buildStatusBadge(item['status'] ?? 'N/A')),
+                        ]);
+                      } else {
+                        double qty = double.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
+                        double min = double.tryParse(item['min_stock_level']?.toString() ?? '0') ?? 0;
+                        double cost = double.tryParse(item['cost_per_unit']?.toString() ?? '0') ?? 0;
+                        bool isLow = qty <= min && qty > 0;
+                        bool isOut = qty <= 0;
+
+                        return DataRow(cells: [
+                          DataCell(Text(item['name'] ?? 'N/A', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+                          DataCell(Text(item['supplier_name'] ?? 'N/A', style: TextStyle(color: text.withOpacity(0.7)))),
+                          DataCell(Text('$qty ${item['unit'] ?? ''}', style: TextStyle(color: text, fontWeight: FontWeight.w600))),
+                          DataCell(Text('\$${cost.toStringAsFixed(2)}', style: TextStyle(color: text))),
+                          DataCell(Text('\$${(qty * cost).toStringAsFixed(2)}', style: TextStyle(color: primary, fontWeight: FontWeight.bold))),
+                          DataCell(_buildStatusBadge(isOut ? 'OUT' : (isLow ? 'LOW' : 'OK'))),
+                        ]);
+                      }
                     }).toList(),
                   ),
                 ),
@@ -1562,209 +1975,63 @@ class _ReportsViewState extends State<ReportsView> {
                 text,
                 border,
               ),
-
-              const SizedBox(height: 32),
-
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Suppliers List
-                  Expanded(
-                    flex: 1,
-                    child: _buildCard(
-                      'Trusted Suppliers',
-                      Column(
-                        children: _suppliers.isEmpty
-                            ? [
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Text(
-                                      'No suppliers found',
-                                      style: TextStyle(color: hint),
-                                    ),
-                                  ),
-                                ),
-                              ]
-                            : _suppliers
-                                  .map(
-                                    (s) => ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      leading: CircleAvatar(
-                                        backgroundColor: primary.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        child: Icon(
-                                          Icons.business_rounded,
-                                          color: primary,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        s['name'] ?? 'N/A',
-                                        style: TextStyle(
-                                          color: text,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        s['contact_email'] ?? 'No email',
-                                        style: TextStyle(
-                                          color: hint,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                      trailing: Text(
-                                        '${s['reliability_score'] ?? 100}%',
-                                        style: TextStyle(
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                      ),
-                      card,
-                      text,
-                      border,
-                    ),
-                  ),
-                  const SizedBox(width: 32),
-                  // Recent Purchases
-                  Expanded(
-                    flex: 2,
-                    child: _buildCard(
-                      'Recent Purchase Orders',
-                      SizedBox(
-                        width: double.infinity,
-                        child: DataTable(
-                          horizontalMargin: 0,
-                          columns: [
-                            DataColumn(
-                              label: Text(
-                                'Date',
-                                style: TextStyle(
-                                  color: text,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: Text(
-                                'Invoice',
-                                style: TextStyle(
-                                  color: text,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: Text(
-                                'Supplier',
-                                style: TextStyle(
-                                  color: text,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: Text(
-                                'Amount',
-                                style: TextStyle(
-                                  color: text,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: Text(
-                                'Status',
-                                style: TextStyle(
-                                  color: text,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                          rows: _purchases.take(10).map((p) {
-                            return DataRow(
-                              cells: [
-                                DataCell(
-                                  Text(
-                                    p['order_date']?.toString().split(' ')[0] ??
-                                        '',
-                                    style: TextStyle(color: text, fontSize: 12),
-                                  ),
-                                ),
-                                DataCell(
-                                  Text(
-                                    p['invoice_number'] ?? 'PO-${p['id']}',
-                                    style: TextStyle(color: text, fontSize: 12),
-                                  ),
-                                ),
-                                DataCell(
-                                  Text(
-                                    p['supplier_name'] ?? 'N/A',
-                                    style: TextStyle(color: text, fontSize: 12),
-                                  ),
-                                ),
-                                DataCell(
-                                  Text(
-                                    '\$${(double.tryParse(p['total_amount']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
-                                    style: TextStyle(
-                                      color: primary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          (p['status'] == 'Received'
-                                                  ? Colors.green
-                                                  : Colors.orange)
-                                              .withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      p['status']?.toString().toUpperCase() ??
-                                          'PENDING',
-                                      style: TextStyle(
-                                        color: p['status'] == 'Received'
-                                            ? Colors.green
-                                            : Colors.orange,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      card,
-                      text,
-                      border,
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
       ],
     );
   }
+
+  Widget _headerText(String label, Color color) {
+    return Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1));
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return 'N/A';
+    try {
+      final dt = DateTime.parse(date.toString());
+      return '${dt.day}/${dt.month} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return date.toString();
+    }
+  }
+
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    switch (status.toUpperCase()) {
+      case 'RECEIVED':
+      case 'OK':
+        color = Colors.green;
+        break;
+      case 'LOW':
+      case 'PENDING':
+        color = Colors.orange;
+        break;
+      case 'OUT':
+      case 'CANCELLED':
+        color = Colors.red;
+        break;
+      default:
+        color = Colors.blue;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+
 
   Widget _buildFinancialReport(
     Color text,
@@ -2013,7 +2280,7 @@ class _ReportsViewState extends State<ReportsView> {
                       ),
                       const SizedBox(width: 12),
                       _buildFilterDropdown(
-                        'Category',
+                        'CATEGORIES',
                         _finCategoryFilter,
                         ['ALL', ...allCats],
                         (val) => setState(() => _finCategoryFilter = val!),
@@ -2133,7 +2400,7 @@ class _ReportsViewState extends State<ReportsView> {
         border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.01),
+            color: Colors.black.withOpacity(0.01),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -2144,7 +2411,7 @@ class _ReportsViewState extends State<ReportsView> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: categoryColor.withValues(alpha: 0.1),
+              color: categoryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(categoryIcon, color: categoryColor, size: 18),
@@ -2191,9 +2458,7 @@ class _ReportsViewState extends State<ReportsView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: (isIncome ? Colors.green : Colors.red).withValues(
-                alpha: 0.08,
-              ),
+              color: (isIncome ? Colors.green : Colors.red).withOpacity(0.08),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -2222,7 +2487,7 @@ class _ReportsViewState extends State<ReportsView> {
           IconButton(
             icon: Icon(
               Icons.delete_outline_rounded,
-              color: Colors.red.withValues(alpha: 0.4),
+              color: Colors.red.withOpacity(0.4),
               size: 18,
             ),
             onPressed: () => _confirmDeleteLedgerItem(item),
@@ -2980,7 +3245,7 @@ class _ReportsViewState extends State<ReportsView> {
     return Container(
       height: 90,
       decoration: BoxDecoration(
-        color: card.withValues(alpha: 0.3),
+        color: card.withOpacity(0.3),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: border),
       ),
@@ -3097,7 +3362,7 @@ class _ReportsViewState extends State<ReportsView> {
       width: 160,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+        color: color.withOpacity(0.05),
         border: Border(
           left: isRight ? BorderSide(color: border) : BorderSide.none,
           right: !isRight ? BorderSide(color: border) : BorderSide.none,
@@ -3167,7 +3432,7 @@ class _ReportsViewState extends State<ReportsView> {
             Text(
               label,
               style: TextStyle(
-                color: text.withValues(alpha: 0.6),
+                color: text.withOpacity(0.6),
                 fontSize: 9,
                 fontWeight: FontWeight.bold,
               ),
@@ -3208,7 +3473,7 @@ class _ReportsViewState extends State<ReportsView> {
 
     return Container(
       decoration: BoxDecoration(
-        color: card.withValues(alpha: 0.3),
+        color: card.withOpacity(0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: border),
       ),
@@ -3261,7 +3526,7 @@ class _ReportsViewState extends State<ReportsView> {
               height: 4,
               width: constraints.maxWidth,
               decoration: BoxDecoration(
-                color: border.withValues(alpha: 0.3),
+                color: border.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -3370,9 +3635,9 @@ class _ReportsViewState extends State<ReportsView> {
       icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
       label: Text(
         _reportDateRange == null
-            ? LocalizationService().translate('select_date_range')
+            ? 'DATE'
             : '${_reportDateRange!.start.toString().split(' ')[0]} to ${_reportDateRange!.end.toString().split(' ')[0]}',
-        style: TextStyle(color: text, fontWeight: FontWeight.bold),
+        style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 10),
       ),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -3468,9 +3733,9 @@ class _ReportsViewState extends State<ReportsView> {
       icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
       label: Text(
         _finDateRange == null
-            ? 'All Time'
+            ? 'DATE'
             : '${_finDateRange!.start.toString().split(' ')[0]} to ${_finDateRange!.end.toString().split(' ')[0]}',
-        style: TextStyle(color: text, fontWeight: FontWeight.bold),
+        style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 10),
       ),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -3486,67 +3751,69 @@ class _ReportsViewState extends State<ReportsView> {
     Color border,
     Color primary,
   ) {
-    return OutlinedButton.icon(
-      onPressed: () async {
-        try {
-          DateTime now = DateUtils.dateOnly(DateTime.now());
-          DateTime initialStart = _invDateRange != null
-              ? DateUtils.dateOnly(_invDateRange!.start)
-              : now;
-
-          if (!mounted) return;
-          final fromDate = await showDatePicker(
-            context: context,
-            initialDate: initialStart,
-            firstDate: DateTime(2023),
-            lastDate: DateTime.now().add(const Duration(days: 365)),
-            helpText: LocalizationService().translate('select_start_date'),
-            builder: (context, child) =>
-                _buildDatePickerTheme(context, child, primary, card, text),
-          );
-
-          if (fromDate != null) {
-            DateTime initialEnd = _invDateRange != null
-                ? DateUtils.dateOnly(_invDateRange!.end)
-                : fromDate;
-            if (initialEnd.isBefore(fromDate)) initialEnd = fromDate;
-
-            if (!mounted) return;
-            final toDate = await showDatePicker(
-              context: context,
-              initialDate: initialEnd,
-              firstDate: fromDate,
-              lastDate: DateTime.now().add(const Duration(days: 365)),
-              helpText: LocalizationService().translate('select_end_date'),
-              builder: (context, child) =>
-                  _buildDatePickerTheme(context, child, primary, card, text),
+    return InkWell(
+      onTap: () async {
+        final picked = await showDateRangePicker(
+          context: context,
+          initialDateRange: _invDateRange,
+          firstDate: DateTime(2023),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: primary,
+                  onPrimary: Colors.white,
+                  surface: card,
+                  onSurface: text,
+                ),
+              ),
+              child: child!,
             );
-
-            if (toDate != null) {
-              setState(() {
-                _invDateRange = DateTimeRange(start: fromDate, end: toDate);
-              });
-              _fetchInventory();
-            }
-          }
-        } catch (e) {
-          if (mounted)
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Picker Error: $e')));
+          },
+        );
+        if (picked != null) {
+          setState(() {
+            _invDateRange = picked;
+          });
+          _fetchInventory();
         }
       },
-      icon: Icon(Icons.calendar_month_outlined, size: 20, color: primary),
-      label: Text(
-        _invDateRange == null
-            ? 'Snapshot'
-            : '${_invDateRange!.start.toString().split(' ')[0]} to ${_invDateRange!.end.toString().split(' ')[0]}',
-        style: TextStyle(color: text, fontWeight: FontWeight.bold),
-      ),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        side: BorderSide(color: border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Container(
+        height: 45,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.calendar_today_rounded, size: 18, color: primary),
+            const SizedBox(width: 10),
+            Text(
+              'DATE',
+              style: TextStyle(
+                color: text,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
+            ),
+            if (_invDateRange != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -3589,55 +3856,171 @@ class _ReportsViewState extends State<ReportsView> {
     Color primary,
     Color hint,
   ) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildInventoryDatePicker(text, card, border, primary),
-        const SizedBox(width: 12),
-        _buildFilterDropdown(
-          'All Items',
-          _invItemFilter,
-          ['ALL', ..._inventoryItems.map((e) => e['name'].toString()).toSet()],
-          (val) => setState(() => _invItemFilter = val!),
-          text,
-          card,
-          border,
-          primary,
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildInventoryDatePicker(text, card, border, primary),
+            const SizedBox(width: 12),
+            Container(
+              width: 250,
+              height: 45,
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: border),
+              ),
+              child: TextField(
+                onChanged: (v) => setState(() => _invSearchQuery = v),
+                style: TextStyle(color: text, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'SEARCH...',
+                  hintStyle: TextStyle(
+                    color: hint,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
+                  prefixIcon: Icon(Icons.search, color: hint, size: 18),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            _buildFilterDropdown(
+              'SUPPLIERS',
+              _invSupplierFilter,
+              ['ALL', ..._inventoryItems.map((e) => e['supplier_name'] as String?).where((e) => e != null).toSet().cast<String>()],
+              (v) => setState(() => _invSupplierFilter = v!),
+              text,
+              card,
+              border,
+              primary,
+            ),
+            const SizedBox(width: 12),
+            _buildFilterDropdown(
+              'STATUS',
+              _invStatusFilter,
+              ['ALL', 'IN STOCK', 'LOW STOCK', 'OUT OF STOCK'],
+              (v) => setState(() => _invStatusFilter = v!),
+              text,
+              card,
+              border,
+              primary,
+            ),
+            if (_invDateRange == null) ...[
+              const SizedBox(width: 12),
+              _buildFilterDropdown(
+                'CATEGORIES',
+                _invCategoryFilter,
+                ['ALL', ..._inventoryCategories.map((e) => (e['name'] ?? '').toString()).toSet().toList()],
+                (v) => setState(() => _invCategoryFilter = v!),
+                text,
+                card,
+                border,
+                primary,
+              ),
+            ],
+            const SizedBox(width: 16),
+            TextButton.icon(
+              onPressed: () => setState(() {
+                _invSupplierFilter = 'ALL';
+                _invStatusFilter = 'ALL';
+                _invCategoryFilter = 'ALL';
+                _invSearchQuery = '';
+                _invDateRange = null;
+              }),
+              icon: Icon(Icons.refresh_rounded, size: 18, color: hint),
+              label: Text('RESET', style: TextStyle(color: hint, fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        _buildFilterDropdown(
-          'All Suppliers',
-          _invSupplierFilter,
-          ['ALL', ..._suppliers.map((e) => e['name'].toString()).toSet()],
-          (val) => setState(() => _invSupplierFilter = val!),
-          text,
-          card,
-          border,
-          primary,
-        ),
-        const SizedBox(width: 12),
-        _buildFilterDropdown(
-          'Status',
-          _invStatusFilter,
-          ['ALL', 'LOW STOCK', 'HEALTHY'],
-          (val) => setState(() => _invStatusFilter = val!),
-          text,
-          card,
-          border,
-          primary,
-        ),
-        const SizedBox(width: 16),
-        TextButton.icon(
-          onPressed: () => setState(() {
-            _invItemFilter = 'ALL';
-            _invSupplierFilter = 'ALL';
-            _invStatusFilter = 'ALL';
-            _invDateRange = null;
-          }),
-          icon: Icon(Icons.refresh_rounded, size: 18, color: hint),
-          label: Text('Reset', style: TextStyle(color: hint, fontSize: 12)),
-        ),
-      ],
+      ),
     );
   }
+
+  Future<void> _exportToCSV() async {
+    if (_reportOrders.isEmpty) return;
+
+    final headers = ['Order ID', 'Date', 'Items', 'Type', 'Total', 'Status'];
+    final rows = _reportOrders.map((o) {
+      final items = (o['items'] as List?)?.map((i) => '${i['quantity']}x ${i['name']}').join('; ') ?? '';
+      return [
+        '#${o['order_number'] ?? o['id']}',
+        o['order_time'] ?? '',
+        items,
+        o['order_type'] ?? '',
+        o['total_amount']?.toString() ?? '0',
+        o['status'] ?? ''
+      ];
+    }).toList();
+
+    String csvData = headers.join(',') + '\n';
+    for (var row in rows) {
+      csvData += row.map((c) => '"$c"').join(',') + '\n';
+    }
+
+    try {
+      if (kIsWeb) {
+        final bytes = utf8.encode(csvData);
+        final blob = html.Blob([bytes], 'text/csv');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', 'orders_report_${DateTime.now().millisecondsSinceEpoch}.csv')
+          ..click();
+        html.Url.revokeObjectUrl(url);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Report generated and download started.')),
+          );
+        }
+      } else {
+        // Non-web platforms are not supported in this version, but we keep the block for structure
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Export not supported on this platform.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print('CSV Export Error: $e');
+    }
+  }
+
+  Future<void> _exportToPDF() async {
+    final pdf = pw.Document();
+    
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return [
+            pw.Header(level: 0, child: pw.Text('Orders Report')),
+            pw.TableHelper.fromTextArray(
+              headers: ['ID', 'Time', 'Type', 'Total', 'Status'],
+              data: _reportOrders.map((o) => [
+                '#${o['order_number'] ?? o['id']}',
+                o['order_time']?.toString() ?? '',
+                o['order_type']?.toString() ?? '',
+                '\$${o['total_amount']}',
+                o['status']?.toString().toUpperCase() ?? '',
+              ]).toList(),
+            ),
+          ];
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  }
 }
+

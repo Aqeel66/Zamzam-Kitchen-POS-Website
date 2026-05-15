@@ -18,15 +18,23 @@ router.get('/', async (req, res) => {
 // @desc    Create a new promo code
 router.post('/', async (req, res) => {
   try {
-    const { code, discount_type, discount_value, min_spend, valid_until } = req.body;
+    const { code, discount_type, discount_value, min_spend, valid_from, valid_until, is_active } = req.body;
     
     if (!code || !discount_type || !discount_value) {
       return res.status(400).json({ success: false, message: 'Required fields missing' });
     }
 
     const [result] = await db.query(
-      'INSERT INTO promo_codes (code, discount_type, discount_value, min_spend, valid_until, is_active) VALUES (?, ?, ?, ?, ?, 1)',
-      [code.toUpperCase(), discount_type, discount_value, min_spend || 0, valid_until || null]
+      'INSERT INTO promo_codes (code, discount_type, discount_value, min_spend, valid_from, valid_until, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        code.toUpperCase(), 
+        discount_type, 
+        discount_value, 
+        min_spend || 0, 
+        valid_from || new Date().toISOString().slice(0, 19).replace('T', ' '), 
+        valid_until || null,
+        is_active !== undefined ? is_active : 1
+      ]
     );
 
     res.status(201).json({ success: true, id: result.insertId, message: 'Promo code created' });

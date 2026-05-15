@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 interface CartItem {
   id: number;
@@ -11,6 +12,8 @@ interface CartItem {
 
 interface CartContextType {
   cart: CartItem[];
+  editingOrder: any | null;
+  loadOrderIntoCart: (order: any) => void;
   addToCart: (item: any) => void;
   removeFromCart: (id: number) => void;
   updateQuantity: (id: number, delta: number) => void;
@@ -24,6 +27,19 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
+
+  const loadOrderIntoCart = (order: any) => {
+    setEditingOrder(order);
+    setCart((order.items || []).map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      price: parseFloat(item.price),
+      quantity: item.quantity,
+      image: item.image || null,
+      notes: item.notes || ''
+    })));
+  };
 
   const addToCart = (item: any) => {
     setCart(prev => {
@@ -49,16 +65,46 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).filter(i => i.quantity > 0));
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    setEditingOrder(null);
+  };
+
+  const [settings, setSettings] = useState<any>(null);
+
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSettings(data);
+        }
+      } catch (err) {
+        console.error('Error fetching settings for cart:', err);
+      }
+    };
+    fetchSettings();
+    
+    // Listen for settings updates
+    window.addEventListener('settings-updated', fetchSettings);
+    return () => window.removeEventListener('settings-updated', fetchSettings);
+  }, []);
 
   const subtotal = useMemo(() => cart.reduce((sum, i) => sum + (i.price * i.quantity), 0), [cart]);
-  const tax = subtotal * 0.1; // Example 10% tax
+  
+  const tax = useMemo(() => {
+    if (!settings?.branch?.is_tax_enabled) return 0;
+    const rate = parseFloat(settings.branch.tax_rate || 0) / 100;
+    return subtotal * rate;
+  }, [subtotal, settings]);
+
   const total = subtotal + tax;
 
   return (
     <CartContext.Provider value={{ 
-      cart, addToCart, removeFromCart, updateQuantity, clearCart,
-      subtotal, tax, total 
+      cart, editingOrder, loadOrderIntoCart, addToCart, removeFromCart, updateQuantity, clearCart,
+      subtotal, tax, total
     }}>
       {children}
     </CartContext.Provider>

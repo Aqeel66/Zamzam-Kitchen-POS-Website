@@ -46,7 +46,7 @@ app.use('/waiter/assets', express.static(path.join(waiterAppPath, 'assets'), {
 }));
 
 // 3. SPA Routing
-app.all(['/waiter', '/waiter/*'], (req, res, next) => {
+app.all(/^\/waiter($|\/.*)/, (req, res, next) => {
   if (req.path.includes('/api/')) return next();
   if (req.path.includes('/assets/')) return next();
   
