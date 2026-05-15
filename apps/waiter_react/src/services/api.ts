@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Ensure we target the root API correctly regardless of where the app is hosted
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,7 +14,7 @@ export const resolveImageUrl = (path: string | null) => {
   // Normalize the path to ensure it points to the assets folder
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   const finalPath = cleanPath.startsWith('assets/') ? cleanPath : `assets/${cleanPath}`;
-  return `/api/${finalPath}`;
+  return `/${finalPath}`;
 };
 
 export default api;

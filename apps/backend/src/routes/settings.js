@@ -6,11 +6,22 @@ const db = require('../db');
 // @desc    Get all settings (Branch & Tenant)
 router.get('/', async (req, res) => {
   try {
+    console.log('🔍 [DEBUG] Fetching Settings: Starting database queries...');
+    
     const [tenant] = await db.query('SELECT * FROM tenant_settings LIMIT 1');
+    console.log('✅ [DEBUG] Tenant settings fetched');
+    
     const [branch] = await db.query('SELECT * FROM branch_settings WHERE branch_id = 1 LIMIT 1');
+    console.log('✅ [DEBUG] Branch settings fetched');
+    
     const [gateways] = await db.query('SELECT * FROM payment_gateway_settings');
+    console.log('✅ [DEBUG] Gateway settings fetched');
+    
     const [messaging] = await db.query('SELECT * FROM messaging_settings');
+    console.log('✅ [DEBUG] Messaging settings fetched');
+    
     const [email] = await db.query('SELECT * FROM email_settings');
+    console.log('✅ [DEBUG] Email settings fetched');
     
     res.json({
       tenant: tenant[0] || {},
@@ -20,7 +31,7 @@ router.get('/', async (req, res) => {
       email: email
     });
   } catch (error) {
-    console.error('Fetch Settings Error:', error);
+    console.error('🔥 [ERROR] Fetch Settings Error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });

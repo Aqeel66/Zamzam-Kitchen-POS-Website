@@ -100,16 +100,17 @@ export default function Settings() {
   const fetchSettings = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
-      if (!res.ok) throw new Error('Failed to fetch');
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       setSettings(data);
-      // Don't reset success/error status here if it was just set by an update
-      if (saveStatus !== 'success' && saveStatus !== 'error') {
-        setSaveStatus('idle');
-      }
-    } catch (err) {
+      setSaveStatus('idle');
+    } catch (err: any) {
       console.error('Error fetching settings:', err);
       setSaveStatus('error');
+      // If settings is null and we hit an error, we need to signal that we stopped loading
+      if (!settings) {
+        setSettings({ _error: err.message });
+      }
     }
   };
 
@@ -210,8 +211,28 @@ export default function Settings() {
   };
 
   if (!settings) return (
-    <div className="h-full flex items-center justify-center">
+    <div className="h-full flex flex-col items-center justify-center gap-6">
       <div className="w-12 h-12 border-4 border-slate-100 border-t-zamzam-teal rounded-full animate-spin" />
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Initialising System Settings...</p>
+    </div>
+  );
+
+  if (settings._error) return (
+    <div className="h-full flex flex-col items-center justify-center gap-6 p-10 text-center">
+      <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center shadow-lg shadow-red-900/5 mb-2">
+        <ShieldAlert size={32} />
+      </div>
+      <div className="space-y-2">
+        <h3 className="text-xl font-black text-slate-900 uppercase">Connection Failed</h3>
+        <p className="text-xs font-bold text-slate-400 max-w-xs mx-auto">We couldn't retrieve the system configuration. This might be due to a server error or database sync issue.</p>
+        <p className="text-[10px] font-black text-red-500/60 uppercase tracking-widest pt-2">Error: {settings._error}</p>
+      </div>
+      <button 
+        onClick={() => { setSettings(null); fetchSettings(); }}
+        className="mt-4 bg-zamzam-teal text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all"
+      >
+        Retry Connection
+      </button>
     </div>
   );
 
