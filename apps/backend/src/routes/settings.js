@@ -116,7 +116,11 @@ router.patch('/branch', async (req, res) => {
       'is_tax_enabled',
       'tax_rate',
       'payment_policy',
-      'order_sort_direction'
+      'order_sort_direction',
+      'opening_time',
+      'closing_time',
+      'first_order_time',
+      'last_order_time'
     ];
     
     const updates = [];

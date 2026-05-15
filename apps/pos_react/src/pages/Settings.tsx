@@ -378,6 +378,72 @@ export default function Settings() {
                     />
                   </div>
                 </div>
+
+                <div className="pt-10 border-t border-slate-100">
+                  <h3 className="text-[10px] font-black text-zamzam-teal uppercase tracking-[0.4em] mb-8">Operational Hours</h3>
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Clock size={12} /> Opening Time
+                      </label>
+                      <input 
+                        type="time" 
+                        defaultValue={settings.branch.opening_time}
+                        onBlur={(e) => {
+                          if (e.target.value !== settings.branch.opening_time) {
+                            handleUpdateBranch({ opening_time: e.target.value });
+                          }
+                        }}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Clock size={12} /> Closing Time
+                      </label>
+                      <input 
+                        type="time" 
+                        defaultValue={settings.branch.closing_time}
+                        onBlur={(e) => {
+                          if (e.target.value !== settings.branch.closing_time) {
+                            handleUpdateBranch({ closing_time: e.target.value });
+                          }
+                        }}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Clock size={12} /> First Order Taking
+                      </label>
+                      <input 
+                        type="time" 
+                        defaultValue={settings.branch.first_order_time}
+                        onBlur={(e) => {
+                          if (e.target.value !== settings.branch.first_order_time) {
+                            handleUpdateBranch({ first_order_time: e.target.value });
+                          }
+                        }}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                        <Clock size={12} /> Last Order Taking
+                      </label>
+                      <input 
+                        type="time" 
+                        defaultValue={settings.branch.last_order_time}
+                        onBlur={(e) => {
+                          if (e.target.value !== settings.branch.last_order_time) {
+                            handleUpdateBranch({ last_order_time: e.target.value });
+                          }
+                        }}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
               </motion.section>
             )}
 

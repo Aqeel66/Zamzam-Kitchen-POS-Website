@@ -11,12 +11,8 @@ export default function Reservation() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [availableSlots, setAvailableSlots] = useState<string[]>([
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', 
-    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-    '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
-    '21:00', '21:30', '22:00', '22:30'
-  ]);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [branchSettings, setBranchSettings] = useState<any>(null);
   const [guests, setGuests] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -42,13 +38,14 @@ export default function Reservation() {
   });
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Fetch branch settings for booking fee
+  // Fetch branch settings for booking fee and operational hours
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/settings`);
+        const response = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
         const data = await response.json();
         if (data.branch) {
+          setBranchSettings(data.branch);
           // Treat null as enabled (default on) — only disable if explicitly set to 0
           setIsFeeEnabled(data.branch.is_booking_fee_enabled !== 0);
           if (data.branch.booking_fee_amount !== null && data.branch.booking_fee_amount !== undefined) {
@@ -68,16 +65,29 @@ export default function Reservation() {
       if (!date) return;
       
       try {
-        const allSlots = [
+        // Generate all possible slots based on branch settings
+        let allSlots = [
           '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', 
           '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
           '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
           '21:00', '21:30', '22:00', '22:30'
         ];
 
+        if (branchSettings?.first_order_time && branchSettings?.last_order_time) {
+          const slots = [];
+          let current = new Date(`2000-01-01T${branchSettings.first_order_time}`);
+          const end = new Date(`2000-01-01T${branchSettings.last_order_time}`);
+          
+          while (current <= end) {
+            slots.push(current.toTimeString().substring(0, 5));
+            current.setMinutes(current.getMinutes() + 30);
+          }
+          if (slots.length > 0) allSlots = slots;
+        }
+
         let bookedSlots = [];
         try {
-          const response = await fetch(`${API_BASE_URL}/reservations/availability/${date}`);
+          const response = await fetch(`${API_BASE_URL}/reservations/availability/${date}?t=${Date.now()}`);
           const data = await response.json();
           bookedSlots = data.bookedSlots || [];
         } catch (err) {
@@ -109,7 +119,7 @@ export default function Reservation() {
     };
 
     fetchAvailability();
-  }, [date]);
+  }, [date, branchSettings]);
 
   const fetchAvailableTables = async () => {
     if (!date || !time) return;
