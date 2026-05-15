@@ -27,6 +27,32 @@ CREATE TABLE IF NOT EXISTS tenant_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- ─── MESSAGING & EMAIL ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS messaging_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    provider_name VARCHAR(50) NOT NULL,
+    account_sid VARCHAR(255) DEFAULT NULL,
+    auth_token VARCHAR(255) DEFAULT NULL,
+    sender_number VARCHAR(50) DEFAULT NULL,
+    is_active TINYINT(1) DEFAULT 0,
+    environment VARCHAR(20) DEFAULT 'sandbox',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS email_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    provider_name VARCHAR(50) NOT NULL,
+    smtp_host VARCHAR(255) DEFAULT NULL,
+    smtp_port INT DEFAULT NULL,
+    smtp_user VARCHAR(255) DEFAULT NULL,
+    smtp_pass VARCHAR(255) DEFAULT NULL,
+    from_email VARCHAR(255) DEFAULT NULL,
+    from_name VARCHAR(255) DEFAULT NULL,
+    is_active TINYINT(1) DEFAULT 0,
+    environment VARCHAR(20) DEFAULT 'sandbox',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- ─── ROLES & PERMISSIONS ────────────────────────────────────
 CREATE TABLE IF NOT EXISTS roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -92,6 +118,10 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     is_tax_enabled TINYINT(1) DEFAULT 1,
     tax_rate DECIMAL(5,2) DEFAULT 10.00,
     payment_policy VARCHAR(50) DEFAULT 'Pay Last',
+    opening_time TIME DEFAULT '09:00:00',
+    closing_time TIME DEFAULT '22:00:00',
+    first_order_time TIME DEFAULT '09:30:00',
+    last_order_time TIME DEFAULT '21:30:00',
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 
@@ -224,6 +254,7 @@ CREATE TABLE IF NOT EXISTS reservations (
     customer_id INT DEFAULT NULL,
     status ENUM('Pending', 'Confirmed', 'Seated', 'Cancelled', 'No-Show', 'Completed') DEFAULT 'Pending',
     notes TEXT,
+    notification_pref VARCHAR(20) DEFAULT 'whatsapp',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (branch_id) REFERENCES branches(id),
@@ -266,6 +297,15 @@ CREATE TABLE IF NOT EXISTS order_items (
     kds_status ENUM('Pending', 'Cooking', 'Done') DEFAULT 'Pending',
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
+);
+
+CREATE TABLE IF NOT EXISTS order_item_customizations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_item_id INT NOT NULL,
+    type ENUM('Variant', 'Extra') NOT NULL,
+    customization_name VARCHAR(100) NOT NULL,
+    price_adjustment DECIMAL(10,2) DEFAULT 0.00,
+    FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE
 );
 
 -- ─── PAYMENTS ───────────────────────────────────────────────

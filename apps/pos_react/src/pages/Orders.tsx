@@ -17,13 +17,7 @@ import PrintSuccessModal from '../components/PrintSuccessModal';
 
 const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(Boolean).join(' ');
 
-const categoryColors: Record<string, string> = {
-  'Mandi': 'bg-orange-500',
-  'Grill': 'bg-red-500',
-  'Desserts': 'bg-pink-500',
-  'Beverages': 'bg-blue-500',
-  'Starters': 'bg-teal-500',
-};
+// categoryColors removed to satisfy build constraints
 
 export default function Orders() {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, subtotal, tax, total, editingOrder } = useCart();
@@ -88,7 +82,7 @@ export default function Orders() {
       .flatMap(cat => {
         const items = Array.isArray(cat.items) ? cat.items : [];
         return items
-          .filter(item => item && typeof item.name === 'string')
+          .filter((item: any) => item && typeof item.name === 'string')
           .map((item: any) => ({ ...item, category: cat.name }));
       })
       .filter(item => {

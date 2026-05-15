@@ -499,7 +499,6 @@ export default function Reservation() {
                          <h4 className="flex items-center gap-2 mb-4 font-bold text-gray-700">Select Time</h4>
                          <div className="modal-time-grid">
                             {availableSlots.length > 0 ? availableSlots.map(t => {
-                               const isAvailable = true; // availableSlots only contains available ones from filter logic below
                                return (
                                   <button 
                                      key={t} 

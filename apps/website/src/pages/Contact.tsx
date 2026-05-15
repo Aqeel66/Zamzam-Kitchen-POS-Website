@@ -9,7 +9,9 @@ export default function Contact() {
   const [branding, setBranding] = useState({
     email: 'info@zamzamkitchen.com',
     phone: '+61 3 9939 2479',
-    address: '329 Racecourse Road, VIC, Melbourne, Australia'
+    address: '329 Racecourse Road, VIC, Melbourne, Australia',
+    openingTime: '12:00:00',
+    closingTime: '23:00:00'
   });
 
   useEffect(() => {
@@ -18,14 +20,25 @@ export default function Contact() {
       .then(data => {
         if (data.tenant) {
           setBranding({
-            email: data.tenant.email || 'info@zamzamkitchen.com',
-            phone: data.tenant.phone || '+61 3 9939 2479',
-            address: data.tenant.address || '329 Racecourse Road, VIC, Melbourne, Australia'
+            email: data.tenant.business_email || 'info@zamzamkitchen.com',
+            phone: data.tenant.business_phone || '+61 3 9939 2479',
+            address: data.tenant.business_address || '329 Racecourse Road, VIC, Melbourne, Australia',
+            openingTime: data.branch?.opening_time || '12:00:00',
+            closingTime: data.branch?.closing_time || '23:00:00'
           });
         }
       })
       .catch(err => console.error('Error fetching branding:', err));
   }, []);
+
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${m} ${ampm}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,11 +88,11 @@ export default function Contact() {
                 <h4 className="font-bold">Email Us</h4>
                 <p className="text-muted text-sm">{branding.email}</p>
              </div>
-             <div className="info-box-item">
+              <div className="info-box-item">
                 <div className="icon-wrap"><Clock size={28}/></div>
                 <h4 className="font-bold">Business Hours</h4>
-                <p className="text-muted text-sm">Opens Daily From:<br/>12PM - 11PM</p>
-             </div>
+                <p className="text-muted text-sm">Opens Daily From:<br/>{formatTime(branding.openingTime)} - {formatTime(branding.closingTime)}</p>
+              </div>
           </div>
         </div>
 

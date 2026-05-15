@@ -118,10 +118,10 @@ export default function Staff() {
                          user.username.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Handle comma-separated roles string from backend
-    const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map(r => r.trim()) : [];
+    const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map((r: any) => r.trim()) : [];
     const roleName = userRoles[0] || 'Staff';
     
-    const matchesFilter = activeFilter === 'All' || userRoles.some(r => r.toLowerCase() === activeFilter.toLowerCase());
+    const matchesFilter = activeFilter === 'All' || userRoles.some((r: any) => r.toLowerCase() === activeFilter.toLowerCase());
     return matchesSearch && matchesFilter;
   });
 
@@ -190,8 +190,8 @@ export default function Staff() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
         >
           <AnimatePresence mode='popLayout'>
-            {filteredUsers.map((user) => {
-              const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map(r => r.trim()) : [];
+            {filteredUsers.map((user: any) => {
+              const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map((r: any) => r.trim()) : [];
               const roleName = userRoles[0] || 'Staff';
               
               // Case-insensitive config lookup

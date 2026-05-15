@@ -36,7 +36,7 @@ const COLORS = ['#0D9488', '#FFB300', '#6366F1', '#EC4899', '#8B5CF6', '#F59E0B'
 
 const cn = (...inputs: any[]) => inputs.filter(Boolean).join(' ');
 
-const ReportKPI = ({ title, value, subValue, icon: Icon, trend, color, currency }: any) => (
+const ReportKPI = ({ title, value, icon: Icon, color, currency }: any) => (
   <motion.div 
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
@@ -222,7 +222,7 @@ export default function Reports() {
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(r => r.map(c => `"${c}"`).join(','))
+      ...rows.map((r: any[]) => r.map((c: any) => `"${c}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -324,14 +324,12 @@ export default function Reports() {
   });
 
   const reportRevenue = filteredOrders.reduce((acc: number, t: any) => acc + (parseFloat(t.total_amount) || 0), 0);
-  const reportItemsCount = filteredOrders.reduce((acc: number, t: any) => 
-    acc + (t.items || []).reduce((sum: number, item: any) => sum + (parseFloat(item.quantity) || 1), 0), 0);
-  const reportAvgValue = filteredOrders.length > 0 ? reportRevenue / filteredOrders.length : 0;
+  // Unused metrics removed to satisfy build constraints
 
   const allItems = (data?.menu || []).reduce((acc: any[], cat: any) => [...acc, ...(cat?.items || [])], []) || [];
   const uniqueItems = Array.from(new Map(
     allItems
-      .filter(item => item && (item.name || item.title) && (item.id || item._id))
+      .filter((item: any) => item && (item.name || item.title) && (item.id || item._id))
       .map((item: any) => [(item.name || item.title).toUpperCase(), item])
   ).values());
 

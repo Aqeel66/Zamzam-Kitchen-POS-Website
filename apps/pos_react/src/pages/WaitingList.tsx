@@ -19,7 +19,8 @@ import {
   QrCode,
   RefreshCw,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL, resolveImageUrl } from '../config';

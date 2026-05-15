@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CreditCard, Banknote, Store, Car, Package, Heart, MapPin, User, Phone, Mail, ShoppingBag, ShieldCheck } from 'lucide-react';
 import { API_BASE_URL, resolveImageUrl } from '../config';
 import './Checkout.css';

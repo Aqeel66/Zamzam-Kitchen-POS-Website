@@ -601,6 +601,50 @@ export default function Settings() {
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure your restaurant floor and kitchen rules.</p>
                 </div>
 
+                {/* Restaurant Timings Section */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-500">
+                      <Clock size={16} />
+                    </div>
+                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Restaurant Timings</h3>
+                  </div>
+                  <div className="p-10 space-y-8">
+                    <SettingsInput 
+                      disabled={isSaving}
+                      label="Opening Time"
+                      sublabel="When restaurant starts operating"
+                      type="time"
+                      value={settings?.branch?.opening_time?.substring(0, 5) || '12:00'}
+                      onSave={(val: any) => handleUpdateBranch({ opening_time: val + ':00' })}
+                    />
+                    <SettingsInput 
+                      disabled={isSaving}
+                      label="Closing Time"
+                      sublabel="When restaurant stops operating"
+                      type="time"
+                      value={settings?.branch?.closing_time?.substring(0, 5) || '23:00'}
+                      onSave={(val: any) => handleUpdateBranch({ closing_time: val + ':00' })}
+                    />
+                    <SettingsInput 
+                      disabled={isSaving}
+                      label="First Order Time"
+                      sublabel="Earliest time orders are accepted"
+                      type="time"
+                      value={settings?.branch?.first_order_time?.substring(0, 5) || '12:00'}
+                      onSave={(val: any) => handleUpdateBranch({ first_order_time: val + ':00' })}
+                    />
+                    <SettingsInput 
+                      disabled={isSaving}
+                      label="Last Order Time"
+                      sublabel="Latest time orders are accepted"
+                      type="time"
+                      value={settings?.branch?.last_order_time?.substring(0, 5) || '22:30'}
+                      onSave={(val: any) => handleUpdateBranch({ last_order_time: val + ':00' })}
+                    />
+                  </div>
+                </div>
+
                 {/* Taxes & Fees Section */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                   <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">

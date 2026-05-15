@@ -21,7 +21,9 @@ export default function Layout({ children }: LayoutProps) {
     tagline: 'AUTHENTIC FLAVORS',
     email: 'info@zamzamkitchen.com',
     phone: '+61 3 9939 2479',
-    address: 'Racecourse Road, VIC, Melbourne, Australia'
+    address: 'Racecourse Road, VIC, Melbourne, Australia',
+    opening_time: '12:00:00',
+    closing_time: '23:00:00'
   });
 
   useEffect(() => {
@@ -39,9 +41,11 @@ export default function Layout({ children }: LayoutProps) {
             secondary_logo_url: data.tenant.secondary_logo_url || '',
             restaurant_name: data.tenant.restaurant_name || 'ZAMZAM KITCHEN',
             tagline: data.tenant.tagline || 'AUTHENTIC FLAVORS',
-            email: data.tenant.email || 'info@zamzamkitchen.com',
-            phone: data.tenant.phone || '+61 3 9939 2479',
-            address: data.tenant.address || 'Racecourse Road, VIC, Melbourne, Australia'
+            email: data.tenant.business_email || 'info@zamzamkitchen.com',
+            phone: data.tenant.business_phone || '+61 3 9939 2479',
+            address: data.tenant.business_address || 'Racecourse Road, VIC, Melbourne, Australia',
+            opening_time: data.branch?.opening_time || '12:00:00',
+            closing_time: data.branch?.closing_time || '23:00:00'
           });
         }
       })
@@ -50,6 +54,15 @@ export default function Layout({ children }: LayoutProps) {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${m} ${ampm}`;
+  };
+
 
   return (
     <div className="layout">
@@ -57,7 +70,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="top-bar-left">
           <div className="top-bar-item">
             <Clock size={14} />
-            <span>Opens Daily: 12:00 PM - 11:00 PM</span>
+            <span>Opens Daily: {formatTime(branding.opening_time)} - {formatTime(branding.closing_time)}</span>
           </div>
         </div>
         <div className="top-bar-right">

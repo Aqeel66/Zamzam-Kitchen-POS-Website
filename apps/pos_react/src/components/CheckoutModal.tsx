@@ -11,12 +11,10 @@ import {
   Ticket,
   ShieldAlert,
   Clock,
-  Percent,
   Heart,
-  ClipboardList
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { API_BASE_URL, resolveImageUrl } from '../config';
+import { API_BASE_URL } from '../config';
 
 const cn = (...inputs: any[]) => inputs.filter(Boolean).join(' ');
 
@@ -60,11 +58,11 @@ export default function CheckoutModal({
   const [manualDiscount, setManualDiscount] = useState(0);
   const [manualDiscountType, setManualDiscountType] = useState<'fixed' | 'percentage'>('fixed');
   const [reservationFee, setReservationFee] = useState(0);
-  const [activeReservation, setActiveReservation] = useState<any>(null);
+  const [, setActiveReservation] = useState<any>(null);
   const [tipAmount, setTipAmount] = useState(0);
   const [tipType, setTipType] = useState<'percentage' | 'fixed'>('percentage');
   const [customTip, setCustomTip] = useState('');
-  const [settings, setSettings] = useState<any>(null);
+  const [, setSettings] = useState<any>(null);
 
   const fetchSettings = async () => {
     try {
