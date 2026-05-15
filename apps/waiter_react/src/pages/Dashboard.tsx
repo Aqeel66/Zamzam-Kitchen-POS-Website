@@ -9,7 +9,8 @@ import {
   Clock, 
   CheckCircle2,
   Plus,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { orderService } from '../services/orderService';
@@ -21,25 +22,36 @@ const Dashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user, logout } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [ordersData, statsData] = await Promise.all([
-          orderService.fetchOrders(),
-          orderService.fetchDashboardStats()
-        ]);
-        setOrders(ordersData);
-        setDashboardStats(statsData);
+        setError(null);
+        // Fetch orders and stats separately to avoid one failing the other
+        try {
+          const ordersData = await orderService.fetchOrders();
+          setOrders(Array.isArray(ordersData) ? ordersData : []);
+        } catch (e) { 
+          console.error('Orders fetch failed', e);
+          setError("Backend connection issue. Please restart your server.");
+        }
+
+        try {
+          const statsData = await orderService.fetchDashboardStats();
+          setDashboardStats(statsData);
+        } catch (e) { console.error('Dashboard stats fetch failed', e); }
+
       } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
+        console.error('General data fetch error:', err);
+        setError("Failed to initialize dashboard.");
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30s
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -134,6 +146,13 @@ const Dashboard = () => {
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="animate-spin text-teal-900 w-8 h-8" />
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-100 rounded-3xl p-12 flex flex-col items-center justify-center text-center">
+            <AlertCircle className="text-red-500 w-12 h-12 mb-4" />
+            <h3 className="text-lg font-bold text-red-900 mb-2">Connection Problem</h3>
+            <p className="text-red-600 text-sm max-w-xs mb-6">{error}</p>
+            <button onClick={() => window.location.reload()} className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold text-sm">Retry Connection</button>
           </div>
         ) : (
           <>
@@ -237,35 +256,88 @@ const Dashboard = () => {
             )}
 
             {activeTab === 'menu' && (
-              <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 min-h-[400px] flex flex-col items-center justify-center text-center">
-                <UtensilsCrossed size={48} className="text-slate-200 mb-4" />
-                <h3 className="text-xl font-bold text-teal-900 mb-2">Digital Menu</h3>
-                <p className="text-slate-500 max-w-xs">Use the "Create New Order" button to browse full menu and place orders.</p>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-teal-900">Digital Menu Viewer</h3>
+                  <button onClick={() => setShowNewOrder(true)} className="bg-zamzam-yellow px-6 py-2 rounded-xl font-bold text-sm shadow-sm active:scale-95 transition-all">
+                    START NEW ORDER
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {dashboardStats?.popularDishes?.map((dish: any, idx: number) => (
+                    <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-900">
+                        <UtensilsCrossed size={20} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800">{dish.name}</p>
+                        <p className="text-xs text-slate-400 font-medium">Daily Favorite</p>
+                      </div>
+                    </div>
+                  ))}
+                  {(!dashboardStats?.popularDishes || dashboardStats.popularDishes.length === 0) && (
+                    <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                      <p className="text-slate-400 font-medium">Menu browsing is active. Click "Create New Order" to see the full catalog with categories.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {activeTab === 'orders' && (
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-teal-900 mb-6">All Active Orders</h3>
-                {orders.map((order) => (
-                  <OrderListItem 
-                    key={order.id}
-                    id={order.order_number?.slice(-3) || order.id} 
-                    name={order.customer_name || (order.table_number ? `Table ${order.table_number}` : 'No Table')} 
-                    items={order.item_count || 0} 
-                    status={order.status} 
-                    subStatus={order.order_type}
-                    color={order.status === 'Completed' ? 'bg-teal-600' : order.status === 'Pending' ? 'bg-yellow-500' : 'bg-teal-900'} 
-                  />
-                ))}
+              <div className="space-y-4 pb-20">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-teal-900">All Active Orders</h3>
+                  <div className="flex gap-2">
+                    <span className="bg-teal-900 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase">{orders.length} ACTIVE</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {orders.map((order) => (
+                    <div key={order.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:border-teal-900/20 transition-all cursor-pointer group">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl ${order.status === 'Completed' ? 'bg-teal-600' : 'bg-teal-900'} flex items-center justify-center text-white text-xs font-black shadow-lg`}>
+                            {order.order_number?.slice(-3) || order.id}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800">{order.customer_name || `Table ${order.table_number || '??'}`}</p>
+                            <p className="text-[10px] text-slate-400 font-black uppercase">{order.order_type}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase ${
+                          order.status === 'Ready' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+                        <span className="text-xs text-slate-400 font-medium">{order.item_count || 0} Items Selected</span>
+                        <span className="text-sm font-black text-teal-900">£{parseFloat(order.total_amount).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {orders.length === 0 && (
+                    <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                      <p className="text-slate-400 font-medium">No active orders found</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {activeTab === 'table' && (
-              <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 min-h-[400px] flex flex-col items-center justify-center text-center">
-                <LayoutDashboard size={48} className="text-slate-200 mb-4" />
-                <h3 className="text-xl font-bold text-teal-900 mb-2">Table Management</h3>
-                <p className="text-slate-500 max-w-xs">Coming soon: Live table occupancy tracking.</p>
+              <div className="bg-white rounded-[2.5rem] p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 bg-teal-50 rounded-3xl flex items-center justify-center text-teal-900 mb-6">
+                  <LayoutDashboard size={32} />
+                </div>
+                <h3 className="text-2xl font-black text-teal-900 mb-2 uppercase tracking-tight">Table View</h3>
+                <p className="text-slate-500 max-w-xs font-medium text-sm">
+                  Switching to "Select Table" in the Order flow provides a live view of available tables.
+                </p>
+                <button onClick={() => setShowNewOrder(true)} className="mt-8 bg-teal-900 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-teal-900/20 active:scale-95 transition-all">
+                  Open Table Map
+                </button>
               </div>
             )}
           </>

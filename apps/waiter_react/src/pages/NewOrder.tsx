@@ -33,13 +33,19 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [tablesData, menuData] = await Promise.all([
-          tableService.fetchTables(),
-          menuService.fetchAllItems()
-        ]);
-        setTables(tablesData);
-        setCategories(menuData);
-        if (menuData.length > 0) setActiveCategory(menuData[0]);
+        try {
+          const tablesData = await tableService.fetchTables();
+          setTables(Array.isArray(tablesData) ? tablesData : []);
+        } catch (e) { console.error('Tables fetch failed', e); }
+
+        try {
+          const menuData = await menuService.fetchAllItems();
+          setCategories(Array.isArray(menuData) ? menuData : []);
+          if (Array.isArray(menuData) && menuData.length > 0) {
+            setActiveCategory(menuData[0]);
+          }
+        } catch (e) { console.error('Menu fetch failed', e); }
+        
       } catch (err) {
         console.error('Failed to load order data:', err);
       } finally {
