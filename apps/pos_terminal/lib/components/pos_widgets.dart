@@ -25,13 +25,13 @@ class BaseBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
+          color: color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color, width: 1.5),
           boxShadow: useShadow
               ? [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.2),
+                    color: color.withOpacity(0.2),
                     blurRadius: 4 * opacity,
                     spreadRadius: 2 * opacity,
                   ),
@@ -272,3 +272,4 @@ class OrderTypeBadge extends StatelessWidget {
     return BaseBadge(label: label, color: badgeColor, icon: badgeIcon);
   }
 }
+

@@ -106,10 +106,21 @@ router.put('/:id/status', async (req, res) => {
       const [items] = await connection.query('SELECT inventory_item_id, quantity FROM purchase_order_items WHERE purchase_order_id = ?', [orderId]);
       
       for (const item of items) {
+        // Get current quantity first for logging
+        const [invRows] = await connection.query('SELECT quantity FROM inventory_items WHERE id = ?', [item.inventory_item_id]);
+        const prevQty = invRows[0]?.quantity || 0;
+        const newQty = prevQty + item.quantity;
+
         // Increment inventory quantity
         await connection.query(
-          'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
-          [item.quantity, item.inventory_item_id]
+          'UPDATE inventory_items SET quantity = ? WHERE id = ?',
+          [newQty, item.inventory_item_id]
+        );
+
+        // Log transaction
+        await connection.query(
+          'INSERT INTO inventory_transactions (inventory_item_id, type, quantity_change, previous_quantity, new_quantity, reason) VALUES (?, "Purchase", ?, ?, ?, ?)',
+          [item.inventory_item_id, item.quantity, prevQty, newQty, `Received PO #${orderId}`]
         );
       }
     }

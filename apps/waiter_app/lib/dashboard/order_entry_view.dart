@@ -177,7 +177,7 @@ class _OrderEntryViewState extends State<OrderEntryView> {
     });
   }
 
-  double get _totalAmount {
+  double get _subtotalAmount {
     return _cartItems.fold(0.0, (sum, item) {
       double itemBasePrice = double.tryParse(item['price'].toString()) ?? 0.0;
       double variantAdjustment = 0.0;
@@ -193,6 +193,9 @@ class _OrderEntryViewState extends State<OrderEntryView> {
       return sum + (itemBasePrice + variantAdjustment + extrasTotal) * item['quantity'];
     });
   }
+
+  double get _taxAmount => _subtotalAmount * 0.10; // Unified 10% Tax
+  double get _finalTotalAmount => _subtotalAmount + _taxAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -311,9 +314,9 @@ class _OrderEntryViewState extends State<OrderEntryView> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Total Amount', style: TextStyle(fontSize: 12)),
+                      Text('Subtotal: ${ThemeService.currency}${_subtotalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
                       Text(
-                        '${ThemeService.currency}${_totalAmount.toStringAsFixed(2)}',
+                        '${ThemeService.currency}${_finalTotalAmount.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -394,7 +397,9 @@ class _OrderEntryViewState extends State<OrderEntryView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _CartSheet(
         items: _cartItems,
-        total: _totalAmount,
+        subtotal: _subtotalAmount,
+        tax: _taxAmount,
+        total: _finalTotalAmount,
         onUpdateQuantity: (index, delta) {
           setState(() {
             _cartItems[index]['quantity'] += delta;
@@ -420,12 +425,16 @@ class _OrderEntryViewState extends State<OrderEntryView> {
 
 class _CartSheet extends StatelessWidget {
   final List<dynamic> items;
+  final double subtotal;
+  final double tax;
   final double total;
   final Function(int, int) onUpdateQuantity;
   final VoidCallback onSubmit;
 
   const _CartSheet({
     required this.items,
+    required this.subtotal,
+    required this.tax,
     required this.total,
     required this.onUpdateQuantity,
     required this.onSubmit,
@@ -514,7 +523,23 @@ class _CartSheet extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total', style: TextStyle(fontSize: 18)),
+                    const Text('Subtotal', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                    Text('${ThemeService.currency}${subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Tax (10%)', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                    Text('${ThemeService.currency}${tax.toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     Text(
                       '${ThemeService.currency}${total.toStringAsFixed(2)}',
                       style: TextStyle(
@@ -525,13 +550,6 @@ class _CartSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: items.isEmpty ? null : onSubmit,
-                    style: ElevatedButton.styleFrom(
                       backgroundColor: theme.primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

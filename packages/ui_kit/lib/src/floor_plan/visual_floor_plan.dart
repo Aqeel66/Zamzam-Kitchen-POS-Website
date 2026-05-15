@@ -78,7 +78,7 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
     return Container(
       decoration: BoxDecoration(
         color: widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Stack(
@@ -142,7 +142,7 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
           borderRadius: table.type == 'Round' ? null : BorderRadius.circular(table.type == 'Rectangular' ? 6 : 16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDragging ? 0.3 : 0.1),
+              color: Colors.black.withOpacity(isDragging ? 0.3 : 0.1),
               blurRadius: isDragging ? 15 : 5,
               spreadRadius: isDragging ? 3 : 1,
             ),
@@ -152,7 +152,7 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(_getTypeIcon(table.type), size: 18, color: Colors.white.withValues(alpha: 0.8)),
+              Icon(_getTypeIcon(table.type), size: 18, color: Colors.white.withOpacity(0.8)),
               const SizedBox(height: 2),
               Text(
                 table.label,
@@ -172,7 +172,7 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
               ),
               Text(
                 available == 0 ? 'FULL' : 'AVAIL',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 9, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -190,3 +190,5 @@ class _VisualFloorPlanState extends State<VisualFloorPlan> {
     return content;
   }
 }
+
+

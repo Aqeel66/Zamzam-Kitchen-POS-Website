@@ -2,10 +2,37 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+// Helper to release tables whose estimated release time has passed
+const syncTableStatuses = async () => {
+  try {
+    // 1. Find tables that are 'Occupied' but whose latest active order has an expired release time
+    // We join with the orders table to find the latest active order for each table
+    const [expiredTables] = await db.execute(`
+      SELECT t.id 
+      FROM restaurant_tables t
+      INNER JOIN orders o ON t.id = o.table_id
+      WHERE t.status = 'Occupied'
+      AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')
+      AND o.estimated_release_time IS NOT NULL
+      AND o.estimated_release_time <= NOW()
+    `);
+
+    if (expiredTables.length > 0) {
+      const ids = expiredTables.map(t => t.id);
+      await db.execute(
+        `UPDATE restaurant_tables SET status = 'Available' WHERE id IN (${ids.join(',')})`
+      );
+    }
+  } catch (error) {
+    console.error('Table Status Sync Error:', error);
+  }
+};
+
 // @route   GET /api/tables
 // @desc    Get all tables with coordinates and status
 router.get('/', async (req, res) => {
   try {
+    await syncTableStatuses();
     const [rows] = await db.execute('SELECT * FROM restaurant_tables');
     res.json(rows);
   } catch (error) {

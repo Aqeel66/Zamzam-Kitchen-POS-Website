@@ -203,4 +203,41 @@ router.get('/inventory-trends', async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/reports/inventory-log
+ * @desc    Get inventory movement history (Purchases)
+ */
+router.get('/inventory-log', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let dateFilter = '';
+    
+    if (startDate && endDate) {
+      dateFilter = `WHERE po.order_date BETWEEN '${startDate}' AND '${endDate}'`;
+    }
+
+    const [purchases] = await db.query(`
+      SELECT 
+        po.id,
+        po.order_date as time,
+        s.name as supplier,
+        po.total_amount as total,
+        po.status,
+        (SELECT GROUP_CONCAT(CONCAT(poi.quantity, 'x ', ii.name) SEPARATOR ', ')
+         FROM purchase_order_items poi
+         JOIN inventory_items ii ON poi.inventory_item_id = ii.id
+         WHERE poi.purchase_order_id = po.id) as items
+      FROM purchase_orders po
+      LEFT JOIN suppliers s ON po.supplier_id = s.id
+      ${dateFilter}
+      ORDER BY po.order_date DESC
+    `);
+
+    res.json(purchases);
+  } catch (error) {
+    console.error('Inventory Log Report Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;

@@ -9,20 +9,37 @@ export default function Contact() {
   const [branding, setBranding] = useState({
     email: 'info@zamzamkitchen.com',
     phone: '+61 3 9939 2479',
-    address: '329 Racecourse Road, VIC, Melbourne, Australia'
+    address: '329 Racecourse Road, VIC, Melbourne, Australia',
+    openingTime: '12:00:00',
+    closingTime: '23:00:00'
   });
 
+  const formatTime12hr = (timeStr: string) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':');
+    let hours = parseInt(h, 10);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${m} ${ampm}`;
+  };
+
   useEffect(() => {
-    fetch(`${API_BASE_URL}/settings`)
+    fetch(`${API_BASE_URL}/settings?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
-        if (data.tenant) {
-          setBranding({
+        setBranding(prev => ({
+          ...prev,
+          ...(data.tenant ? {
             email: data.tenant.email || 'info@zamzamkitchen.com',
             phone: data.tenant.phone || '+61 3 9939 2479',
             address: data.tenant.address || '329 Racecourse Road, VIC, Melbourne, Australia'
-          });
-        }
+          } : {}),
+          ...(data.branch ? {
+            openingTime: data.branch.opening_time || '12:00:00',
+            closingTime: data.branch.closing_time || '23:00:00'
+          } : {})
+        }));
       })
       .catch(err => console.error('Error fetching branding:', err));
   }, []);
@@ -78,7 +95,7 @@ export default function Contact() {
              <div className="info-box-item">
                 <div className="icon-wrap"><Clock size={28}/></div>
                 <h4 className="font-bold">Business Hours</h4>
-                <p className="text-muted text-sm">Opens Daily From:<br/>12PM - 11PM</p>
+                <p className="text-muted text-sm">Opens Daily From:<br/>{formatTime12hr(branding.openingTime)} - {formatTime12hr(branding.closingTime)}</p>
              </div>
           </div>
         </div>

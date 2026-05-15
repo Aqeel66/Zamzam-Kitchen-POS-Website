@@ -87,6 +87,11 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     booking_fee_amount DECIMAL(10,2) DEFAULT 10.00,
     is_booking_fee_enabled BOOLEAN DEFAULT TRUE,
     order_sort_direction VARCHAR(20) DEFAULT 'Descending',
+    allow_delivery TINYINT(1) DEFAULT 1,
+    allow_pickup TINYINT(1) DEFAULT 1,
+    is_tax_enabled TINYINT(1) DEFAULT 1,
+    tax_rate DECIMAL(5,2) DEFAULT 10.00,
+    payment_policy VARCHAR(50) DEFAULT 'Pay Last',
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 

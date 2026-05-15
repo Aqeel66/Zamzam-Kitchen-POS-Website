@@ -46,7 +46,7 @@ export default function Reservation() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/settings`);
+        const response = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
         const data = await response.json();
         if (data.branch) {
           // Treat null as enabled (default on) — only disable if explicitly set to 0

@@ -1,0 +1,2 @@
+ALTER TABLE orders ADD COLUMN promo_id INT NULL DEFAULT NULL;
+ALTER TABLE orders ADD CONSTRAINT fk_order_promo FOREIGN KEY (promo_id) REFERENCES promo_codes(id) ON DELETE SET NULL;

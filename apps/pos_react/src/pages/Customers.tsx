@@ -14,7 +14,9 @@ import {
   TrendingUp,
   History,
   MoreVertical,
-  CheckCircle2
+  CheckCircle2,
+  Globe,
+  QrCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
@@ -52,12 +54,9 @@ export default function Customers() {
 
   const fetchCustomerOrders = async (id: number) => {
     try {
-      // In a real app, we'd have a specific endpoint /api/orders?customer_id=X
-      // For now we'll fetch all and filter to demonstrate the UI
-      const res = await fetch(`${API_BASE_URL}/orders`);
-      const allOrders = await res.json();
-      const filtered = allOrders.filter((o: any) => o.customer_id === id);
-      setCustomerOrders(filtered);
+      const res = await fetch(`${API_BASE_URL}/orders?customer_id=${id}`);
+      const data = await res.json();
+      setCustomerOrders(data);
     } catch (err) {
       console.error('Error fetching customer orders:', err);
     }
@@ -167,7 +166,16 @@ export default function Customers() {
                         <Mail size={14} className="text-zamzam-teal" /> {selectedCustomer.email || 'N/A'}
                       </div>
                       <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
-                        <MapPin size={14} className="text-zamzam-teal" /> {selectedCustomer.origin || 'In-Store'}
+                        {(() => {
+                          const origin = (selectedCustomer.origin || '').toLowerCase();
+                          if (origin === 'website' || origin === 'web') {
+                            return <><Globe size={14} className="text-zamzam-teal" /> Website</>;
+                          } else if (origin === 'qr menu' || origin === 'qr-menu') {
+                            return <><QrCode size={14} className="text-zamzam-teal" /> QR Menu</>;
+                          } else {
+                            return <><MapPin size={14} className="text-zamzam-teal" /> Counter</>;
+                          }
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -186,7 +194,7 @@ export default function Customers() {
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Lifetime Spend</p>
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-black text-slate-900">
-                        {customerOrders.reduce((sum, o) => sum + parseFloat(o.total_amount), 0).toLocaleString()} <span className="text-xs text-slate-400">AED</span>
+                        {customerOrders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0).toLocaleString()} <span className="text-xs text-slate-400">USD</span>
                       </span>
                       <TrendingUp size={20} className="text-green-500 opacity-30" />
                     </div>
@@ -195,7 +203,7 @@ export default function Customers() {
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Joined Since</p>
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-black text-slate-900">
-                        {new Date(selectedCustomer.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                        {selectedCustomer.created_at ? new Date(selectedCustomer.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : 'N/A'}
                       </span>
                       <Calendar size={20} className="text-blue-500 opacity-30" />
                     </div>
@@ -232,7 +240,7 @@ export default function Customers() {
                           </td>
                           <td className="px-8 py-6">
                             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-tight">
-                              <Clock size={14} /> {new Date(order.created_at).toLocaleDateString()}
+                              <Clock size={14} /> {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}
                             </div>
                           </td>
                           <td className="px-8 py-6">
@@ -241,7 +249,7 @@ export default function Customers() {
                             </span>
                           </td>
                           <td className="px-8 py-6 font-black text-slate-900 text-sm">
-                            {parseFloat(order.total_amount).toLocaleString()} <span className="text-[10px] text-slate-300">AED</span>
+                            {parseFloat(order.total_amount || 0).toLocaleString()} <span className="text-[10px] text-slate-300">USD</span>
                           </td>
                           <td className="px-8 py-6">
                             <span className={cn(

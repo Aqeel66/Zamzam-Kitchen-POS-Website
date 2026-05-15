@@ -86,7 +86,7 @@ class _PromotionsViewState extends State<PromotionsView> {
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.white;
     final themeCard = theme.cardColor;
     final themePrimary = widget.themePrimary;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
 
     final codeController = TextEditingController(
       text: 'ZK-${_generateRandomCode(4)}',
@@ -159,7 +159,7 @@ class _PromotionsViewState extends State<PromotionsView> {
                               style: TextStyle(color: themeText),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: themeText.withValues(alpha: 0.05),
+                                fillColor: themeText.withOpacity(0.05),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none,
@@ -227,7 +227,7 @@ class _PromotionsViewState extends State<PromotionsView> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: themeText.withValues(alpha: 0.05),
+                        color: themeText.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -346,9 +346,9 @@ class _PromotionsViewState extends State<PromotionsView> {
             hintText: label.contains('(')
                 ? label.split('(').last.replaceAll(')', '').trim()
                 : '',
-            hintStyle: TextStyle(color: text.withValues(alpha: 0.2)),
+            hintStyle: TextStyle(color: text.withOpacity(0.2)),
             filled: true,
-            fillColor: text.withValues(alpha: 0.05),
+            fillColor: text.withOpacity(0.05),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -370,7 +370,7 @@ class _PromotionsViewState extends State<PromotionsView> {
     final themeCard = theme.cardColor;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.white;
     final themePrimary = widget.themePrimary;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
 
     return Container(
       color: themeBg,
@@ -424,7 +424,7 @@ class _PromotionsViewState extends State<PromotionsView> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 4,
-                  shadowColor: themePrimary.withValues(alpha: 0.3),
+                  shadowColor: themePrimary.withOpacity(0.3),
                 ),
               ),
             ],
@@ -466,7 +466,7 @@ class _PromotionsViewState extends State<PromotionsView> {
           Icon(
             Icons.confirmation_number_outlined,
             size: 80,
-            color: themeHint.withValues(alpha: 0.3),
+            color: themeHint.withOpacity(0.3),
           ),
           const SizedBox(height: 24),
           Text(
@@ -504,10 +504,10 @@ class _PromotionsViewState extends State<PromotionsView> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: textColor.withValues(alpha: 0.1)),
+        border: Border.all(color: textColor.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -528,7 +528,7 @@ class _PromotionsViewState extends State<PromotionsView> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.1),
+                      color: primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -574,7 +574,7 @@ class _PromotionsViewState extends State<PromotionsView> {
                   IconButton(
                     icon: Icon(
                       Icons.delete_outline,
-                      color: Colors.red.withValues(alpha: 0.7),
+                      color: Colors.red.withOpacity(0.7),
                       size: 20,
                     ),
                     onPressed: () {
@@ -634,7 +634,7 @@ class _PromotionsViewState extends State<PromotionsView> {
                 Text(
                   'Min Spend: \$${promo['min_spend']}',
                   style: TextStyle(
-                    color: primaryColor.withValues(alpha: 0.7),
+                    color: primaryColor.withOpacity(0.7),
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -657,3 +657,4 @@ class _PromotionsViewState extends State<PromotionsView> {
     );
   }
 }
+

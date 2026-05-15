@@ -108,8 +108,8 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
         final themeBg = theme.scaffoldBackgroundColor;
         final themeCard = theme.cardColor;
         final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-        final themeHint = themeText.withValues(alpha: 0.6);
-        final themeBorder = themeText.withValues(alpha: 0.15);
+        final themeHint = themeText.withOpacity(0.6);
+        final themeBorder = themeText.withOpacity(0.15);
         final themePrimary = theme.primaryColor;
 
         final filteredItems = widget.items
@@ -232,9 +232,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                                                     vertical: 2,
                                                   ),
                                               decoration: BoxDecoration(
-                                                color: Colors.red.withValues(
-                                                  alpha: 0.1,
-                                                ),
+                                                color: Colors.red.withOpacity(0.1),
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                                 border: Border.all(
@@ -327,7 +325,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                               Text(
                                 'Category',
                                 style: TextStyle(
-                                  color: themeText.withValues(alpha: 0.7),
+                                  color: themeText.withOpacity(0.7),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -340,7 +338,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(color: themeBorder),
-                                  color: Colors.black.withValues(alpha: 0.02),
+                                  color: Colors.black.withOpacity(0.02),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -373,7 +371,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                               Text(
                                 'Prep Station',
                                 style: TextStyle(
-                                  color: themeText.withValues(alpha: 0.7),
+                                  color: themeText.withOpacity(0.7),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -386,7 +384,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(color: themeBorder),
-                                  color: Colors.black.withValues(alpha: 0.02),
+                                  color: Colors.black.withOpacity(0.02),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -439,9 +437,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: themePrimary.withValues(
-                              alpha: 0.1,
-                            ),
+                            backgroundColor: themePrimary.withOpacity(0.1),
                             foregroundColor: themePrimary,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(
@@ -459,7 +455,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
                           width: 54,
                           height: 54,
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.05),
+                            color: Colors.black.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: themeBorder),
                           ),
@@ -630,7 +626,7 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
         title: Text('Delete Item?', style: TextStyle(color: themeText)),
         content: Text(
           'Delete "${item['name']}" from menu permanently?',
-          style: TextStyle(color: themeText.withValues(alpha: 0.7)),
+          style: TextStyle(color: themeText.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
@@ -676,3 +672,4 @@ class _FoodItemManagementViewState extends State<FoodItemManagementView> {
     );
   }
 }
+

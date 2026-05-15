@@ -16,6 +16,7 @@ import 'package:pos_terminal/sound_service.dart';
 import 'package:pos_terminal/localization_service.dart';
 import '../services/receipt_service.dart';
 import 'purchase_management_view.dart';
+import 'purchase_inventory_hub.dart';
 import 'category_management_view.dart';
 import 'food_item_management_view.dart';
 import 'user_management_view.dart';
@@ -70,6 +71,7 @@ class _POSMissionControlState extends State<POSMissionControl>
 
   int _selectedTabIndex = 0; // Default to POS
   int _selectedDashboardTab = 0; // Dashboard sub-navigation
+  int _reportsResetToken = 0;
   bool _isFoodManagementExpanded = false;
   bool _isSecurityExpanded = false;
   bool _isLoading = true;
@@ -138,7 +140,7 @@ class _POSMissionControlState extends State<POSMissionControl>
   Map<String, dynamic> _operationalData = {};
   bool _isHRLoading = false;
   String _paymentPolicy = 'Pay Last'; // Options: 'Pay First', 'Pay Last'
-  List<Map<String, dynamic>> _notifications = [];
+  final List<Map<String, dynamic>> _notifications = [];
   final Set<String> _notifiedOrderIds = {};
   final Set<String> _notifiedReservationIds = {};
 
@@ -150,8 +152,9 @@ class _POSMissionControlState extends State<POSMissionControl>
   final Map<String, TextEditingController> _settingControllers = {};
 
   bool _hasPermission(String permission) {
-    if (widget.user == null)
+    if (widget.user == null) {
       return true; // Default to allow if no user (dev mode)
+    }
     final permissions = widget.user!['permissions'] as List<dynamic>? ?? [];
     return permissions.contains(permission);
   }
@@ -171,14 +174,14 @@ class _POSMissionControlState extends State<POSMissionControl>
   bool get _isDarkMode => ThemeService().isDarkMode;
   ThemeData get _theme => ThemeService().themeData;
   Color get themePrimary => _theme.primaryColor;
-  Color get themePrimaryAccent => _theme.primaryColor.withValues(alpha: 0.8);
+  Color get themePrimaryAccent => _theme.primaryColor.withOpacity(0.8);
   Color get themeBg => _theme.scaffoldBackgroundColor;
   Color get themeCard => _theme.cardColor;
   Color get themeText =>
       _theme.textTheme.bodyLarge?.color ??
       (_isDarkMode ? Colors.white : const Color(0xFF0F172A));
-  Color get themeHint => themeText.withValues(alpha: 0.6);
-  Color get themeBorder => _theme.dividerColor.withValues(alpha: 0.15);
+  Color get themeHint => themeText.withOpacity(0.6);
+  Color get themeBorder => _theme.dividerColor.withOpacity(0.15);
   Color get themeSecondary => _theme.colorScheme.secondary;
 
   @override
@@ -650,7 +653,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Colors.red.withValues(alpha: 0.08)
+                                  ? Colors.red.withOpacity(0.08)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
@@ -709,7 +712,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
-                  disabledBackgroundColor: Colors.red.withValues(alpha: 0.1),
+                  disabledBackgroundColor: Colors.red.withOpacity(0.1),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,
@@ -945,9 +948,9 @@ class _POSMissionControlState extends State<POSMissionControl>
         );
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null)
+          if (errJson['error'] != null) {
             errorMsg = errJson['error'];
-          else if (errJson['message'] != null)
+          } else if (errJson['message'] != null)
             errorMsg = errJson['message'];
         } catch (_) {}
 
@@ -1049,9 +1052,9 @@ class _POSMissionControlState extends State<POSMissionControl>
         String errorMsg = 'Failed to create menu item';
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null)
+          if (errJson['error'] != null) {
             errorMsg = errJson['error'];
-          else if (errJson['message'] != null)
+          } else if (errJson['message'] != null)
             errorMsg = errJson['message'];
         } catch (_) {}
 
@@ -1095,9 +1098,9 @@ class _POSMissionControlState extends State<POSMissionControl>
         String errorMsg = 'Failed to update menu item';
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null)
+          if (errJson['error'] != null) {
             errorMsg = errJson['error'];
-          else if (errJson['message'] != null)
+          } else if (errJson['message'] != null)
             errorMsg = errJson['message'];
         } catch (_) {}
 
@@ -1138,9 +1141,9 @@ class _POSMissionControlState extends State<POSMissionControl>
         String errorMsg = 'Failed to update category';
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null)
+          if (errJson['error'] != null) {
             errorMsg = errJson['error'];
-          else if (errJson['message'] != null)
+          } else if (errJson['message'] != null)
             errorMsg = errJson['message'];
         } catch (_) {}
 
@@ -1451,6 +1454,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       if (mounted) {
         setState(() {
           _menuItems = _getSampleMenu();
+          _isLoading = false;
         });
       }
     } finally {
@@ -1558,13 +1562,14 @@ class _POSMissionControlState extends State<POSMissionControl>
       );
       if (resp.statusCode == 200) {
         _fetchRoles();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Role created successfully'),
               backgroundColor: Colors.green,
             ),
           );
+        }
       }
     } catch (e) {
       debugPrint('Error creating role: $e');
@@ -1580,13 +1585,14 @@ class _POSMissionControlState extends State<POSMissionControl>
       );
       if (resp.statusCode == 200) {
         _fetchRoles();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Role updated successfully'),
               backgroundColor: Colors.green,
             ),
           );
+        }
       }
     } catch (e) {
       debugPrint('Error updating role: $e');
@@ -1600,13 +1606,14 @@ class _POSMissionControlState extends State<POSMissionControl>
       );
       if (resp.statusCode == 200) {
         _fetchRoles();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Role deleted successfully'),
               backgroundColor: Colors.orange,
             ),
           );
+        }
       }
     } catch (e) {
       debugPrint('Error deleting role: $e');
@@ -2146,7 +2153,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       );
       if (resp.statusCode == 201) {
         _fetchUsers();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -2155,6 +2162,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               backgroundColor: Colors.green,
             ),
           );
+        }
       } else {
         if (mounted) {
           final errorData = json.decode(resp.body);
@@ -2182,7 +2190,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       );
       if (resp.statusCode == 200) {
         _fetchUsers();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -2191,6 +2199,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               backgroundColor: Colors.green,
             ),
           );
+        }
       } else {
         if (mounted) {
           final errorData = json.decode(resp.body);
@@ -2216,7 +2225,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       );
       if (resp.statusCode == 200) {
         _fetchUsers();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -2225,6 +2234,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               backgroundColor: Colors.orange,
             ),
           );
+        }
       }
     } catch (e) {
       debugPrint('Delete User Error: $e');
@@ -2243,7 +2253,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       );
       if (resp.statusCode == 200) {
         _fetchRoles();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -2252,6 +2262,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               backgroundColor: Colors.green,
             ),
           );
+        }
       }
     } catch (e) {
       debugPrint('Update Role Permissions Error: $e');
@@ -2281,8 +2292,9 @@ class _POSMissionControlState extends State<POSMissionControl>
             .map((e) => e['id'])
             .toSet();
         final currentEIds = extras.map((e) => e['id']).toSet();
-        if (eIds.length != currentEIds.length || !eIds.containsAll(currentEIds))
+        if (eIds.length != currentEIds.length || !eIds.containsAll(currentEIds)) {
           return false;
+        }
 
         return true;
       });
@@ -2485,7 +2497,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: Colors.orange.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -2644,8 +2656,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       builder: (context) => AlertDialog(
         backgroundColor: themeCard,
         title: Text(
-          LocalizationService().translate('apply_promo_code') ??
-              'Apply Promo Code',
+          LocalizationService().translate('apply_promo_code'),
           style: TextStyle(color: themeText),
         ),
         content: Column(
@@ -2656,8 +2667,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               autofocus: true,
               decoration: InputDecoration(
                 hintText:
-                    LocalizationService().translate('enter_code_hint') ??
-                    'Enter Code',
+                    LocalizationService().translate('enter_code_hint'),
                 hintStyle: TextStyle(color: themeHint),
                 enabledBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: themeBorder),
@@ -2764,6 +2774,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             : null,
         'tip_amount': _tip,
         'discount_amount': _discount,
+        'promo_id': _appliedPromo?['id'],
         'user_id': _selectedWaiter?['id'],
         'customer_id': _selectedCustomer?['id'],
         'customer_details': _isNewGuestMode
@@ -2819,9 +2830,9 @@ class _POSMissionControlState extends State<POSMissionControl>
         String errorMsg = LocalizationService().translate('server_error_retry');
         try {
           final errJson = json.decode(response.body);
-          if (errJson['error'] != null)
+          if (errJson['error'] != null) {
             errorMsg = errJson['error'];
-          else if (errJson['message'] != null)
+          } else if (errJson['message'] != null)
             errorMsg = errJson['message'];
         } catch (_) {}
 
@@ -2945,7 +2956,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                   padding: const EdgeInsets.all(20),
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: themePrimary.withValues(alpha: 0.05),
+                    color: themePrimary.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -3291,7 +3302,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: themePrimary.withValues(alpha: 0.2),
+                      color: themePrimary.withOpacity(0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -3367,7 +3378,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: themePrimary.withValues(alpha: 0.05),
+                    color: themePrimary.withOpacity(0.05),
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(20),
                     ),
@@ -3381,7 +3392,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: themePrimary.withValues(alpha: 0.3),
+                              color: themePrimary.withOpacity(0.3),
                               blurRadius: 8,
                             ),
                           ],
@@ -3551,10 +3562,10 @@ class _POSMissionControlState extends State<POSMissionControl>
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: themePrimary.withValues(alpha: 0.05),
+                                color: themePrimary.withOpacity(0.05),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: themePrimary.withValues(alpha: 0.2),
+                                  color: themePrimary.withOpacity(0.2),
                                 ),
                               ),
                               child: Column(
@@ -4095,9 +4106,9 @@ class _POSMissionControlState extends State<POSMissionControl>
       padding: const EdgeInsets.all(32),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.05),
+        color: Colors.red.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
+        border: Border.all(color: Colors.red.withOpacity(0.1)),
       ),
       child: Column(
         children: [
@@ -4166,7 +4177,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               boxShadow: isSel
                   ? [
                       BoxShadow(
-                        color: themePrimary.withValues(alpha: 0.3),
+                        color: themePrimary.withOpacity(0.3),
                         blurRadius: 8,
                       ),
                     ]
@@ -4179,7 +4190,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                   _getIconForType(t['table_type']),
                   size: 22,
                   color: isSel
-                      ? Colors.white.withValues(alpha: 0.7)
+                      ? Colors.white.withOpacity(0.7)
                       : themeHint,
                 ),
                 const SizedBox(height: 8),
@@ -4199,7 +4210,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                       Icons.chair_outlined,
                       size: 14,
                       color: isSel
-                          ? Colors.white.withValues(alpha: 0.7)
+                          ? Colors.white.withOpacity(0.7)
                           : themeHint,
                     ),
                     const SizedBox(width: 4),
@@ -4207,7 +4218,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                       '${t['capacity']}',
                       style: TextStyle(
                         color: isSel
-                            ? Colors.white.withValues(alpha: 0.7)
+                            ? Colors.white.withOpacity(0.7)
                             : themeHint,
                         fontSize: 12,
                       ),
@@ -4221,11 +4232,11 @@ class _POSMissionControlState extends State<POSMissionControl>
                         ),
                         decoration: BoxDecoration(
                           color: (isSel ? Colors.white : themePrimary)
-                              .withValues(alpha: 0.1),
+                              .withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
                             color: (isSel ? Colors.white : themePrimary)
-                                .withValues(alpha: 0.2),
+                                .withOpacity(0.2),
                           ),
                         ),
                         child: Text(
@@ -4321,9 +4332,9 @@ class _POSMissionControlState extends State<POSMissionControl>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: themePrimary.withValues(alpha: 0.05),
+        color: themePrimary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: themePrimary.withValues(alpha: 0.2)),
+        border: Border.all(color: themePrimary.withOpacity(0.2)),
       ),
       child: Column(
         children: [
@@ -4464,7 +4475,7 @@ class _POSMissionControlState extends State<POSMissionControl>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -4651,7 +4662,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               ),
               const SizedBox(height: 16),
               Text(
-                '${LocalizationService().translate('merge_warning')}',
+                LocalizationService().translate('merge_warning'),
                 style: TextStyle(
                   color: Colors.orange,
                   fontSize: 11,
@@ -4956,7 +4967,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: themePrimary.withValues(alpha: 0.05),
+                        color: themePrimary.withOpacity(0.05),
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(20),
                         ),
@@ -4970,7 +4981,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: themePrimary.withValues(alpha: 0.3),
+                                  color: themePrimary.withOpacity(0.3),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -5050,9 +5061,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                   boxShadow: isSel
                                       ? [
                                           BoxShadow(
-                                            color: themePrimary.withValues(
-                                              alpha: 0.3,
-                                            ),
+                                            color: themePrimary.withOpacity(0.3),
                                             blurRadius: 8,
                                           ),
                                         ]
@@ -5084,9 +5093,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                           Icons.people_outline,
                                           size: 14,
                                           color: isSel
-                                              ? Colors.white.withValues(
-                                                  alpha: 0.7,
-                                                )
+                                              ? Colors.white.withOpacity(0.7)
                                               : themeHint,
                                         ),
                                         const SizedBox(width: 4),
@@ -5103,12 +5110,10 @@ class _POSMissionControlState extends State<POSMissionControl>
                                       ],
                                     ),
                                     Text(
-                                      '${LocalizationService().translate('avail').toUpperCase()}',
+                                      LocalizationService().translate('avail').toUpperCase(),
                                       style: TextStyle(
                                         color: isSel
-                                            ? Colors.white.withValues(
-                                                alpha: 0.7,
-                                              )
+                                            ? Colors.white.withOpacity(0.7)
                                             : themeHint,
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
@@ -5444,7 +5449,7 @@ class _POSMissionControlState extends State<POSMissionControl>
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? themePrimary.withValues(alpha: 0.1)
+              ? themePrimary.withOpacity(0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -5729,7 +5734,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                     labelStyle: TextStyle(color: themeHint),
                     hintText: '192.168.1.100',
                     hintStyle: TextStyle(
-                      color: themeHint.withValues(alpha: 0.5),
+                      color: themeHint.withOpacity(0.5),
                     ),
                   ),
                 ),
@@ -6027,7 +6032,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                       Icon(
                         Icons.notifications_off_outlined,
                         size: 64,
-                        color: themeHint.withValues(alpha: 0.2),
+                        color: themeHint.withOpacity(0.2),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -6069,10 +6074,10 @@ class _POSMissionControlState extends State<POSMissionControl>
                       ),
                       decoration: n['type'] == 'payment'
                           ? BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.05),
+                              color: Colors.red.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: Colors.red.withValues(alpha: 0.2),
+                                color: Colors.red.withOpacity(0.2),
                               ),
                             )
                           : null,
@@ -6080,7 +6085,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: (n['color'] as Color).withValues(alpha: 0.1),
+                            color: (n['color'] as Color).withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -6189,7 +6194,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       height: 100,
       padding: const EdgeInsets.only(left: 32, right: 24),
       decoration: BoxDecoration(
-        color: themeBg.withValues(alpha: 0.95),
+        color: themeBg.withOpacity(0.95),
         border: Border(bottom: BorderSide(color: themeBorder)),
       ),
       child: Row(
@@ -6316,8 +6321,9 @@ class _POSMissionControlState extends State<POSMissionControl>
                     Icons.event_available_rounded,
                     count: _reservations.where((r) {
                       if (r['status'] == 'Cancelled' ||
-                          r['status'] == 'Completed')
+                          r['status'] == 'Completed') {
                         return false;
+                      }
                       try {
                         DateTime resDate = DateTime.parse(
                           r['reservation_date'],
@@ -6450,11 +6456,13 @@ class _POSMissionControlState extends State<POSMissionControl>
     return GestureDetector(
       onTap: () => setState(() {
         _selectedTabIndex = index;
-        if (index == 1)
+        if (index == 1) {
           _selectedDashboardTab =
               0; // Reset to Overview when clicking Dashboard tab
-        if (index == 5)
+        }
+        if (index == 5) {
           _fetchReservations(); // Refresh when entering Reservations
+        }
       }),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -6465,7 +6473,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? themePrimary.withValues(alpha: 0.15)
+                    ? themePrimary.withOpacity(0.15)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -6585,7 +6593,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: themePrimary.withValues(alpha: 0.2),
+                        color: themePrimary.withOpacity(0.2),
                         blurRadius: 40,
                         spreadRadius: 5,
                       ),
@@ -6606,7 +6614,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               Text(
                 'Initializing Mission Control...',
                 style: TextStyle(
-                  color: themeText.withValues(alpha: 0.5),
+                  color: themeText.withOpacity(0.5),
                   fontSize: 14,
                   letterSpacing: 1.2,
                   fontWeight: FontWeight.w500,
@@ -6764,7 +6772,7 @@ class _POSMissionControlState extends State<POSMissionControl>
     final themePrimary = Theme.of(context).primaryColor;
     final themeText =
         Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
-    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeHint = themeText.withOpacity(0.6);
     final themeCard = Theme.of(context).cardColor;
     final themeBorder = Theme.of(context).dividerColor;
 
@@ -6803,7 +6811,7 @@ class _POSMissionControlState extends State<POSMissionControl>
         themeCard: themeCard,
         themeBorder: themeBorder,
       ),
-      PurchaseManagementView(isDarkMode: _isDarkMode), // 2
+      PurchaseInventoryHub(isDarkMode: _isDarkMode), // 2
       ReservationsView(
         // 3
         reservations: _reservations,
@@ -6869,6 +6877,7 @@ class _POSMissionControlState extends State<POSMissionControl>
         placedOrders: _placedOrders,
         shifts: _shifts,
         isLoading: _isLoading,
+        resetToken: _reportsResetToken,
       ),
       _buildTableQRCodeView(), // 8
       UserManagementView(
@@ -6903,10 +6912,7 @@ class _POSMissionControlState extends State<POSMissionControl>
         onUpdateRolePermissions: _updateRolePermissions,
         initialSubTab: 1, // Roles
       ),
-      InventoryDashboard(
-        // 11
-        isDarkMode: _isDarkMode,
-      ),
+      const SizedBox.shrink(), // 11 - Replaced by Hub at index 2
       CustomerManagementView(), // 12
       FoodItemManagementView(
         // 13
@@ -6940,64 +6946,7 @@ class _POSMissionControlState extends State<POSMissionControl>
     ];
   }
 
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () => setState(() => _selectedDashboardTab = 0),
-                icon: const Icon(Icons.home_rounded),
-                label: Text(
-                  LocalizationService().translate('back_to_dashboard'),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: themePrimary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: themeCard,
-                      title: Text(
-                        LocalizationService().translate('error_details'),
-                        style: TextStyle(color: themeText),
-                      ),
-                      content: SingleChildScrollView(
-                        child: Text(
-                          '$e\n\n$stack',
-                          style: TextStyle(
-                            color: themeText.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: Text(
-                            LocalizationService().translate('close_btn'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: Text(
-                  LocalizationService().translate('show_details'),
-                  style: TextStyle(color: themePrimary),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-  }
+
 
   Widget _buildDashboardSidebar() {
     return Container(
@@ -7031,16 +6980,10 @@ class _POSMissionControlState extends State<POSMissionControl>
                     LocalizationService().translate('analytics_overview'),
                     Icons.analytics_outlined,
                   ),
-                if (_hasPermission('manage_purchase'))
+                if (_hasPermission('manage_purchase') || _hasPermission('manage_inventory'))
                   _buildSidebarNav(
                     2,
-                    LocalizationService().translate('purchase_management'),
-                    Icons.shopping_cart_outlined,
-                  ),
-                if (_hasPermission('manage_inventory'))
-                  _buildSidebarNav(
-                    11,
-                    LocalizationService().translate('inventory_management'),
+                    LocalizationService().translate('purchase_inventory_hub'),
                     Icons.inventory_2_outlined,
                     badgeCount: _lowStockItems.length,
                   ),
@@ -7083,6 +7026,12 @@ class _POSMissionControlState extends State<POSMissionControl>
                     7,
                     LocalizationService().translate('reports'),
                     Icons.bar_chart_rounded,
+                    onTap: () => setState(() {
+                      _selectedDashboardTab = 7;
+                      _reportsResetToken++;
+                      _isFoodManagementExpanded = false;
+                      _isSecurityExpanded = false;
+                    }),
                   ),
                 if (_hasPermission('manage_settings_general'))
                   _buildSidebarNav(
@@ -7154,7 +7103,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             width: double.infinity,
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: themeBorder.withValues(alpha: 0.2)),
+                top: BorderSide(color: themeBorder.withOpacity(0.2)),
               ),
             ),
             padding: const EdgeInsets.all(16.0),
@@ -7164,7 +7113,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                 Text(
                   'v1.0.8-stable',
                   style: TextStyle(
-                    color: themeText.withValues(alpha: 0.3),
+                    color: themeText.withOpacity(0.3),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -7173,7 +7122,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                 Text(
                   'User: ${ThemeService.instance.userName}',
                   style: TextStyle(
-                    color: themeText.withValues(alpha: 0.4),
+                    color: themeText.withOpacity(0.4),
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
@@ -7181,7 +7130,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                 Text(
                   'Roles: ${ThemeService.instance.userRoles.join(', ')}',
                   style: TextStyle(
-                    color: themeText.withValues(alpha: 0.3),
+                    color: themeText.withOpacity(0.3),
                     fontSize: 8,
                   ),
                 ),
@@ -7192,7 +7141,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                     return Text(
                       'Identity: ${userData['first_name'] ?? ''} | ${userData['last_name'] ?? ''} (@${userData['username'] ?? ''})',
                       style: TextStyle(
-                        color: themeText.withValues(alpha: 0.2),
+                        color: themeText.withOpacity(0.2),
                         fontSize: 7,
                       ),
                     );
@@ -7230,7 +7179,7 @@ class _POSMissionControlState extends State<POSMissionControl>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? themePrimary.withValues(alpha: 0.1)
+              ? themePrimary.withOpacity(0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
@@ -7275,7 +7224,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               Icon(
                 isExpanded ? Icons.expand_more : Icons.chevron_right,
                 size: 16,
-                color: themeText.withValues(alpha: 0.3),
+                color: themeText.withOpacity(0.3),
               ),
           ],
         ),
@@ -7296,14 +7245,14 @@ class _POSMissionControlState extends State<POSMissionControl>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? themePrimary.withValues(alpha: 0.1)
+              ? themePrimary.withOpacity(0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           title,
           style: TextStyle(
-            color: isSelected ? themePrimary : themeText.withValues(alpha: 0.7),
+            color: isSelected ? themePrimary : themeText.withOpacity(0.7),
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
@@ -7459,8 +7408,8 @@ class _POSMissionControlState extends State<POSMissionControl>
                             decoration: BoxDecoration(
                               color:
                                   table.status == ui_kit.TableStatus.available
-                                  ? Colors.green.withValues(alpha: 0.15)
-                                  : themePrimary.withValues(alpha: 0.15),
+                                  ? Colors.green.withOpacity(0.15)
+                                  : themePrimary.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -7496,7 +7445,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
+                              color: Colors.black.withOpacity(0.08),
                               blurRadius: 8,
                             ),
                           ],
@@ -7717,8 +7666,8 @@ class _POSMissionControlState extends State<POSMissionControl>
                       _dashboardDate.day == DateTime.now().day &&
                           _dashboardDate.month == DateTime.now().month &&
                           _dashboardDate.year == DateTime.now().year
-                      ? themePrimary.withValues(alpha: 0.1)
-                      : Colors.orange.withValues(alpha: 0.1),
+                      ? themePrimary.withOpacity(0.1)
+                      : Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -7764,9 +7713,9 @@ class _POSMissionControlState extends State<POSMissionControl>
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.05),
+                color: Colors.red.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+                border: Border.all(color: Colors.red.withOpacity(0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -7834,7 +7783,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
+                                color: Colors.red.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -7959,7 +7908,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                           label: LocalizationService().translate('delivery'),
                           value: '${deliveryCount ?? 0}',
                           icon: Icons.delivery_dining,
-                          color: themePrimary.withValues(alpha: 0.7),
+                          color: themePrimary.withOpacity(0.7),
                         ),
                       ],
                     ),
@@ -8002,7 +7951,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                           value:
                               '\$${(double.tryParse(onlineTotal.toString()) ?? 0.0).toStringAsFixed(0)}',
                           icon: Icons.language,
-                          color: themePrimary.withValues(alpha: 0.9),
+                          color: themePrimary.withOpacity(0.9),
                         ),
                       ],
                     ),
@@ -8101,7 +8050,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: themePrimary.withValues(alpha: 0.1),
+                                  color: themePrimary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
@@ -8459,7 +8408,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                       boxShadow: sel
                           ? [
                               BoxShadow(
-                                color: themePrimary.withValues(alpha: 0.3),
+                                color: themePrimary.withOpacity(0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -8496,7 +8445,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
+                              color: Colors.black.withOpacity(0.2),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -8547,7 +8496,7 @@ class _POSMissionControlState extends State<POSMissionControl>
       itemCount: filteredItems.length + 1,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
-        childAspectRatio: 1.1,
+        childAspectRatio: 1.2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
@@ -8602,14 +8551,14 @@ class _POSMissionControlState extends State<POSMissionControl>
               boxShadow: selected
                   ? [
                       BoxShadow(
-                        color: themePrimary.withValues(alpha: 0.15),
+                        color: themePrimary.withOpacity(0.15),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
                       ),
                     ]
                   : [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -8621,9 +8570,9 @@ class _POSMissionControlState extends State<POSMissionControl>
                 Stack(
                   children: [
                     Container(
-                      height: 75,
+                      height: 60,
                       decoration: BoxDecoration(
-                        color: themeBorder.withValues(alpha: 0.1),
+                        color: themeBorder.withOpacity(0.1),
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(18),
                         ),
@@ -8648,7 +8597,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
+                              color: Colors.black.withOpacity(0.2),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -8670,7 +8619,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
+                            color: Colors.black.withOpacity(0.6),
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(18),
                             ),
@@ -8728,7 +8677,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                             Text(
                               item['category']?.toString().toUpperCase() ?? '',
                               style: TextStyle(
-                                color: themeHint.withValues(alpha: 0.8),
+                                color: themeHint.withOpacity(0.8),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.5,
@@ -8737,7 +8686,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: themeBg.withValues(alpha: 0.5),
+                                color: themeBg.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -8829,7 +8778,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: _selectedTable == null
-                                  ? themePrimary.withValues(alpha: 0.5)
+                                  ? themePrimary.withOpacity(0.5)
                                   : themeBorder,
                             ),
                           ),
@@ -8871,7 +8820,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: _selectedWaiter == null
-                                ? themePrimary.withValues(alpha: 0.5)
+                                ? themePrimary.withOpacity(0.5)
                                 : themeBorder,
                           ),
                         ),
@@ -8907,7 +8856,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: themeBg.withValues(alpha: 0.5),
+                  color: themeBg.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: themeBorder),
                 ),
@@ -9035,13 +8984,13 @@ class _POSMissionControlState extends State<POSMissionControl>
                               Row(
                                 children: [
                                   ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(6),
                                     child: Image(
                                       image: ThemeService.getImage(
                                         item['image'] as String?,
                                       ),
-                                      width: 32,
-                                      height: 32,
+                                      width: 24,
+                                      height: 24,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -9062,30 +9011,31 @@ class _POSMissionControlState extends State<POSMissionControl>
                                         Builder(
                                           builder: (context) {
                                             String customizationText = '';
-                                            if (item['variant'] != null)
+                                            if (item['variant'] != null) {
                                               customizationText +=
                                                   item['variant']['name'];
+                                            }
                                             if (item['extras'] != null &&
                                                 (item['extras'] as List)
                                                     .isNotEmpty) {
-                                              if (customizationText.isNotEmpty)
+                                              if (customizationText.isNotEmpty) {
                                                 customizationText += ' • ';
+                                              }
                                               customizationText +=
                                                   (item['extras'] as List)
                                                       .map((e) => e['name'])
                                                       .join(', ');
                                             }
 
-                                            if (customizationText.isEmpty)
+                                            if (customizationText.isEmpty) {
                                               return const SizedBox.shrink();
+                                            }
                                             return Text(
                                               customizationText,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
-                                                color: themePrimary.withValues(
-                                                  alpha: 0.9,
-                                                ),
+                                                color: themePrimary.withOpacity(0.9),
                                                 fontSize: 9,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -9255,7 +9205,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               ),
               // Promo Code Row
               _buildTappablePriceRow(
-                LocalizationService().translate('promo_code') ?? 'Promo Code',
+                LocalizationService().translate('promo_code'),
                 _appliedPromo != null
                     ? _appliedPromo!['code'].toString().toUpperCase()
                     : '',
@@ -9308,7 +9258,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                               _clearCart();
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.withValues(alpha: 0.1),
+                        backgroundColor: Colors.red.withOpacity(0.1),
                         foregroundColor: Colors.red,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -9327,7 +9277,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _showPrintPreview,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: themePrimary.withValues(alpha: 0.1),
+                        backgroundColor: themePrimary.withOpacity(0.1),
                         foregroundColor: themePrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -9538,7 +9488,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: themePrimary.withValues(alpha: 0.2),
+                      color: themePrimary.withOpacity(0.2),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -9711,7 +9661,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: themePrimary.withValues(alpha: 0.1),
+                color: themePrimary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -9745,9 +9695,9 @@ class _POSMissionControlState extends State<POSMissionControl>
                         '\$$amt',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      backgroundColor: themePrimary.withValues(alpha: 0.1),
+                      backgroundColor: themePrimary.withOpacity(0.1),
                       side: BorderSide(
-                        color: themePrimary.withValues(alpha: 0.3),
+                        color: themePrimary.withOpacity(0.3),
                       ),
                       labelStyle: TextStyle(color: themePrimary),
                       onPressed: () => controller.text = amt.toStringAsFixed(2),
@@ -9797,7 +9747,7 @@ class _POSMissionControlState extends State<POSMissionControl>
             },
             child: Text(
               'Clear',
-              style: TextStyle(color: Colors.red.withValues(alpha: 0.8)),
+              style: TextStyle(color: Colors.red.withOpacity(0.8)),
             ),
           ),
           TextButton(
@@ -9861,7 +9811,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               border: Border.all(color: themeBorder),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withOpacity(0.1),
                   blurRadius: 4,
                 ),
               ],
@@ -9919,9 +9869,9 @@ class _POSMissionControlState extends State<POSMissionControl>
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: themePrimary.withValues(alpha: 0.1),
+                color: themePrimary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: themePrimary.withValues(alpha: 0.2)),
+                border: Border.all(color: themePrimary.withOpacity(0.2)),
               ),
               child: Row(
                 children: [
@@ -10100,7 +10050,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                         margin: const EdgeInsets.only(bottom: 16),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: themeBg.withValues(alpha: 0.5),
+                          color: themeBg.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -10118,7 +10068,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                 errorBuilder: (context, error, stackTrace) =>
                                     Icon(
                                       Icons.restaurant_menu_rounded,
-                                      color: themeHint.withValues(alpha: 0.5),
+                                      color: themeHint.withOpacity(0.5),
                                       size: 24,
                                     ),
                               ),
@@ -10130,7 +10080,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: themePrimary.withValues(alpha: 0.1),
+                                color: themePrimary.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -10180,9 +10130,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                                     vertical: 2,
                                                   ),
                                               decoration: BoxDecoration(
-                                                color: themePrimary.withValues(
-                                                  alpha: 0.05,
-                                                ),
+                                                color: themePrimary.withOpacity(0.05),
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                               ),
@@ -10674,7 +10622,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: themePrimary.withValues(alpha: 0.1),
+                                color: themePrimary.withOpacity(0.1),
                                 blurRadius: 40,
                                 spreadRadius: 10,
                               ),
@@ -10683,7 +10631,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                           child: Icon(
                             Icons.auto_graph_rounded,
                             size: 80,
-                            color: themePrimary.withValues(alpha: 0.2),
+                            color: themePrimary.withOpacity(0.2),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -10737,12 +10685,12 @@ class _POSMissionControlState extends State<POSMissionControl>
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isWarning
-                                ? Colors.red.withValues(alpha: 0.3)
+                                ? Colors.red.withOpacity(0.3)
                                 : themeBorder,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
+                              color: Colors.black.withOpacity(0.03),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -11020,9 +10968,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.9,
-                                      ),
+                                      color: Colors.white.withOpacity(0.9),
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -11207,7 +11153,7 @@ class _POSMissionControlState extends State<POSMissionControl>
         border: Border.all(color: themeBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -11218,7 +11164,7 @@ class _POSMissionControlState extends State<POSMissionControl>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -11272,7 +11218,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: themePrimary.withValues(alpha: 0.3),
+                        color: themePrimary.withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -11569,7 +11515,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: themePrimary.withValues(alpha: 0.1),
+                    color: themePrimary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: themePrimary),
                   ),
@@ -11617,9 +11563,7 @@ class _POSMissionControlState extends State<POSMissionControl>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (available > 0 ? Colors.green : Colors.red).withValues(
-                    alpha: 0.1,
-                  ),
+                  color: (available > 0 ? Colors.green : Colors.red).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: available > 0 ? Colors.green : Colors.red,
@@ -11644,7 +11588,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: themePrimary.withValues(alpha: 0.05),
+                  color: themePrimary.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: themeBorder),
                 ),
@@ -11688,7 +11632,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                       ),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: themeBg.withValues(alpha: 0.5),
+                        color: themeBg.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: themeBorder),
                       ),
@@ -12124,9 +12068,7 @@ class _POSMissionControlState extends State<POSMissionControl>
                                         vertical: 6,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(
-                                          alpha: 0.1,
-                                        ),
+                                        color: Colors.orange.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -12305,7 +12247,7 @@ class _StatusRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -12314,7 +12256,7 @@ class _StatusRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: TextStyle(color: color.withValues(alpha: 0.7)),
+              style: TextStyle(color: color.withOpacity(0.7)),
             ),
           ),
           Text(
@@ -12356,7 +12298,7 @@ class _DashboardMetric extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: textColor.withValues(alpha: 0.1)),
+          border: Border.all(color: textColor.withOpacity(0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -12364,7 +12306,7 @@ class _DashboardMetric extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 28),
@@ -12373,7 +12315,7 @@ class _DashboardMetric extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: textColor.withValues(alpha: 0.7),
+                color: textColor.withOpacity(0.7),
                 fontSize: 16,
               ),
             ),
@@ -12418,7 +12360,7 @@ class _SmallMetricCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: textColor.withValues(alpha: 0.1)),
+          border: Border.all(color: textColor.withOpacity(0.1)),
         ),
         child: Row(
           children: [
@@ -12430,7 +12372,7 @@ class _SmallMetricCard extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: textColor.withValues(alpha: 0.7),
+                    color: textColor.withOpacity(0.7),
                     fontSize: 14,
                   ),
                 ),
@@ -12482,7 +12424,7 @@ class _TrendChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: textColor.withValues(alpha: 0.1)),
+        border: Border.all(color: textColor.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -12527,7 +12469,7 @@ class _TrendChart extends StatelessWidget {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [color, color.withValues(alpha: 0.3)],
+                            colors: [color, color.withOpacity(0.3)],
                           ),
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(8),
@@ -12538,7 +12480,7 @@ class _TrendChart extends StatelessWidget {
                       Text(
                         t['month'] ?? '',
                         style: TextStyle(
-                          color: textColor.withValues(alpha: 0.5),
+                          color: textColor.withOpacity(0.5),
                           fontSize: 12,
                         ),
                       ),
@@ -12615,3 +12557,4 @@ class _DigitalClockState extends State<DigitalClock> {
     return Text(_timeString, style: widget.style);
   }
 }
+

@@ -7,8 +7,13 @@ import 'package:pos_terminal/dashboard/pos_mission_control.dart';
 
 class InventoryDashboard extends StatefulWidget {
   final bool isDarkMode;
+  final bool hideHeader;
 
-  const InventoryDashboard({super.key, required this.isDarkMode});
+  const InventoryDashboard({
+    super.key, 
+    required this.isDarkMode,
+    this.hideHeader = false,
+  });
 
   @override
   State<InventoryDashboard> createState() => _InventoryDashboardState();
@@ -37,8 +42,8 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
   Color get themeText =>
       _theme.textTheme.bodyLarge?.color ??
       (widget.isDarkMode ? Colors.white : const Color(0xFF1E293B));
-  Color get themeHint => themeText.withValues(alpha: 0.6);
-  Color get themeBorder => themeText.withValues(alpha: 0.12);
+  Color get themeHint => themeText.withOpacity(0.6);
+  Color get themeBorder => themeText.withOpacity(0.12);
   Color get themePrimary => _theme.primaryColor;
 
   @override
@@ -234,7 +239,7 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
 
         return Container(
           color: themeBg,
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(widget.hideHeader ? 0 : 32),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -244,22 +249,24 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          loc.translate('inventory_management'),
-                          style: TextStyle(
-                            color: themeText,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
+                    if (!widget.hideHeader) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            loc.translate('inventory_management'),
+                            style: TextStyle(
+                              color: themeText,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        if (_isLoading)
-                          CircularProgressIndicator(color: themePrimary),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
+                          if (_isLoading)
+                            CircularProgressIndicator(color: themePrimary),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                     Expanded(
                       child: ListView.builder(
                         itemCount: _inventoryItems.length,
@@ -292,7 +299,7 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
                                 color: _editingId == item['id']
                                     ? themePrimary
                                     : (isLowStock
-                                          ? Colors.red.withValues(alpha: 0.5)
+                                          ? Colors.red.withOpacity(0.5)
                                           : themeBorder),
                                 width: _editingId == item['id'] ? 2 : 1,
                               ),
@@ -303,8 +310,8 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: isLowStock
-                                        ? Colors.red.withValues(alpha: 0.1)
-                                        : Colors.green.withValues(alpha: 0.1),
+                                        ? Colors.red.withOpacity(0.1)
+                                        : Colors.green.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
@@ -693,3 +700,4 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
     );
   }
 }
+
