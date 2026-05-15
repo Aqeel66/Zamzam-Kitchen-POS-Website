@@ -23,20 +23,6 @@ export default function Layout({ children }: LayoutProps) {
     phone: '+61 3 9939 2479',
     address: 'Racecourse Road, VIC, Melbourne, Australia'
   });
-  const [businessHours, setBusinessHours] = useState({
-    openingTime: '12:00:00',
-    closingTime: '23:00:00'
-  });
-
-  const formatTime12hr = (timeStr: string) => {
-    if (!timeStr) return '';
-    const [h, m] = timeStr.split(':');
-    let hours = parseInt(h, 10);
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    return `${hours}:${m} ${ampm}`;
-  };
 
   useEffect(() => {
     // Close mobile menu on route change
@@ -44,7 +30,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [location.pathname]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/settings?t=${Date.now()}`)
+    fetch(`${API_BASE_URL}/settings`)
       .then(res => res.json())
       .then(data => {
         if (data.tenant) {
@@ -56,12 +42,6 @@ export default function Layout({ children }: LayoutProps) {
             email: data.tenant.email || 'info@zamzamkitchen.com',
             phone: data.tenant.phone || '+61 3 9939 2479',
             address: data.tenant.address || 'Racecourse Road, VIC, Melbourne, Australia'
-          });
-        }
-        if (data.branch) {
-          setBusinessHours({
-            openingTime: data.branch.opening_time || '12:00:00',
-            closingTime: data.branch.closing_time || '23:00:00'
           });
         }
       })
@@ -77,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="top-bar-left">
           <div className="top-bar-item">
             <Clock size={14} />
-            <span>Opens Daily: {formatTime12hr(businessHours.openingTime)} - {formatTime12hr(businessHours.closingTime)}</span>
+            <span>Opens Daily: 12:00 PM - 11:00 PM</span>
           </div>
         </div>
         <div className="top-bar-right">

@@ -49,9 +49,7 @@ export default function PrintSuccessModal({ isOpen, onClose, order, branch }: Pr
               </div>
               <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4 uppercase">Order <span className="text-zamzam-teal">Confirmed</span></h2>
               <p className="text-slate-400 font-bold mb-10 max-w-xs leading-relaxed">
-                Order <span className="text-slate-900 font-black">
-                  #{(order?.orderNumber || order?.order_number || '').toString()}
-                </span> has been sent to the kitchen and recorded successfully.
+                Order <span className="text-slate-900 font-black">#{order?.id}</span> has been sent to the kitchen and recorded successfully.
               </p>
 
               <div className="w-full space-y-4">
@@ -93,11 +91,7 @@ export default function PrintSuccessModal({ isOpen, onClose, order, branch }: Pr
                 <div className="bg-white p-6 w-[80mm] text-slate-900 font-mono text-[10px] leading-tight shadow-inner">
                   <div className="text-center mb-4">
                     <h3 className="font-black text-sm uppercase">{branch.restaurant_name || 'Zamzam Kitchen'}</h3>
-                    {branch.receipt_header ? (
-                      <p className="opacity-50 whitespace-pre-line text-[8px] leading-tight">{branch.receipt_header}</p>
-                    ) : (
-                      <p className="opacity-50">Tax Invoice</p>
-                    )}
+                    <p className="opacity-50">Tax Invoice</p>
                   </div>
                   <div className="border-t border-dashed border-slate-200 my-2" />
                   <div className="space-y-1 opacity-70">
@@ -106,69 +100,16 @@ export default function PrintSuccessModal({ isOpen, onClose, order, branch }: Pr
                   </div>
                   <div className="border-t border-dashed border-slate-200 my-2" />
                   <div className="space-y-2 mb-4">
-                    {(order?.items || []).map((i: any, idx: number) => (
+                    {order.items.map((i: any, idx: number) => (
                       <div key={idx} className="flex justify-between">
                         <span>{i.name} x{i.quantity}</span>
                         <span>{(i.price * i.quantity).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="border-t border-dashed border-slate-200 pt-2 space-y-1">
-                    <div className="flex justify-between">
-                      <span>Subtotal</span>
-                      <span>{(order.total_amount + (order.discount_amount || 0) - (order.tip_amount || 0)).toFixed(2)}</span>
-                    </div>
-                    {order.promo_discount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Promo</span>
-                        <span>-{order.promo_discount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {order.manual_discount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Discount</span>
-                        <span>-{order.manual_discount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {order.reservation_fee > 0 && (
-                      <div className="flex justify-between text-orange-600">
-                        <span>Res. Credit</span>
-                        <span>-{order.reservation_fee.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {!(order.promo_discount > 0 || order.manual_discount > 0 || order.reservation_fee > 0) && order.discount_amount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Discount</span>
-                        <span>-{order.discount_amount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-slate-500">
-                      <span>Tax (10%)</span>
-                      <span>{( (order.total_amount + (order.discount_amount || 0) - (order.tip_amount || 0)) * 0.10 ).toFixed(2)}</span>
-                    </div>
-                    {order.tip_amount > 0 && (
-                      <div className="flex justify-between text-slate-500">
-                        <span>Tip</span>
-                        <span>+{order.tip_amount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-100">
-                      <span>TOTAL</span>
-                      <span>{branch.currency || 'USD'} {order.total_amount?.toFixed(2) || order.total}</span>
-                    </div>
-                  </div>
-                  <div className="border-t border-dashed border-slate-200 my-4" />
-                  <div className="text-center space-y-1">
-                    {branch.receipt_footer ? (
-                      <p className="font-bold italic text-[8px] whitespace-pre-line">{branch.receipt_footer}</p>
-                    ) : (
-                      <p className="font-bold italic text-[8px]">Thank You for Visiting!</p>
-                    )}
-                    {branch.show_qr_on_receipt === 1 && (
-                      <div className="mt-2 flex justify-center opacity-30">
-                        <div className="w-10 h-10 border border-slate-400 flex items-center justify-center text-[6px]">QR</div>
-                      </div>
-                    )}
+                  <div className="border-t border-dashed border-slate-200 pt-2 flex justify-between font-black text-base">
+                    <span>TOTAL</span>
+                    <span>AED {order.total}</span>
                   </div>
                 </div>
               </div>

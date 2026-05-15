@@ -12,7 +12,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { menuService, tableService, orderService } from '../services/orderService';
 import { useAuth } from '../context/AuthContext';
-import { resolveImageUrl, API_BASE_URL } from '../services/api';
+import { resolveImageUrl } from '../services/api';
 
 interface NewOrderProps {
   onClose: () => void;
@@ -26,10 +26,6 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoError, setPromoError] = useState<string | null>(null);
-  const [appliedPromo, setAppliedPromo] = useState<any>(null);
-  const [discount, setDiscount] = useState(0);
 
   const { cart, tableId, setTableId, addItem, removeItem, clearCart, total } = useCart();
   const { user } = useAuth();
@@ -53,55 +49,6 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
     loadData();
   }, []);
 
-  const applyPromo = async () => {
-    setPromoError(null);
-    if (!promoCode.trim()) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/promotions/validate/${promoCode.trim()}`);
-      if (response.ok) {
-        const data = await response.json();
-        const promo = data.promo;
-        const minSpend = parseFloat(promo.min_spend) || 0;
-        
-        if (total < minSpend) {
-          setPromoError(`Minimum spend of £${minSpend.toFixed(2)} required`);
-          setDiscount(0);
-          setAppliedPromo(null);
-          return;
-        }
-
-        let disc = 0;
-        const discountValue = parseFloat(promo.discount_value) || 0;
-        const dType = promo.discount_type?.toString().toLowerCase();
-        
-        if (dType === 'fixed') {
-          disc = discountValue;
-        } else {
-          disc = total * (discountValue / 100);
-        }
-        
-        setDiscount(disc);
-        setAppliedPromo(promo);
-      } else {
-        const err = await response.json();
-        setPromoError(err.message || 'Invalid Promo Code');
-        setDiscount(0);
-        setAppliedPromo(null);
-      }
-    } catch (err) {
-      console.error("Promo validation error:", err);
-      setPromoError('Error connecting to validation service');
-    }
-  };
-
-  const removePromo = () => {
-    setPromoCode('');
-    setDiscount(0);
-    setAppliedPromo(null);
-    setPromoError(null);
-  };
-
   const handlePlaceOrder = async () => {
     if (!tableId || cart.length === 0) return;
     
@@ -117,8 +64,6 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
           extras: item.extras?.map(e => e.id) || []
         })),
         total: total,
-        discount_amount: discount,
-        promo_id: appliedPromo?.id || null,
         status: 'Pending',
         order_type: 'Dine-In',
         user_id: user?.id,
@@ -162,7 +107,7 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
             </div>
           )}
           <div className="bg-yellow-100 px-4 py-2 rounded-xl">
-            <span className="text-xs font-black text-yellow-700">£{(total - discount).toFixed(2)}</span>
+            <span className="text-xs font-black text-yellow-700">£{total.toFixed(2)}</span>
           </div>
         </div>
       </header>
@@ -290,7 +235,7 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
               <div className="p-6 border-t border-slate-100 bg-slate-50/50">
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-slate-400 font-bold text-sm uppercase">Total</span>
-                  <span className="text-2xl font-black text-teal-900">£{(total - discount).toFixed(2)}</span>
+                  <span className="text-2xl font-black text-teal-900">£{total.toFixed(2)}</span>
                 </div>
                 <button
                   disabled={cart.length === 0}
@@ -316,7 +261,7 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
                     </div>
                     <div className="text-left">
                       <p className="text-[10px] font-bold uppercase opacity-70">Review Order</p>
-                      <p className="text-sm font-black">£{(total - discount).toFixed(2)}</p>
+                      <p className="text-sm font-black">£{total.toFixed(2)}</p>
                     </div>
                   </div>
                   <ArrowRight size={20} />
@@ -352,39 +297,9 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
                   ))}
                 </div>
                 <div className="h-px bg-slate-100 my-8" />
-                
-                {/* Promotions */}
-                <div className="flex gap-2 items-center mb-6">
-                  <input 
-                    type="text" 
-                    placeholder="Enter Promo Code" 
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm"
-                    value={promoCode}
-                    onChange={(e) => {
-                      setPromoCode(e.target.value);
-                      if (promoError) setPromoError(null);
-                    }}
-                    onKeyPress={(e) => e.key === 'Enter' && applyPromo()}
-                  />
-                  {appliedPromo ? (
-                    <button type="button" onClick={removePromo} className="px-6 py-3 bg-red-500 text-white rounded-xl font-bold tracking-wider hover:bg-red-600 transition-colors">Clear</button>
-                  ) : (
-                    <button type="button" onClick={applyPromo} className="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold tracking-wider hover:bg-slate-900 transition-colors">Apply</button>
-                  )}
-                </div>
-                {promoError && (
-                  <div className="text-red-500 text-sm font-bold mt-[-1rem] mb-4">{promoError}</div>
-                )}
-                {discount > 0 && (
-                  <div className="flex justify-between items-center mb-4 text-green-600">
-                    <span className="font-bold text-sm uppercase tracking-widest">Discount Applied</span>
-                    <span className="font-black text-lg">-£{discount.toFixed(2)}</span>
-                  </div>
-                )}
-
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Total Amount</span>
-                  <span className="text-4xl font-black text-teal-900">£{(total - discount).toFixed(2)}</span>
+                  <span className="text-4xl font-black text-teal-900">£{total.toFixed(2)}</span>
                 </div>
               </div>
 

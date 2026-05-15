@@ -52,9 +52,9 @@ class _HumanResourceViewState extends State<HumanResourceView>
         final themeBg = theme.scaffoldBackgroundColor;
         final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
         final themeCard = theme.cardColor;
-        final themeBorder = themeText.withOpacity(0.15);
+        final themeBorder = themeText.withValues(alpha: 0.15);
         final themePrimary = theme.primaryColor;
-        final themeHint = themeText.withOpacity(0.6);
+        final themeHint = themeText.withValues(alpha: 0.6);
 
         return Container(
           color: themeBg,
@@ -424,7 +424,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
             show: true,
             drawVerticalLine: false,
             getDrawingHorizontalLine: (v) => FlLine(
-              color: hint.withOpacity(0.1),
+              color: hint.withValues(alpha: 0.1),
               strokeWidth: 1,
               dashArray: [5, 5],
             ),
@@ -437,7 +437,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
                 BarChartRodData(
                   toY: (e.value['sales'] as num).toDouble(),
                   gradient: LinearGradient(
-                    colors: [primary, primary.withOpacity(0.7)],
+                    colors: [primary, primary.withValues(alpha: 0.7)],
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                   ),
@@ -448,7 +448,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
                   backDrawRodData: BackgroundBarChartRodData(
                     show: true,
                     toY: 1600,
-                    color: primary.withOpacity(0.05),
+                    color: primary.withValues(alpha: 0.05),
                   ),
                 ),
               ],
@@ -468,7 +468,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
             show: true,
             drawVerticalLine: false,
             getDrawingHorizontalLine: (v) => FlLine(
-              color: hint.withOpacity(0.1),
+              color: hint.withValues(alpha: 0.1),
               strokeWidth: 1,
               dashArray: [5, 5],
             ),
@@ -551,8 +551,8 @@ class _HumanResourceViewState extends State<HumanResourceView>
                 show: true,
                 gradient: LinearGradient(
                   colors: [
-                    primary.withOpacity(0.2),
-                    primary.withOpacity(0.0),
+                    primary.withValues(alpha: 0.2),
+                    primary.withValues(alpha: 0.0),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -605,7 +605,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
       width: double.infinity,
       child: DataTable(
         headingRowColor: WidgetStateProperty.all(
-          themePrimary.withOpacity(0.05),
+          themePrimary.withValues(alpha: 0.05),
         ),
         horizontalMargin: 0,
         columns: const [
@@ -772,7 +772,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
         const SizedBox(height: 8),
         LinearProgressIndicator(
           value: progress,
-          backgroundColor: primary.withOpacity(0.1),
+          backgroundColor: primary.withValues(alpha: 0.1),
           valueColor: AlwaysStoppedAnimation<Color>(primary),
           borderRadius: BorderRadius.circular(4),
           minHeight: 4,
@@ -847,7 +847,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -861,7 +861,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
                 Text(
                   title,
                   style: TextStyle(
-                    color: themeText.withOpacity(0.6),
+                    color: themeText.withValues(alpha: 0.6),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -931,7 +931,9 @@ class _HumanResourceViewState extends State<HumanResourceView>
                         children: [
                           CircleAvatar(
                             radius: 18,
-                            backgroundColor: themePrimary.withOpacity(0.1),
+                            backgroundColor: themePrimary.withValues(
+                              alpha: 0.1,
+                            ),
                             child: Text(
                               (shift['first_name'] ?? 'U')[0].toUpperCase(),
                               style: TextStyle(
@@ -971,8 +973,8 @@ class _HumanResourceViewState extends State<HumanResourceView>
                             ),
                             decoration: BoxDecoration(
                               color: isActive
-                                  ? Colors.green.withOpacity(0.1)
-                                  : themeHint.withOpacity(0.1),
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : themeHint.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isActive ? Colors.green : themeHint,
@@ -1052,7 +1054,7 @@ class _HumanResourceViewState extends State<HumanResourceView>
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: themeBg.withOpacity(0.5),
+                    color: themeBg.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: themeBorder),
                   ),
@@ -1062,7 +1064,9 @@ class _HumanResourceViewState extends State<HumanResourceView>
                         children: [
                           CircleAvatar(
                             radius: 22,
-                            backgroundColor: themePrimary.withOpacity(0.1),
+                            backgroundColor: themePrimary.withValues(
+                              alpha: 0.1,
+                            ),
                             child: Text(
                               (user['first_name'] ?? 'U')[0].toUpperCase(),
                               style: TextStyle(
@@ -1138,4 +1142,3 @@ class _HumanResourceViewState extends State<HumanResourceView>
     );
   }
 }
-

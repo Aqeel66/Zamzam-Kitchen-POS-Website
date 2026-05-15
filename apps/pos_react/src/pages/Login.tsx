@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, 
@@ -9,7 +9,7 @@ import {
   ChefHat
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { API_BASE_URL, resolveImageUrl } from '../config';
+import { API_BASE_URL } from '../config';
 
 export default function Login() {
   const { login } = useAuth();
@@ -17,25 +17,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [settings, setSettings] = useState<any>(null);
-
-  // Fetch settings for dynamic branding on the login screen
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/settings?t=${Date.now()}`)
-      .then(res => res.json())
-      .then(data => {
-        setSettings(data);
-        if (data?.tenant?.primary_accent_color) {
-          const color = data.tenant.primary_accent_color;
-          // Convert Hex to RGB for Tailwind opacity support
-          const r = parseInt(color.slice(1, 3), 16);
-          const g = parseInt(color.slice(3, 5), 16);
-          const b = parseInt(color.slice(5, 7), 16);
-          document.documentElement.style.setProperty('--zamzam-teal-rgb', `${r} ${g} ${b}`);
-        }
-      })
-      .catch(err => console.error('Error fetching login settings:', err));
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,18 +44,11 @@ export default function Login() {
     }
   };
 
-  const bgUrl = settings?.tenant?.login_background_url 
-    ? resolveImageUrl(settings.tenant.login_background_url)
-    : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1974&q=80';
-
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-slate-950">
       {/* Dynamic Background Assets */}
       <div className="absolute inset-0 z-0">
-        <div 
-          className="absolute inset-0 bg-cover bg-center opacity-40 scale-110 blur-[2px] transition-all duration-1000"
-          style={{ backgroundImage: `url(${bgUrl})` }}
-        />
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1974&q=80')] bg-cover bg-center opacity-30 scale-110 blur-sm" />
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900/90 to-zamzam-teal/20" />
       </div>
 
@@ -82,30 +56,21 @@ export default function Login() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 w-full max-w-md p-8"
+        className="relative z-10 w-full max-w-md p-10"
       >
-        <div className="bg-white/10 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-8 shadow-2xl shadow-black/50">
+        <div className="bg-white/10 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-10 shadow-2xl shadow-black/50">
           
           {/* Logo Section */}
           <div className="flex flex-col items-center mb-10">
             <motion.div 
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
-              className="w-32 h-32 flex items-center justify-center overflow-hidden mb-6"
+              className="w-20 h-20 bg-zamzam-teal rounded-3xl flex items-center justify-center shadow-2xl shadow-teal-500/40 mb-6"
             >
-              {settings?.tenant?.logo_url ? (
-                <img src={resolveImageUrl(settings.tenant.logo_url) || ''} className="w-full h-full object-contain filter drop-shadow-2xl" />
-              ) : (
-                <ChefHat size={64} className="text-white" />
-              )}
+              <ChefHat size={40} className="text-white" />
             </motion.div>
-            <h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none text-center">
-              {settings?.tenant?.restaurant_name?.split(' ')[0] || 'Zamzam'} 
-              <span className="text-zamzam-teal ml-2">{settings?.tenant?.restaurant_name?.split(' ').slice(1).join(' ') || 'Kitchen'}</span>
-            </h1>
-            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] mt-3">
-              {settings?.tenant?.tagline || 'POS Terminal System'}
-            </p>
+            <h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">Zamzam <span className="text-zamzam-teal">Kitchen</span></h1>
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] mt-3">POS Terminal Terminal</p>
           </div>
 
           {/* Form Section */}
@@ -118,7 +83,7 @@ export default function Login() {
                   type="text" 
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-white text-sm font-bold placeholder:text-white/10 focus:ring-4 focus:ring-zamzam-teal/20 focus:border-zamzam-teal/50 outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 pl-14 pr-6 text-white text-sm font-bold placeholder:text-white/10 focus:ring-4 focus:ring-zamzam-teal/20 focus:border-zamzam-teal/50 outline-none transition-all"
                   placeholder="Enter username"
                   required
                 />
@@ -133,7 +98,7 @@ export default function Login() {
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-white text-sm font-bold placeholder:text-white/10 focus:ring-4 focus:ring-zamzam-teal/20 focus:border-zamzam-teal/50 outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 pl-14 pr-6 text-white text-sm font-bold placeholder:text-white/10 focus:ring-4 focus:ring-zamzam-teal/20 focus:border-zamzam-teal/50 outline-none transition-all"
                   placeholder="••••••••"
                   required
                 />
@@ -157,7 +122,7 @@ export default function Login() {
             <button 
               disabled={isLoading}
               type="submit"
-              className="w-full bg-zamzam-teal hover:bg-teal-400 disabled:bg-white/5 disabled:text-white/20 text-white font-black py-4 rounded-2xl shadow-2xl shadow-teal-500/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group"
+              className="w-full bg-zamzam-teal hover:bg-teal-400 disabled:bg-white/5 disabled:text-white/20 text-white font-black py-5 rounded-2xl shadow-2xl shadow-teal-500/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin" size={20} />
@@ -172,7 +137,7 @@ export default function Login() {
 
           {/* Footer Info */}
           <div className="mt-10 pt-8 border-t border-white/5 text-center">
-            <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">© 2026 {settings?.tenant?.restaurant_name || 'Zamzam'} Management System</p>
+            <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">© 2026 Zamzam Restaurant Management System</p>
           </div>
         </div>
       </motion.div>

@@ -163,7 +163,7 @@ class _LoginPageState extends State<LoginPage>
                 ? Image.network(
                     ThemeService.instance.loginBackgroundUrl!,
                     fit: BoxFit.cover,
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     colorBlendMode: BlendMode.darken,
                     errorBuilder: (context, error, stackTrace) =>
                         _buildDefaultBackground(theme, themePrimary),
@@ -178,18 +178,18 @@ class _LoginPageState extends State<LoginPage>
                 padding: const EdgeInsets.all(40),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : theme.cardColor.withOpacity(0.7),
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : theme.cardColor.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withOpacity(0.1)
-                        : theme.dividerColor.withOpacity(0.2),
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : theme.dividerColor.withValues(alpha: 0.2),
                   ),
                   boxShadow: !isDark
                       ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -295,7 +295,7 @@ class _LoginPageState extends State<LoginPage>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 8,
-                          shadowColor: accentColor.withOpacity(0.4),
+                          shadowColor: accentColor.withValues(alpha: 0.4),
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -343,9 +343,9 @@ class _LoginPageState extends State<LoginPage>
           end: Alignment.bottomRight,
           colors: [
             theme.scaffoldBackgroundColor,
-            theme.scaffoldBackgroundColor.withOpacity(0.9),
-            themePrimary.withOpacity(0.25),
-            theme.scaffoldBackgroundColor.withOpacity(0.8),
+            theme.scaffoldBackgroundColor.withValues(alpha: 0.9),
+            themePrimary.withValues(alpha: 0.25),
+            theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
           ],
         ),
       ),
@@ -409,8 +409,8 @@ class _LoginPageState extends State<LoginPage>
     return Container(
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.black.withOpacity(0.03),
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
       ),
@@ -423,7 +423,7 @@ class _LoginPageState extends State<LoginPage>
           labelStyle: TextStyle(color: subTextColor, fontSize: 14),
           prefixIcon: Icon(
             icon,
-            color: accentColor.withOpacity(0.8),
+            color: accentColor.withValues(alpha: 0.8),
             size: 22,
           ),
           border: OutlineInputBorder(
@@ -440,4 +440,3 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 }
-

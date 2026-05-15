@@ -92,14 +92,7 @@ router.patch('/branch', async (req, res) => {
       'is_tax_enabled',
       'tax_rate',
       'payment_policy',
-      'order_sort_direction',
-      'receipt_header',
-      'receipt_footer',
-      'show_qr_on_receipt',
-      'opening_time',
-      'closing_time',
-      'first_order_time',
-      'last_order_time'
+      'order_sort_direction'
     ];
     
     const updates = [];
@@ -158,67 +151,6 @@ router.post('/gateways', async (req, res) => {
     res.json({ success: true, message: `${gateway_name} settings updated` });
   } catch (error) {
     console.error('Update Gateway Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
-  }
-});
-
-// @route   POST /api/settings/messaging
-router.post('/messaging', async (req, res) => {
-  try {
-    const { provider_name, account_sid, auth_token, sender_number, is_active, environment } = req.body;
-    
-    const fields = [];
-    const values = [];
-    
-    if (account_sid !== undefined) { fields.push('account_sid = ?'); values.push(account_sid); }
-    if (auth_token !== undefined) { fields.push('auth_token = ?'); values.push(auth_token); }
-    if (sender_number !== undefined) { fields.push('sender_number = ?'); values.push(sender_number); }
-    if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
-    if (environment !== undefined) { fields.push('environment = ?'); values.push(environment); }
-    
-    if (fields.length === 0) {
-      return res.status(400).json({ success: false, message: 'No fields provided for update' });
-    }
-    
-    values.push(provider_name);
-    const query = `UPDATE messaging_settings SET ${fields.join(', ')} WHERE provider_name = ?`;
-    
-    await db.query(query, values);
-    res.json({ success: true, message: `${provider_name} settings updated` });
-  } catch (error) {
-    console.error('Update Messaging Error:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
-  }
-});
-
-// @route   POST /api/settings/email
-router.post('/email', async (req, res) => {
-  try {
-    const { provider_name, smtp_host, smtp_port, smtp_user, smtp_pass, from_email, from_name, is_active, environment } = req.body;
-    
-    const fields = [];
-    const values = [];
-    
-    if (smtp_host !== undefined) { fields.push('smtp_host = ?'); values.push(smtp_host); }
-    if (smtp_port !== undefined) { fields.push('smtp_port = ?'); values.push(smtp_port); }
-    if (smtp_user !== undefined) { fields.push('smtp_user = ?'); values.push(smtp_user); }
-    if (smtp_pass !== undefined) { fields.push('smtp_pass = ?'); values.push(smtp_pass); }
-    if (from_email !== undefined) { fields.push('from_email = ?'); values.push(from_email); }
-    if (from_name !== undefined) { fields.push('from_name = ?'); values.push(from_name); }
-    if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
-    if (environment !== undefined) { fields.push('environment = ?'); values.push(environment); }
-    
-    if (fields.length === 0) {
-      return res.status(400).json({ success: false, message: 'No fields provided for update' });
-    }
-    
-    values.push(provider_name);
-    const query = `UPDATE email_settings SET ${fields.join(', ')} WHERE provider_name = ?`;
-    
-    await db.query(query, values);
-    res.json({ success: true, message: `${provider_name} settings updated` });
-  } catch (error) {
-    console.error('Update Email Error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });

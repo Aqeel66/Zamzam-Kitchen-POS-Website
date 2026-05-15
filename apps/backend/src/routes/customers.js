@@ -4,44 +4,32 @@ const db = require('../db');
 
 // Helper to Upsert Customer (Used by orders/reservations)
 const upsertCustomer = async (data) => {
-  const first_name = (data.first_name || '').trim();
-  const last_name = (data.last_name || '').trim();
-  const email = (data.email || '').trim().toLowerCase();
-  const phone = (data.phone || '').trim();
-  const dietary_profile = (data.dietary_profile || '').trim();
-  const origin = (data.origin || 'Counter').trim();
+  const { first_name, last_name, email, phone, dietary_profile, origin } = data;
   
   // Try to find existing by phone or email
   let existing = [];
   if (phone) {
-    [existing] = await db.query('SELECT id FROM customers WHERE phone = ? OR phone = ?', [phone, phone.replace(/\s+/g, '')]);
+    [existing] = await db.query('SELECT id FROM customers WHERE phone = ?', [phone]);
   }
   if (existing.length === 0 && email) {
-    [existing] = await db.query('SELECT id FROM customers WHERE LOWER(email) = LOWER(?)', [email]);
+    [existing] = await db.query('SELECT id FROM customers WHERE email = ?', [email]);
   }
 
   if (existing.length > 0) {
     const id = existing[0].id;
+    // Update existing (don't overwrite origin if already set, or maybe update it if newer?)
     await db.query(
-      'UPDATE customers SET first_name = ?, last_name = ?, email = ?, phone = COALESCE(?, phone), dietary_profile = ? WHERE id = ?',
-      [first_name, last_name, email || null, phone || null, dietary_profile || '', id]
+      'UPDATE customers SET first_name = ?, last_name = ?, email = ?, dietary_profile = ? WHERE id = ?',
+      [first_name, last_name, email, dietary_profile || '', id]
     );
     return id;
   } else {
-    // Attempt Insert Ignore to prevent crash
-    await db.query(
-      'INSERT IGNORE INTO customers (first_name, last_name, email, phone, dietary_profile, origin) VALUES (?, ?, ?, ?, ?, ?)',
-      [first_name, last_name || '', email || null, phone || '', dietary_profile || '', origin]
+    // Insert new
+    const [result] = await db.query(
+      'INSERT INTO customers (first_name, last_name, email, phone, dietary_profile, origin) VALUES (?, ?, ?, ?, ?, ?)',
+      [first_name, last_name || '', email || '', phone || '', dietary_profile || '', origin || 'In-Store']
     );
-    
-    // Final retrieval - one of these MUST work now
-    const [finalCheck] = await db.query(
-      'SELECT id FROM customers WHERE (phone = ? AND phone != "") OR (email = ? AND email != "") LIMIT 1', 
-      [phone, email]
-    );
-    
-    if (finalCheck.length > 0) return finalCheck[0].id;
-    throw new Error('Failed to create or find customer record');
+    return result.insertId;
   }
 };
 
@@ -74,7 +62,7 @@ router.put('/:id', async (req, res) => {
   try {
     await db.query(
       'UPDATE customers SET first_name = ?, last_name = ?, email = ?, phone = ?, dietary_profile = ?, origin = ? WHERE id = ?',
-      [first_name, last_name, email, phone, dietary_profile, origin || 'Counter', id]
+      [first_name, last_name, email, phone, dietary_profile, origin || 'In-Store', id]
     );
     res.json({ message: 'Customer updated successfully' });
   } catch (err) {

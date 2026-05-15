@@ -136,7 +136,7 @@ class OrdersView extends StatelessWidget {
                         Icon(
                           Icons.receipt_long_outlined,
                           size: 80,
-                          color: themeHint.withOpacity(0.3),
+                          color: themeHint.withValues(alpha: 0.3),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -184,7 +184,7 @@ class OrdersView extends StatelessWidget {
                           border: Border.all(color: themeBorder),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
+                              color: Colors.black.withValues(alpha: 0.03),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -575,4 +575,3 @@ class OrdersView extends StatelessWidget {
     );
   }
 }
-

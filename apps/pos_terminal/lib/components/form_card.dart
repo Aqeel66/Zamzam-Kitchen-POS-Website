@@ -20,8 +20,8 @@ class FormCard extends StatelessWidget {
     final theme = ThemeService().themeData;
     final themeCard = theme.cardColor;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withOpacity(0.6);
-    final themeBorder = themeText.withOpacity(0.15);
+    final themeHint = themeText.withValues(alpha: 0.6);
+    final themeBorder = themeText.withValues(alpha: 0.15);
     final themePrimary = theme.primaryColor;
 
     return Container(
@@ -32,7 +32,7 @@ class FormCard extends StatelessWidget {
         border: Border.all(color: themeBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -47,7 +47,7 @@ class FormCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: themePrimary.withOpacity(0.1),
+                    color: themePrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: themePrimary, size: 24),
@@ -111,7 +111,7 @@ class FormTextField extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: themeText.withOpacity(0.7),
+            color: themeText.withValues(alpha: 0.7),
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -125,10 +125,10 @@ class FormTextField extends StatelessWidget {
           onChanged: onChanged,
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.black.withOpacity(0.02),
+            fillColor: Colors.black.withValues(alpha: 0.02),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: themeText.withOpacity(0.1)),
+              borderSide: BorderSide(color: themeText.withValues(alpha: 0.1)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -182,4 +182,3 @@ class FormActionButton extends StatelessWidget {
     );
   }
 }
-

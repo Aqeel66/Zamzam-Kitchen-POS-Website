@@ -84,7 +84,7 @@ class _SettingsViewState extends State<SettingsView> {
         final Color themeCard = Theme.of(context).cardColor;
         final Color themeBorder = Theme.of(context).dividerColor;
         final Color themePrimary = Theme.of(context).primaryColor;
-        final Color themeHint = themeText.withOpacity(0.6);
+        final Color themeHint = themeText.withValues(alpha: 0.6);
         final themeBg = Theme.of(context).scaffoldBackgroundColor;
 
         if (widget.isLoading && widget.settings.isEmpty) {
@@ -124,7 +124,7 @@ class _SettingsViewState extends State<SettingsView> {
               Container(
                 width: 240,
                 decoration: BoxDecoration(
-                  color: themeCard.withOpacity(0.5),
+                  color: themeCard.withValues(alpha: 0.5),
                   border: Border(right: BorderSide(color: themeBorder)),
                 ),
                 child: Column(
@@ -1218,7 +1218,7 @@ class _SettingsViewState extends State<SettingsView> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -1392,8 +1392,8 @@ class _SettingsViewState extends State<SettingsView> {
                 : LocalizationService().translate('will_be_preserved'),
             style: TextStyle(
               color: isDeleted
-                  ? Colors.red.withOpacity(0.7)
-                  : Colors.green.withOpacity(0.7),
+                  ? Colors.red.withValues(alpha: 0.7)
+                  : Colors.green.withValues(alpha: 0.7),
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -1421,7 +1421,7 @@ class _SettingsViewState extends State<SettingsView> {
               style: TextStyle(
                 color: Theme.of(
                   context,
-                ).textTheme.bodyLarge?.color?.withOpacity(0.5),
+                ).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -1441,4 +1441,3 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 }
-

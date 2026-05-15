@@ -64,28 +64,17 @@ export default function Cart() {
                ))}
             </div>
 
-            <div className="cart-summary" style={{ background: 'white', border: '1px solid #e5e7eb', padding: '1.5rem', borderRadius: '16px' }}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#6b7280' }}>
-                      <span>Subtotal</span>
-                      <span style={{ marginLeft: 'auto', fontWeight: 600, color: '#111827' }}>${totalPrice.toFixed(2)}</span>
-                   </div>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#6b7280' }}>
-                      <span>Tax (10%)</span>
-                      <span style={{ marginLeft: 'auto', fontWeight: 600, color: '#111827' }}>${(totalPrice * 0.10).toFixed(2)}</span>
-                   </div>
-                   <div style={{ height: '1px', background: '#f3f4f6', margin: '0.5rem 0' }} />
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <p style={{ color: '#9ca3af', fontSize: '0.85rem', margin: 0 }}>Total Amount</p>
-                      <h2 style={{ margin: 0 }}>${(totalPrice * 1.10).toFixed(2)}</h2>
-                   </div>
+            <div className="cart-summary">
+                <div>
+                   <p style={{ color: '#9ca3af', marginBottom: '0.25rem', fontSize: '0.85rem' }}>Total Amount</p>
+                   <h2>${totalPrice.toFixed(2)}</h2>
                    {tableId && tableNumber && (
                      <p style={{ color: '#f5a623', fontSize: '0.75rem', margin: '0.25rem 0 0', fontWeight: 600 }}>
                        📍 Table {tableNumber} · Dine-In
                      </p>
                    )}
                 </div>
-                <button className="btn-primary" onClick={() => navigate('/checkout')} style={{ padding: '0.8rem 2rem', marginLeft: '2rem' }}>Proceed to Checkout</button>
+                <button className="btn-primary" onClick={() => navigate('/checkout')} style={{ padding: '0.8rem 2rem' }}>Proceed to Checkout</button>
             </div>
          </div>
       )}

@@ -27,7 +27,7 @@ class DashboardMetric extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: themeText.withOpacity(0.1)),
+          border: Border.all(color: themeText.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,7 +35,7 @@ class DashboardMetric extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 28),
@@ -44,7 +44,7 @@ class DashboardMetric extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: themeText.withOpacity(0.7),
+                color: themeText.withValues(alpha: 0.7),
                 fontSize: 16,
               ),
             ),
@@ -90,7 +90,7 @@ class SmallMetricCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: themeText.withOpacity(0.1)),
+          border: Border.all(color: themeText.withValues(alpha: 0.1)),
         ),
         child: Row(
           children: [
@@ -102,7 +102,7 @@ class SmallMetricCard extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: themeText.withOpacity(0.7),
+                    color: themeText.withValues(alpha: 0.7),
                     fontSize: 14,
                   ),
                 ),
@@ -183,7 +183,7 @@ class TrendChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: themeText.withOpacity(0.1)),
+        border: Border.all(color: themeText.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +226,7 @@ class TrendChart extends StatelessWidget {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [color, color.withOpacity(0.3)],
+                            colors: [color, color.withValues(alpha: 0.3)],
                           ),
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(8),
@@ -237,7 +237,7 @@ class TrendChart extends StatelessWidget {
                       Text(
                         t['month'] ?? '',
                         style: TextStyle(
-                          color: themeText.withOpacity(0.5),
+                          color: themeText.withValues(alpha: 0.5),
                           fontSize: 12,
                         ),
                       ),
@@ -252,4 +252,3 @@ class TrendChart extends StatelessWidget {
     );
   }
 }
-

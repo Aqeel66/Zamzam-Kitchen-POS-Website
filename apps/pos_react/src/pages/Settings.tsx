@@ -12,84 +12,18 @@ import {
   Clock,
   Image as ImageIcon,
   MessageSquare,
-  Settings2,
-  Palette,
-  Check
+  Settings2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { API_BASE_URL, resolveImageUrl } from '../config';
+import { API_BASE_URL } from '../config';
 import Communications from './Communications';
 import Payments from './Payments';
 
 const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(Boolean).join(' ');
 
-function SettingsToggle({ label, sublabel, enabled, onToggle, disabled = false }: any) {
-  return (
-    <div className="flex items-center justify-between group">
-      <div className="space-y-1">
-        <h4 className="text-sm font-black text-slate-800">{label}</h4>
-        <p className="text-[10px] font-bold text-slate-400 uppercase">{sublabel}</p>
-      </div>
-      <button 
-        disabled={disabled}
-        onClick={onToggle}
-        className={cn(
-          "w-14 h-7 rounded-full transition-all relative p-1",
-          disabled ? "opacity-50 cursor-not-allowed" : "",
-          enabled ? "bg-orange-500 shadow-lg shadow-orange-500/20" : "bg-slate-200"
-        )}
-      >
-        <div className={cn(
-          "w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
-          enabled ? "translate-x-7" : "translate-x-0"
-        )} />
-      </button>
-    </div>
-  );
-}
-
-function SettingsInput({ label, sublabel, value, onSave, type = "number", disabled = false }: any) {
-  const [localValue, setLocalValue] = useState(value);
-  
-  useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
-
-  return (
-    <div className="flex items-center justify-between group">
-      <div className="space-y-1">
-        <h4 className="text-sm font-black text-slate-800">{label}</h4>
-        <p className="text-[10px] font-bold text-slate-400 uppercase">{sublabel}</p>
-      </div>
-      <div className="relative flex items-center gap-3">
-        <input 
-          disabled={disabled}
-          type={type} 
-          value={localValue || (type === 'number' ? 0 : '')}
-          onChange={(e) => setLocalValue(e.target.value)}
-          onBlur={() => {
-            const finalVal = type === 'number' ? parseFloat(localValue) : localValue;
-            if (finalVal !== value) onSave(finalVal);
-          }}
-          className={cn(
-            "w-32 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-right text-xs font-black outline-none focus:ring-4 focus:ring-orange-500/5 focus:bg-white transition-all",
-            disabled ? "opacity-50 cursor-not-allowed" : ""
-          )}
-        />
-        {value === localValue && (
-          <div className="absolute -right-6 text-emerald-500">
-            <CheckCircle2 size={14} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function Settings() {
   const [settings, setSettings] = useState<any>(null);
   const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'operations' | 'communications' | 'payments' | 'reset'>('general');
-  // Refresh comment to trigger Vite re-transform
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
@@ -99,14 +33,11 @@ export default function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
+      const res = await fetch(`${API_BASE_URL}/settings`);
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       setSettings(data);
-      // Don't reset success/error status here if it was just set by an update
-      if (saveStatus !== 'success' && saveStatus !== 'error') {
-        setSaveStatus('idle');
-      }
+      setSaveStatus('idle');
     } catch (err) {
       console.error('Error fetching settings:', err);
       setSaveStatus('error');
@@ -123,43 +54,10 @@ export default function Settings() {
       });
       if (res.ok) {
         setSaveStatus('success');
-        await fetchSettings();
-        window.dispatchEvent(new CustomEvent('settings-updated'));
-        window.dispatchEvent(new CustomEvent('show-toast', { 
-          detail: { message: 'Settings Updated Successfully', type: 'success' } 
-        }));
+        fetchSettings();
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
     } catch (err) {
-      setSaveStatus('error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleImageUpload = async (file: File, endpoint: string, fieldName: string = 'image') => {
-    setIsSaving(true);
-    const formData = new FormData();
-    formData.append(fieldName, file);
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/upload/${endpoint}`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (res.ok) {
-        setSaveStatus('success');
-        await fetchSettings();
-        window.dispatchEvent(new CustomEvent('show-toast', { 
-          detail: { message: 'Media Uploaded Successfully', type: 'success' } 
-        }));
-        setTimeout(() => setSaveStatus('idle'), 3000);
-      } else {
-        throw new Error('Upload failed');
-      }
-    } catch (err) {
-      console.error('Upload error:', err);
       setSaveStatus('error');
     } finally {
       setIsSaving(false);
@@ -176,11 +74,7 @@ export default function Settings() {
       });
       if (res.ok) {
         setSaveStatus('success');
-        await fetchSettings();
-        window.dispatchEvent(new CustomEvent('settings-updated'));
-        window.dispatchEvent(new CustomEvent('show-toast', { 
-          detail: { message: 'Operations Updated Successfully', type: 'success' } 
-        }));
+        fetchSettings();
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
     } catch (err) {
@@ -236,17 +130,6 @@ export default function Settings() {
               <span className="text-xs font-black uppercase tracking-widest">Changes Saved</span>
             </motion.div>
           )}
-          {saveStatus === 'error' && (
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="bg-red-50 text-red-600 px-6 py-4 rounded-2xl flex items-center gap-3 border border-red-100 shadow-lg shadow-red-900/5"
-            >
-              <ShieldAlert size={20} />
-              <span className="text-xs font-black uppercase tracking-widest">Save Failed</span>
-            </motion.div>
-          )}
         </AnimatePresence>
       </div>
 
@@ -296,9 +179,9 @@ export default function Settings() {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Restaurant Name</label>
                     <input 
                       type="text" 
-                      defaultValue={settings?.tenant?.restaurant_name || ''}
+                      defaultValue={settings.tenant.restaurant_name}
                       onBlur={(e) => {
-                        if (e.target.value !== settings?.tenant?.restaurant_name) {
+                        if (e.target.value !== settings.tenant.restaurant_name) {
                           handleUpdateTenant({ restaurant_name: e.target.value });
                         }
                       }}
@@ -309,9 +192,9 @@ export default function Settings() {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Contact Email</label>
                     <input 
                       type="email" 
-                      defaultValue={settings?.tenant?.business_email || ''}
+                      defaultValue={settings.tenant.business_email}
                       onBlur={(e) => {
-                        if (e.target.value !== settings?.tenant?.business_email) {
+                        if (e.target.value !== settings.tenant.business_email) {
                           handleUpdateTenant({ business_email: e.target.value });
                         }
                       }}
@@ -322,9 +205,9 @@ export default function Settings() {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Contact Phone</label>
                     <input 
                       type="text" 
-                      defaultValue={settings?.tenant?.business_phone || ''}
+                      defaultValue={settings.tenant.business_phone}
                       onBlur={(e) => {
-                        if (e.target.value !== settings?.tenant?.business_phone) {
+                        if (e.target.value !== settings.tenant.business_phone) {
                           handleUpdateTenant({ business_phone: e.target.value });
                         }
                       }}
@@ -336,9 +219,9 @@ export default function Settings() {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Business Address</label>
                   <textarea 
                     rows={3}
-                    defaultValue={settings?.tenant?.business_address || ''}
+                    defaultValue={settings.tenant.business_address}
                     onBlur={(e) => {
-                      if (e.target.value !== settings?.tenant?.business_address) {
+                      if (e.target.value !== settings.tenant.business_address) {
                         handleUpdateTenant({ business_address: e.target.value });
                       }
                     }}
@@ -354,596 +237,150 @@ export default function Settings() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="space-y-8"
+                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-10"
               >
-                {/* Tagline Card */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Business Tagline</label>
-                    <input 
-                      type="text" 
-                      defaultValue={settings?.tenant?.tagline || ''}
-                      onBlur={(e) => {
-                        if (e.target.value !== settings?.tenant?.tagline) {
-                          handleUpdateTenant({ tagline: e.target.value });
-                        }
-                      }}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Business Tagline</label>
+                  <input 
+                    type="text" 
+                    defaultValue={settings.tenant.tagline}
+                    onBlur={(e) => {
+                      if (e.target.value !== settings.tenant.tagline) {
+                        handleUpdateTenant({ tagline: e.target.value });
+                      }
+                    }}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                  />
                 </div>
-
+                
                 <div className="grid grid-cols-2 gap-8">
-                  {/* Appearance Card */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-8">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-zamzam-teal/10 rounded-xl flex items-center justify-center text-zamzam-teal">
-                        <Settings2 size={16} />
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Primary Logo (App Sidebar)</label>
+                    <div className="flex items-start gap-4">
+                      <div className="w-20 h-20 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                        {settings.tenant.logo_url ? (
+                          <img src={settings.tenant.logo_url} className="w-full h-full object-contain p-2" />
+                        ) : (
+                          <ImageIcon size={24} className="text-slate-200" />
+                        )}
                       </div>
-                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Button Styling</h3>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">UI Theme Mode</label>
-                        <select 
-                          value={settings?.tenant?.theme_mode || 'Adaptive'}
-                          onChange={(e) => handleUpdateTenant({ theme_mode: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all appearance-none"
-                        >
-                          <option value="Light">Light Mode</option>
-                          <option value="Dark">Dark Mode</option>
-                          <option value="Adaptive">Adaptive (System Default)</option>
-                          <option value="Zamzam Classic">Zamzam Classic</option>
-                          <option value="Emerald Green">Emerald Green</option>
-                          <option value="Aura Purple">Aura Purple</option>
-                          <option value="Midnight Blue">Midnight Blue</option>
-                        </select>
-                      </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center px-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primary Button Color</label>
-                            <button 
-                              onClick={() => handleUpdateTenant({ primary_accent_color: '#0D9488' })}
-                              className="text-[9px] font-black text-zamzam-teal hover:underline uppercase tracking-widest"
-                            >
-                              Reset Default
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="relative group">
-                              <input 
-                                type="color" 
-                                value={settings?.tenant?.primary_accent_color || '#0D9488'}
-                                onChange={(e) => handleUpdateTenant({ primary_accent_color: e.target.value })}
-                                className="w-16 h-16 rounded-2xl border-4 border-white shadow-lg cursor-pointer ring-1 ring-slate-200"
-                              />
-                              <div className="absolute -top-2 -right-2 bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg scale-0 group-active:scale-100 transition-transform">
-                                <Check size={14} strokeWidth={4} />
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <input 
-                                type="text" 
-                                value={settings?.tenant?.primary_accent_color || '#0D9488'}
-                                onChange={(e) => handleUpdateTenant({ primary_accent_color: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black uppercase outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
-                              />
-                            </div>
-                          </div>
-                        </div>
+                      <input 
+                        type="text" 
+                        placeholder="Logo URL"
+                        defaultValue={settings.tenant.logo_url}
+                        onBlur={(e) => {
+                          if (e.target.value !== settings.tenant.logo_url) {
+                            handleUpdateTenant({ logo_url: e.target.value });
+                          }
+                        }}
+                        className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      />
                     </div>
                   </div>
 
-                  {/* Assets Card */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-8">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-zamzam-yellow/10 rounded-xl flex items-center justify-center text-zamzam-yellow">
-                        <Palette size={16} />
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Secondary Logo (Receipts)</label>
+                    <div className="flex items-start gap-4">
+                      <div className="w-20 h-20 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                        {settings.tenant.secondary_logo_url ? (
+                          <img src={settings.tenant.secondary_logo_url} className="w-full h-full object-contain p-2" />
+                        ) : (
+                          <ImageIcon size={24} className="text-slate-200" />
+                        )}
                       </div>
-                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Visual Assets</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-10">
-                      {/* Primary Logo */}
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between px-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primary Brand Logo</label>
-                          <span className="text-[8px] font-black bg-blue-50 text-blue-500 px-2 py-1 rounded-full uppercase tracking-tighter">High Res (PNG/SVG)</span>
-                        </div>
-                        <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
-                          <div className="w-24 h-24 bg-white rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm transition-transform group-hover:scale-105">
-                            {settings?.tenant?.logo_url ? (
-                              <img 
-                                src={resolveImageUrl(settings?.tenant?.logo_url) || ''} 
-                                className="w-[80%] h-[80%] object-contain" 
-                              />
-                            ) : (
-                              <ImageIcon className="text-slate-200" size={32} />
-                            )}
-                          </div>
-                          <div className="flex-1 space-y-3">
-                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Used for sidebar, login screen, and main system branding.</p>
-                            <label className="inline-block">
-                              <input 
-                                type="file" 
-                                className="hidden" 
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleImageUpload(file, 'logo', 'logo');
-                                }}
-                              />
-                              <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer shadow-sm transition-all active:scale-95">
-                                Upload New Logo
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Receipt Logo */}
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between px-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receipt Logo</label>
-                          <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase tracking-tighter">Thermal Optimized</span>
-                        </div>
-                        <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
-                          <div className="w-24 h-24 bg-white rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm transition-transform group-hover:scale-105">
-                            {settings?.tenant?.secondary_logo_url ? (
-                              <img 
-                                src={resolveImageUrl(settings?.tenant?.secondary_logo_url) || ''} 
-                                className="w-[80%] h-[80%] object-contain grayscale brightness-75 contrast-125" 
-                              />
-                            ) : (
-                              <ImageIcon className="text-slate-200" size={32} />
-                            )}
-                          </div>
-                          <div className="flex-1 space-y-3">
-                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Black & white version optimized for thermal printers and PDF invoices.</p>
-                            <label className="inline-block">
-                              <input 
-                                type="file" 
-                                className="hidden" 
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleImageUpload(file, 'secondary-logo', 'logo');
-                                }}
-                              />
-                              <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer shadow-sm transition-all active:scale-95">
-                                Upload Receipt Logo
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Background Images Card */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-8 col-span-2">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-500">
-                        <Settings2 size={16} />
-                      </div>
-                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Background Images</h3>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-8">
-                      <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Login Background</label>
-                        <div className="relative group rounded-2xl overflow-hidden border border-slate-100 aspect-video bg-slate-50 flex items-center justify-center">
-                          {settings?.tenant?.login_background_url ? (
-                            <img 
-                              src={resolveImageUrl(settings?.tenant?.login_background_url) || ''} 
-                              className="w-full h-full object-cover" 
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-200" size={48} />
-                          )}
-                          <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                            <input 
-                              type="file" 
-                              className="hidden" 
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleImageUpload(file, 'login-bg', 'image');
-                              }}
-                            />
-                            <span className="text-white text-xs font-black uppercase tracking-widest">Change Background</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Hero Background</label>
-                        <div className="relative group rounded-2xl overflow-hidden border border-slate-100 aspect-video bg-slate-50 flex items-center justify-center">
-                          {settings?.tenant?.hero_background_url ? (
-                            <img 
-                              src={resolveImageUrl(settings?.tenant?.hero_background_url) || ''} 
-                              className="w-full h-full object-cover" 
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-200" size={48} />
-                          )}
-                          <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                            <input 
-                              type="file" 
-                              className="hidden" 
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleImageUpload(file, 'hero-bg', 'image');
-                              }}
-                            />
-                            <span className="text-white text-xs font-black uppercase tracking-widest">Change Background</span>
-                          </label>
-                        </div>
-                      </div>
+                      <input 
+                        type="text" 
+                        placeholder="Logo URL"
+                        defaultValue={settings.tenant.secondary_logo_url}
+                        onBlur={(e) => {
+                          if (e.target.value !== settings.tenant.secondary_logo_url) {
+                            handleUpdateTenant({ secondary_logo_url: e.target.value });
+                          }
+                        }}
+                        className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      />
                     </div>
                   </div>
                 </div>
               </motion.section>
             )}
+
             {activeSection === 'operations' && (
               <motion.section
                 key="operations"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="space-y-8 pb-20"
+                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-10"
               >
-                <div>
-                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">Operations Settings</h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure your restaurant floor and kitchen rules.</p>
-                </div>
-
-                {/* Restaurant Timings Section */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Restaurant Timings</h3>
-                  </div>
-                  <div className="p-10 space-y-8">
-                    {/* Opening Time */}
-                    <SettingsInput 
-                      type="time"
-                      disabled={isSaving}
-                      label="Opening Time"
-                      sublabel="When the restaurant opens"
-                      value={settings?.branch?.opening_time || '09:00:00'}
-                      onSave={(val: any) => handleUpdateBranch({ opening_time: val })}
-                    />
-
-                    {/* Closing Time */}
-                    <SettingsInput 
-                      type="time"
-                      disabled={isSaving}
-                      label="Closing Time"
-                      sublabel="When the restaurant closes"
-                      value={settings?.branch?.closing_time || '22:00:00'}
-                      onSave={(val: any) => handleUpdateBranch({ closing_time: val })}
-                    />
-
-                    {/* First Order Time */}
-                    <SettingsInput 
-                      type="time"
-                      disabled={isSaving}
-                      label="First Order Time"
-                      sublabel="When the first order can be placed"
-                      value={settings?.branch?.first_order_time || '09:30:00'}
-                      onSave={(val: any) => handleUpdateBranch({ first_order_time: val })}
-                    />
-
-                    {/* Last Order Time */}
-                    <SettingsInput 
-                      type="time"
-                      disabled={isSaving}
-                      label="Last Order Time"
-                      sublabel="When the last order can be placed"
-                      value={settings?.branch?.last_order_time || '21:30:00'}
-                      onSave={(val: any) => handleUpdateBranch({ last_order_time: val })}
-                    />
-                  </div>
-                </div>
-
-                {/* Taxes & Fees Section */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Taxes & Fees</h3>
-                  </div>
-                  <div className="p-10 space-y-8">
-                    {/* Enable Tax */}
-                    <SettingsToggle 
-                      disabled={isSaving}
-                      label="Enable Tax"
-                      sublabel="Apply tax to all orders"
-                      enabled={settings?.branch?.is_tax_enabled === 1}
-                      onToggle={() => handleUpdateBranch({ is_tax_enabled: settings?.branch?.is_tax_enabled ? 0 : 1 })}
-                    />
-
-                    {/* Tax Rate */}
-                    <SettingsInput 
-                      disabled={isSaving}
-                      label="Tax Rate (%)"
-                      sublabel="Percentage to charge"
-                      value={settings?.branch?.tax_rate}
-                      onSave={(val: any) => handleUpdateBranch({ tax_rate: val })}
-                    />
-
-                    {/* Service Charge */}
-                    <SettingsInput 
-                      disabled={isSaving}
-                      label="Service Charge (%)"
-                      sublabel="Optional gratuity fee"
-                      value={settings?.branch?.gratuity_percentage}
-                      onSave={(val: any) => handleUpdateBranch({ gratuity_percentage: val })}
-                    />
-                  </div>
-                </div>
-
-                {/* Kitchen & Floor Section */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Kitchen & Floor</h3>
-                  </div>
-                  <div className="p-10 space-y-8">
-                    {/* KDS Timer */}
-                    <SettingsInput 
-                      disabled={isSaving}
-                      label="KDS Timer (Minutes)"
-                      sublabel="Warning threshold for orders"
-                      value={settings?.branch?.kds_timer_minutes}
-                      onSave={(val: any) => handleUpdateBranch({ kds_timer_minutes: val })}
-                    />
-
-                    {/* QR Table Ordering */}
-                    <div className="flex items-center justify-between group">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-black text-slate-800">QR Table Ordering</h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Allow customers to order from table</p>
-                      </div>
-                      <button 
-                        disabled={isSaving}
-                        onClick={() => handleUpdateBranch({ allow_qr_pay: !settings?.branch?.allow_qr_pay })}
-                        className={cn(
-                          "w-14 h-7 rounded-full transition-all relative p-1",
-                          isSaving ? "opacity-50 cursor-not-allowed" : "",
-                          settings?.branch?.allow_qr_pay ? "bg-orange-500 shadow-lg shadow-orange-500/20" : "bg-slate-200"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
-                          settings?.branch?.allow_qr_pay ? "translate-x-7" : "translate-x-0"
-                        )} />
-                      </button>
-                    </div>
-
-                    {/* Payment Policy */}
-                    <div className="flex items-center justify-between group">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-black text-slate-800">Payment Policy</h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Determine when payment is collected</p>
-                      </div>
-                      <select 
-                        disabled={isSaving}
-                        value={settings?.branch?.payment_policy || 'Pay Last'}
-                        onChange={(e) => handleUpdateBranch({ payment_policy: e.target.value })}
-                        className={cn(
-                          "bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-black outline-none focus:ring-4 focus:ring-orange-500/5 focus:bg-white transition-all appearance-none min-w-[120px] text-right",
-                          isSaving ? "opacity-50 cursor-not-allowed" : ""
-                        )}
-                      >
-                        <option value="Pay First">Pay First</option>
-                        <option value="Pay Last">Pay Last</option>
-                        <option value="Pay All">Pay All</option>
-                      </select>
-                    </div>
-
-                    {/* Order Sort */}
-                    <SettingsToggle 
-                      disabled={isSaving}
-                      label="Newest Orders First"
-                      sublabel={settings?.branch?.order_sort_direction === 'Descending' ? "Showing latest orders at the top" : "Showing oldest orders at the top"}
-                      enabled={settings?.branch?.order_sort_direction === 'Descending'}
-                      onToggle={() => handleUpdateBranch({ 
-                        order_sort_direction: settings?.branch?.order_sort_direction === 'Descending' ? 'Ascending' : 'Descending' 
-                      })}
-                    />
-                  </div>
-                </div>
-
-                {/* Order Channels Section */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Order Channels</h3>
-                  </div>
-                  <div className="p-10 space-y-8">
-                    {/* Home Delivery */}
-                    <SettingsToggle 
-                      disabled={isSaving}
-                      label="Home Delivery"
-                      sublabel="Enable delivery options on website"
-                      enabled={settings?.branch?.allow_delivery === 1}
-                      onToggle={() => handleUpdateBranch({ allow_delivery: settings?.branch?.allow_delivery ? 0 : 1 })}
-                    />
-
-                    {/* Customer Pickup */}
-                    <SettingsToggle 
-                      disabled={isSaving}
-                      label="Customer Pickup"
-                      sublabel="Enable pickup options on website"
-                      enabled={settings?.branch?.allow_pickup === 1}
-                      onToggle={() => handleUpdateBranch({ allow_pickup: settings?.branch?.allow_pickup ? 0 : 1 })}
-                    />
-                  </div>
-                </div>
-
-                {/* Reservations Section */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Reservations</h3>
-                  </div>
-                  <div className="p-10 space-y-8">
-                    {/* Enable Booking Fee */}
-                    <div className="flex items-center justify-between group">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-black text-slate-800">Enable Booking Fee</h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Charge a fee for table bookings</p>
-                      </div>
-                      <button 
-                        disabled={isSaving}
-                        onClick={() => handleUpdateBranch({ is_booking_fee_enabled: settings?.branch?.is_booking_fee_enabled ? 0 : 1 })}
-                        className={cn(
-                          "w-14 h-7 rounded-full transition-all relative p-1",
-                          isSaving ? "opacity-50 cursor-not-allowed" : "",
-                          settings?.branch?.is_booking_fee_enabled ? "bg-orange-500 shadow-lg shadow-orange-500/20" : "bg-slate-200"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
-                          settings?.branch?.is_booking_fee_enabled ? "translate-x-7" : "translate-x-0"
-                        )} />
-                      </button>
-                    </div>
-
-                    {/* Booking Fee Amount */}
-                    <SettingsInput 
-                      disabled={isSaving}
-                      label="Booking Fee Amount"
-                      sublabel="Flat amount per reservation"
-                      value={settings?.branch?.booking_fee_amount}
-                      onSave={(val: any) => handleUpdateBranch({ booking_fee_amount: val })}
-                    />
-
-                    {/* Reservation Gap */}
-                    <SettingsInput 
-                      disabled={isSaving}
-                      label="Reservation Gap (Minutes)"
-                      sublabel="Buffer time between bookings"
-                      value={settings?.branch?.reservation_gap_minutes || 30}
-                      onSave={(val: any) => handleUpdateBranch({ reservation_gap_minutes: val })}
-                    />
-
-                    {/* Default Stay Duration */}
-                    <SettingsInput 
-                      disabled={isSaving}
-                      label="Default Stay Duration (Minutes)"
-                      sublabel="Estimated table occupancy time"
-                      value={settings?.branch?.default_stay_duration_minutes || 60}
-                      onSave={(val: any) => handleUpdateBranch({ default_stay_duration_minutes: val })}
-                    />
-                  </div>
-                </div>
-
-                {/* Receipt Customization Section */}
-                <div className="bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-slate-800">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-                  <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Receipt Designer</h3>
-                      <p className="text-[10px] font-bold text-white/40 uppercase mt-1">Configure thermal & digital templates</p>
-                    </div>
-                    <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-                      <Receipt size={20} />
-                    </div>
-                  </div>
-                  <div className="p-10 space-y-8">
-                    {/* Receipt Header */}
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-2">Receipt Header</label>
-                      <textarea 
-                        rows={3}
-                        defaultValue={settings?.branch?.receipt_header || ''}
-                        onBlur={(e) => {
-                          if (e.target.value !== settings?.branch?.receipt_header) {
-                            handleUpdateBranch({ receipt_header: e.target.value });
-                          }
-                        }}
-                        placeholder="Enter restaurant address, VAT number, or welcome message..."
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-xs font-bold text-white outline-none focus:border-orange-500 transition-all resize-none no-scrollbar"
-                      />
-                    </div>
-
-                    {/* Receipt Footer */}
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-2">Receipt Footer</label>
-                      <textarea 
-                        rows={3}
-                        defaultValue={settings?.branch?.receipt_footer || ''}
-                        onBlur={(e) => {
-                          if (e.target.value !== settings?.branch?.receipt_footer) {
-                            handleUpdateBranch({ receipt_footer: e.target.value });
-                          }
-                        }}
-                        placeholder="Thank you for visiting! Follow us @zamzamkitchen"
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-xs font-bold text-white outline-none focus:border-orange-500 transition-all resize-none no-scrollbar"
-                      />
-                    </div>
-
-                    {/* QR Code Toggle */}
-                    <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/5">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-black text-white">Show Loyalty QR</h4>
-                        <p className="text-[10px] font-bold text-white/30 uppercase">Include QR for points & digital receipt</p>
-                      </div>
-                      <button 
-                        onClick={() => handleUpdateBranch({ show_qr_on_receipt: settings?.branch?.show_qr_on_receipt ? 0 : 1 })}
-                        className={cn(
-                          "w-14 h-7 rounded-full transition-all relative p-1",
-                          settings?.branch?.show_qr_on_receipt ? "bg-orange-500 shadow-lg shadow-orange-500/20" : "bg-white/10"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
-                          settings?.branch?.show_qr_on_receipt ? "translate-x-7" : "translate-x-0"
-                        )} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
-                   <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
-                      <Coins size={14} className="text-zamzam-teal" /> 
-                      System Currency
+                      <Coins size={12} /> Currency Symbol
                     </label>
-                    <div className="flex gap-4">
-                      <select 
-                        value={['AED', 'USD', 'SAR', 'QAR', 'OMR', 'BHD'].includes(settings?.tenant?.currency) ? settings?.tenant?.currency : 'Custom'}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val !== 'Custom') {
-                            handleUpdateTenant({ currency: val });
-                          }
-                        }}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all appearance-none min-w-[140px]"
-                      >
-                        <option value="AED">AED (Dirham)</option>
-                        <option value="USD">USD (Dollar)</option>
-                        <option value="SAR">SAR (Riyal)</option>
-                        <option value="QAR">QAR (Riyal)</option>
-                        <option value="OMR">OMR (Rial)</option>
-                        <option value="BHD">BHD (Dinar)</option>
-                        <option value="Custom">Custom...</option>
-                      </select>
-                      
-                      {(!['AED', 'USD', 'SAR', 'QAR', 'OMR', 'BHD'].includes(settings?.tenant?.currency) || settings?.tenant?.currency === 'Custom') && (
-                        <input 
-                          type="text" 
-                          placeholder="Enter Currency Code..."
-                          defaultValue={settings?.tenant?.currency || ''}
-                          onBlur={(e) => handleUpdateTenant({ currency: e.target.value })}
-                          className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
-                        />
-                      )}
-                    </div>
+                    <input 
+                      type="text" 
+                      defaultValue={settings.tenant.currency}
+                      onBlur={(e) => {
+                        if (e.target.value !== settings.tenant.currency) {
+                          handleUpdateTenant({ currency: e.target.value });
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                      <Receipt size={12} /> Tax Rate (%)
+                    </label>
+                    <input 
+                      type="number" 
+                      defaultValue={settings.branch.tax_rate}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (val !== settings.branch.tax_rate) {
+                          handleUpdateBranch({ tax_rate: val });
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                      <Clock size={12} /> KDS Warning Timer (Mins)
+                    </label>
+                    <input 
+                      type="number" 
+                      defaultValue={settings.branch.kds_timer_minutes}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (val !== settings.branch.kds_timer_minutes) {
+                          handleUpdateBranch({ kds_timer_minutes: val });
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                      <CreditCard size={12} /> Default Gratuity (%)
+                    </label>
+                    <input 
+                      type="number" 
+                      defaultValue={settings.branch.gratuity_percentage}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (val !== settings.branch.gratuity_percentage) {
+                          handleUpdateBranch({ gratuity_percentage: val });
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                    />
                   </div>
                 </div>
-              </motion.section>)}
+              </motion.section>
+            )}
+
             {activeSection === 'communications' && (
               <motion.div
                 key="communications"

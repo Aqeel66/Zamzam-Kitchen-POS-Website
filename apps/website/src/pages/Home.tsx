@@ -16,39 +16,22 @@ export default function Home() {
     phone: '+61 3 9939 2479',
     address: '329 Racecourse Road, VIC, Melbourne, Australia',
     name: 'Zamzam Kitchen',
-    heroBg: null as string | null,
-    openingTime: '12:00:00',
-    closingTime: '23:00:00'
+    heroBg: null as string | null
   });
 
-  const formatTime12hr = (timeStr: string) => {
-    if (!timeStr) return '';
-    const [h, m] = timeStr.split(':');
-    let hours = parseInt(h, 10);
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    return `${hours}:${m} ${ampm}`;
-  };
-
   useEffect(() => {
-    fetch(`${API_BASE_URL}/settings?t=${Date.now()}`)
+    fetch(`${API_BASE_URL}/settings`)
       .then(res => res.json())
       .then(data => {
-        setBranding(prev => ({
-          ...prev,
-          ...(data.tenant ? {
+        if (data.tenant) {
+          setBranding({
             email: data.tenant.business_email || 'info@zamzamkitchen.com',
             phone: data.tenant.business_phone || '+61 3 9939 2479',
             address: data.tenant.business_address || '329 Racecourse Road, VIC, Melbourne, Australia',
             name: data.tenant.restaurant_name || 'Zamzam Kitchen',
             heroBg: data.tenant.hero_background_url ? resolveImageUrl(data.tenant.hero_background_url) : null
-          } : {}),
-          ...(data.branch ? {
-            openingTime: data.branch.opening_time || '12:00:00',
-            closingTime: data.branch.closing_time || '23:00:00'
-          } : {})
-        }));
+          });
+        }
       })
       .catch(err => console.error('Error fetching branding:', err));
   }, []);
@@ -263,7 +246,7 @@ export default function Home() {
                       <div className="icon-circle"><Clock size={22}/></div>
                       <div className="text-col">
                           <strong>Hours</strong>
-                          <span>Opens Daily From: {formatTime12hr(branding.openingTime)} - {formatTime12hr(branding.closingTime)}</span>
+                          <span>Opens Daily From: 12:00 PM - 11:00 PM</span>
                       </div>
                   </div>
                   <div className="info-item">

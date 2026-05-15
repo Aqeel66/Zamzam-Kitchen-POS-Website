@@ -6,7 +6,7 @@ export default function Auth() {
   const [bgImage, setBgImage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/settings?t=${Date.now()}`)
+    fetch(`${API_BASE_URL}/settings`)
       .then(res => res.json())
       .then(data => {
         if (data.tenant?.login_background_url) {

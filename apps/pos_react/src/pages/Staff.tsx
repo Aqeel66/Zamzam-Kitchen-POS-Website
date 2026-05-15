@@ -116,12 +116,8 @@ export default function Staff() {
   const filteredUsers = users.filter(user => {
     const matchesSearch = (user.first_name + " " + user.last_name).toLowerCase().includes(searchQuery.toLowerCase()) ||
                          user.username.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Handle comma-separated roles string from backend
-    const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map(r => r.trim()) : [];
-    const roleName = userRoles[0] || 'Staff';
-    
-    const matchesFilter = activeFilter === 'All' || userRoles.some(r => r.toLowerCase() === activeFilter.toLowerCase());
+    const roleName = user.roles?.[0]?.name || 'Staff';
+    const matchesFilter = activeFilter === 'All' || roleName === activeFilter;
     return matchesSearch && matchesFilter;
   });
 
@@ -191,12 +187,8 @@ export default function Staff() {
         >
           <AnimatePresence mode='popLayout'>
             {filteredUsers.map((user) => {
-              const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map(r => r.trim()) : [];
-              const roleName = userRoles[0] || 'Staff';
-              
-              // Case-insensitive config lookup
-              const matchedRoleKey = Object.keys(roleConfigs).find(k => k.toLowerCase() === roleName.toLowerCase());
-              const config = (matchedRoleKey ? roleConfigs[matchedRoleKey] : null) || { color: 'text-slate-600', bg: 'bg-slate-50', icon: UserIcon };
+              const roleName = user.roles?.[0]?.name || 'Staff';
+              const config = roleConfigs[roleName] || { color: 'text-slate-600', bg: 'bg-slate-50', icon: UserIcon };
               
               return (
                 <motion.div
@@ -341,17 +333,6 @@ export default function Staff() {
                         placeholder="••••••••"
                       />
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Email Address</label>
-                    <input 
-                      type="email" 
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
-                      placeholder="john.doe@restaurant.com"
-                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-6">

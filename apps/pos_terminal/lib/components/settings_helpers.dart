@@ -16,7 +16,7 @@ class SettingsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withOpacity(0.6);
+    final themeHint = themeText.withValues(alpha: 0.6);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,7 +51,7 @@ class SettingsGridCard extends StatelessWidget {
     final theme = ThemeService().themeData;
     final themeCard = theme.cardColor;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeBorder = themeText.withOpacity(0.15);
+    final themeBorder = themeText.withValues(alpha: 0.15);
 
     return Container(
       decoration: BoxDecoration(
@@ -132,7 +132,7 @@ class _SettingInputState extends State<SettingInput> {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withOpacity(0.6);
+    final themeHint = themeText.withValues(alpha: 0.6);
     final themePrimary = theme.primaryColor;
 
     return ListTile(
@@ -214,7 +214,7 @@ class SettingToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withOpacity(0.6);
+    final themeHint = themeText.withValues(alpha: 0.6);
     final themePrimary = theme.primaryColor;
 
     return ListTile(
@@ -231,7 +231,7 @@ class SettingToggle extends StatelessWidget {
         value: value,
         onChanged: onChanged,
         activeThumbColor: themePrimary,
-        activeTrackColor: themePrimary.withOpacity(0.3),
+        activeTrackColor: themePrimary.withValues(alpha: 0.3),
       ),
     );
   }
@@ -260,7 +260,7 @@ class SettingDropdown extends StatelessWidget {
     final theme = ThemeService().themeData;
     final themeCard = theme.cardColor;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withOpacity(0.6);
+    final themeHint = themeText.withValues(alpha: 0.6);
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -309,7 +309,7 @@ class SettingColorPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withOpacity(0.6);
+    final themeHint = themeText.withValues(alpha: 0.6);
 
     final presets = [
       {
@@ -366,7 +366,9 @@ class SettingColorPicker extends StatelessWidget {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: (p['color'] as Color).withOpacity(0.4),
+                              color: (p['color'] as Color).withValues(
+                                alpha: 0.4,
+                              ),
                               blurRadius: 8,
                               spreadRadius: 2,
                             ),
@@ -432,7 +434,7 @@ class SettingActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeService().themeData;
     final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-    final themeHint = themeText.withOpacity(0.6);
+    final themeHint = themeText.withValues(alpha: 0.6);
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -460,4 +462,3 @@ class SettingActionRow extends StatelessWidget {
     );
   }
 }
-

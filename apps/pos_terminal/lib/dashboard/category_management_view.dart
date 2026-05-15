@@ -66,8 +66,8 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
         final themeBg = theme.scaffoldBackgroundColor;
         final themeCard = theme.cardColor;
         final themeText = theme.textTheme.bodyLarge?.color ?? Colors.black87;
-        final themeHint = themeText.withOpacity(0.6);
-        final themeBorder = themeText.withOpacity(0.15);
+        final themeHint = themeText.withValues(alpha: 0.6);
+        final themeBorder = themeText.withValues(alpha: 0.15);
         final themePrimary = theme.primaryColor;
 
         return Container(
@@ -138,7 +138,7 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                                       ),
                                       fit: BoxFit.cover,
                                     ),
-                                    color: themePrimary.withOpacity(0.1),
+                                    color: themePrimary.withValues(alpha: 0.1),
                                   ),
                                   child:
                                       cat['image'] == null ||
@@ -247,7 +247,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: themePrimary.withOpacity(0.1),
+                            backgroundColor: themePrimary.withValues(
+                              alpha: 0.1,
+                            ),
                             foregroundColor: themePrimary,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(
@@ -265,7 +267,7 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                           width: 54,
                           height: 54,
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: themeBorder),
                           ),
@@ -352,7 +354,7 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
         title: Text('Delete Category?', style: TextStyle(color: themeText)),
         content: Text(
           'Are you sure you want to delete "${cat['name']}"? This will not delete items but they will be un-categorized.',
-          style: TextStyle(color: themeText.withOpacity(0.7)),
+          style: TextStyle(color: themeText.withValues(alpha: 0.7)),
         ),
         actions: [
           TextButton(
@@ -398,4 +400,3 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
     );
   }
 }
-

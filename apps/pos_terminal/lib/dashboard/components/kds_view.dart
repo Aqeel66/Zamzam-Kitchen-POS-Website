@@ -57,7 +57,7 @@ class KDSView extends StatelessWidget {
               Icon(
                 Icons.kitchen_rounded,
                 size: 80,
-                color: themeHint.withOpacity(0.2),
+                color: themeHint.withValues(alpha: 0.2),
               ),
               const SizedBox(height: 16),
               Text(
@@ -282,7 +282,7 @@ class KDSView extends StatelessWidget {
             border: Border.all(color: themeBorder),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -296,8 +296,8 @@ class KDSView extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: order['status'] == 'Ready'
-                      ? Colors.green.withOpacity(0.08)
-                      : themePrimary.withOpacity(0.08),
+                      ? Colors.green.withValues(alpha: 0.08)
+                      : themePrimary.withValues(alpha: 0.08),
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
@@ -359,7 +359,7 @@ class KDSView extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
+                              color: Colors.green.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -479,7 +479,7 @@ class KDSView extends StatelessWidget {
                     vertical: 6,
                   ),
                   margin: const EdgeInsets.only(bottom: 4),
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   child: Text(
                     'REASON: ${order['rejection_reason']}',
                     style: const TextStyle(
@@ -575,4 +575,3 @@ class KDSView extends StatelessWidget {
     );
   }
 }
-

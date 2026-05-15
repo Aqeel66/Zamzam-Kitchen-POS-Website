@@ -9,15 +9,8 @@ import 'package:pos_terminal/dashboard/pos_mission_control.dart';
 
 class PurchaseManagementView extends StatefulWidget {
   final bool isDarkMode;
-  final int? onlyShowTab;
-  final int initialTab;
 
-  const PurchaseManagementView({
-    super.key, 
-    required this.isDarkMode,
-    this.onlyShowTab,
-    this.initialTab = 0,
-  });
+  const PurchaseManagementView({super.key, required this.isDarkMode});
 
   @override
   State<PurchaseManagementView> createState() => _PurchaseManagementViewState();
@@ -54,8 +47,8 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
   Color get themeText =>
       _theme.textTheme.bodyLarge?.color ??
       (widget.isDarkMode ? Colors.white : const Color(0xFF1E293B));
-  Color get themeHint => themeText.withOpacity(0.6);
-  Color get themeBorder => themeText.withOpacity(0.12);
+  Color get themeHint => themeText.withValues(alpha: 0.6);
+  Color get themeBorder => themeText.withValues(alpha: 0.12);
   Color get themePrimary => _theme.primaryColor;
 
   @override
@@ -393,13 +386,8 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.onlyShowTab != null) {
-      return _buildSingleTab(widget.onlyShowTab!);
-    }
-
     return DefaultTabController(
       length: 4,
-      initialIndex: widget.initialTab,
       child: Container(
         color: themeBg,
         child: Column(
@@ -444,21 +432,6 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         ),
       ),
     );
-  }
-
-  Widget _buildSingleTab(int index) {
-    switch (index) {
-      case 0:
-        return _buildPurchasesTab();
-      case 1:
-        return _buildSuppliersTab();
-      case 2:
-        return _buildLinkageTab();
-      case 3:
-        return _buildTrendsTab();
-      default:
-        return _buildPurchasesTab();
-    }
   }
 
   Widget _buildTabBar() {
@@ -548,7 +521,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
         color: themeCard,
         borderRadius: BorderRadius.circular(16),
         border: isPending
-            ? Border.all(color: themePrimary.withOpacity(0.3), width: 1)
+            ? Border.all(color: themePrimary.withValues(alpha: 0.3), width: 1)
             : null,
       ),
       child: Row(
@@ -556,7 +529,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: (isPending ? themePrimary : Colors.green).withOpacity(0.1),
+              color: (isPending ? themePrimary : Colors.green).withValues(
+                alpha: 0.1,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -589,7 +564,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                       ),
                       decoration: BoxDecoration(
                         color: (isPending ? Colors.orange : Colors.green)
-                            .withOpacity(0.1),
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -946,7 +921,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: themePrimary.withOpacity(0.1),
+                              backgroundColor: themePrimary.withValues(
+                                alpha: 0.1,
+                              ),
                               child: Text(
                                 s['name']?[0] ?? 'V',
                                 style: TextStyle(color: themePrimary),
@@ -1117,7 +1094,7 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                     borderRadius: BorderRadius.circular(16),
                     border: isLow
                         ? Border.all(
-                            color: Colors.red.withOpacity(0.3),
+                            color: Colors.red.withValues(alpha: 0.3),
                             width: 1,
                           )
                         : null,
@@ -1408,7 +1385,9 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
                               child: Row(
                                 children: [
                                   CircleAvatar(
-                                    backgroundColor: themePrimary.withOpacity(0.1),
+                                    backgroundColor: themePrimary.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     child: Icon(
                                       Icons.business_rounded,
                                       color: themePrimary,
@@ -1553,4 +1532,3 @@ class _PurchaseManagementViewState extends State<PurchaseManagementView> {
     );
   }
 }
-

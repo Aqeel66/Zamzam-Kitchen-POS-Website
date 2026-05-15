@@ -251,7 +251,7 @@ class _MyOrdersViewState extends State<MyOrdersView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Total Amount', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              const Text('Total (before tax)', style: TextStyle(color: Colors.grey, fontSize: 12)),
               Text(
                 '${ThemeService.currency}${double.tryParse(order['total_amount'].toString())?.toStringAsFixed(2) ?? '0.00'}',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),

@@ -15,7 +15,7 @@ export default function Success() {
   const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/settings?t=${Date.now()}`)
+    fetch(`${API_BASE_URL}/settings`)
       .then(res => res.json())
       .then(data => {
         setSettings(data);

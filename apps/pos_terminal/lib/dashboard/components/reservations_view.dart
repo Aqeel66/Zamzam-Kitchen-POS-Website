@@ -210,7 +210,7 @@ class _ReservationsViewState extends State<ReservationsView> {
                               Icon(
                                 Icons.event_busy_rounded,
                                 size: 64,
-                                color: widget.themeHint.withOpacity(0.3),
+                                color: widget.themeHint.withValues(alpha: 0.3),
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -249,7 +249,7 @@ class _ReservationsViewState extends State<ReservationsView> {
             flex: 3,
             child: Container(
               decoration: BoxDecoration(
-                color: widget.themeCard.withOpacity(0.3),
+                color: widget.themeCard.withValues(alpha: 0.3),
                 border: Border(left: BorderSide(color: widget.themeBorder)),
               ),
               child: widget.selectedReservation == null
@@ -260,7 +260,7 @@ class _ReservationsViewState extends State<ReservationsView> {
                           Icon(
                             Icons.info_outline_rounded,
                             size: 48,
-                            color: widget.themeHint.withOpacity(0.2),
+                            color: widget.themeHint.withValues(alpha: 0.2),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -327,8 +327,8 @@ class _ReservationsViewState extends State<ReservationsView> {
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? widget.themePrimary.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.01),
+                  ? widget.themePrimary.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.01),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -676,9 +676,9 @@ class _ReservationsViewState extends State<ReservationsView> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -786,7 +786,7 @@ class _ReservationsViewState extends State<ReservationsView> {
           decoration: InputDecoration(
             isDense: true,
             filled: true,
-            fillColor: widget.themeBg.withOpacity(0.5),
+            fillColor: widget.themeBg.withValues(alpha: 0.5),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 10,
               vertical: 8,
@@ -819,7 +819,7 @@ class _ReservationsViewState extends State<ReservationsView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: widget.themeBg.withOpacity(0.5),
+        color: widget.themeBg.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: widget.themeBorder),
       ),
@@ -933,8 +933,8 @@ class _ReservationsViewState extends State<ReservationsView> {
                       ),
                       decoration: BoxDecoration(
                         color: sel
-                            ? Colors.white.withOpacity(0.2)
-                            : widget.themePrimary.withOpacity(0.1),
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : widget.themePrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -968,4 +968,3 @@ class _ReservationsViewState extends State<ReservationsView> {
     );
   }
 }
-

@@ -1,301 +1,339 @@
 import { useState, useEffect } from 'react';
 import { 
+  Ticket, 
   Plus, 
+  Search, 
   Trash2, 
-  Clock, 
-  Ticket,
+  Calendar, 
+  DollarSign, 
   Percent,
   CheckCircle2,
-  X,
-  Calendar,
-  DollarSign
+  XCircle,
+  Clock,
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
 
-const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(Boolean).join(' ');
+interface Promotion {
+  id: number;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  min_spend: number;
+  valid_until: string | null;
+  is_active: number;
+  created_at?: string;
+}
 
 export default function Promotions() {
-  const [promotions, setPromotions] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>(null);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   
-  const generatePromoCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let result = 'ZK-';
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
   const [formData, setFormData] = useState({
-    code: generatePromoCode(),
-    discount_type: 'percentage' as 'percentage' | 'fixed',
-    discount_value: 0,
-    min_spend: 0,
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    is_active: true
+    code: '',
+    discount_type: 'percentage',
+    discount_value: '',
+    min_spend: '0',
+    valid_until: ''
   });
 
   useEffect(() => {
     fetchPromotions();
-    fetchSettings();
   }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
-      const data = await res.json();
-      setSettings(data);
-    } catch (err) { console.error('Settings Error:', err); }
-  };
 
   const fetchPromotions = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/promotions`);
-      const data = await res.json();
+      const response = await fetch(`${API_BASE_URL}/promotions`);
+      const data = await response.json();
       setPromotions(data);
-    } catch (err) { console.error('Fetch Error:', err); }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/promotions/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchPromotions();
-        window.dispatchEvent(new CustomEvent('show-toast', { 
-          detail: { message: 'Campaign Deleted', type: 'success' } 
-        }));
-      }
-    } catch (err) { console.error('Delete Error:', err); }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    try {
-      const payload = {
-        code: formData.code,
-        discount_type: formData.discount_type === 'percentage' ? 'Percentage' : 'Fixed',
-        discount_value: formData.discount_value,
-        min_spend: formData.min_spend,
-        valid_from: formData.start_date,
-        valid_until: formData.end_date,
-        is_active: formData.is_active ? 1 : 0
-      };
-
-      const res = await fetch(`${API_BASE_URL}/promotions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        fetchPromotions();
-        setIsModalOpen(false);
-        window.dispatchEvent(new CustomEvent('show-toast', { 
-          detail: { message: 'Campaign Created Successfully', type: 'success' } 
-        }));
-        setFormData({
-          code: generatePromoCode(),
-          discount_type: 'percentage',
-          discount_value: 0,
-          min_spend: 0,
-          start_date: new Date().toISOString().split('T')[0],
-          end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          is_active: true
-        });
-      }
-    } catch (err) { 
-      console.error('Save Error:', err); 
+    } catch (error) {
+      console.error('Fetch Promos Error:', error);
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
-  const currency = settings?.tenant?.currency || 'USD';
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${API_BASE_URL}/promotions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          discount_value: parseFloat(formData.discount_value),
+          min_spend: parseFloat(formData.min_spend),
+          valid_until: formData.valid_until || null
+        })
+      });
+
+      if (response.ok) {
+        setIsModalOpen(false);
+        setFormData({ code: '', discount_type: 'percentage', discount_value: '', min_spend: '0', valid_until: '' });
+        fetchPromotions();
+      } else {
+        const error = await response.json();
+        alert(error.message);
+      }
+    } catch (error) {
+      console.error('Create Promo Error:', error);
+    }
+  };
+
+  const toggleStatus = async (id: number, currentStatus: number) => {
+    try {
+      await fetch(`${API_BASE_URL}/promotions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: currentStatus === 1 ? 0 : 1 })
+      });
+      fetchPromotions();
+    } catch (error) {
+      console.error('Toggle Status Error:', error);
+    }
+  };
+
+  const deletePromo = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this promo code?')) return;
+    try {
+      await fetch(`${API_BASE_URL}/promotions/${id}`, { method: 'DELETE' });
+      fetchPromotions();
+    } catch (error) {
+      console.error('Delete Promo Error:', error);
+    }
+  };
+
+  const filteredPromos = promotions.filter(p => 
+    p.code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col bg-[#F8F9FA]">
-      
-      {/* Header */}
-      <div className="bg-white border-b border-slate-100 shadow-sm shrink-0">
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-zamzam-teal rounded-xl flex items-center justify-center text-white shadow-lg shadow-teal-500/20">
-              <Ticket size={18} />
+    <div className="p-10 max-w-7xl mx-auto space-y-10">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Promotions <span className="text-zamzam-teal">&</span> Coupons</h1>
+          <p className="text-slate-400 font-bold mt-1 uppercase tracking-widest text-xs flex items-center gap-2">
+            <Ticket size={14} className="text-zamzam-teal" />
+            Manage marketing campaigns and discounts
+          </p>
+        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-zamzam-teal text-white px-8 py-4 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+        >
+          <Plus size={18} />
+          Create New Code
+        </button>
+      </header>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-3 gap-6">
+        {[
+          { label: 'Active Codes', value: promotions.filter(p => p.is_active).length, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50' },
+          { label: 'Total Codes', value: promotions.length, icon: Ticket, color: 'text-zamzam-teal', bg: 'bg-teal-50' },
+          { label: 'Expired/Inactive', value: promotions.filter(p => !p.is_active).length, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
+            <div className={`w-16 h-16 ${stat.bg} rounded-2xl flex items-center justify-center`}>
+              <stat.icon className={stat.color} size={28} />
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">Promotions <span className="text-zamzam-teal">& Coupons</span></h1>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Campaign Engine</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+              <h3 className="text-2xl font-black text-slate-900 mt-0.5">{stat.value}</h3>
             </div>
           </div>
-          <button 
-            onClick={() => {
-              setFormData({...formData, code: generatePromoCode()});
-              setIsModalOpen(true);
-            }} 
-            className="bg-zamzam-teal text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-teal-500/20 hover:bg-teal-400 transition-all flex items-center gap-2 active:scale-95"
-          >
-            <Plus size={14} strokeWidth={3} /> New Campaign
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          <AnimatePresence>
-            {promotions.map((promo) => (
-              <motion.div 
-                key={promo.id} 
+      <div className="relative group max-w-md">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-zamzam-teal transition-colors" size={20} />
+        <input 
+          type="text"
+          placeholder="Search by promo code..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-white border border-slate-100 rounded-[1.5rem] py-4 pl-14 pr-6 text-sm font-bold shadow-sm focus:ring-4 focus:ring-zamzam-teal/5 focus:border-zamzam-teal outline-none transition-all"
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-zamzam-teal rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+          <AnimatePresence mode="popLayout">
+            {filteredPromos.map((promo) => (
+              <motion.div
                 layout
-                initial={{ opacity: 0, scale: 0.95 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"
+                key={promo.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="group bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 transition-all overflow-hidden flex flex-col"
               >
-                <div className="p-4 flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <span className={cn(
-                      "px-2 py-1 rounded border text-[9px] font-black uppercase tracking-widest",
-                      promo.is_active ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100"
-                    )}>
-                      {promo.is_active ? 'Active' : 'Expired'}
-                    </span>
+                <div className="p-8 pb-4">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="bg-zamzam-teal/5 p-4 rounded-2xl">
+                      <Ticket className="text-zamzam-teal" size={32} />
+                    </div>
                     <button 
-                      onClick={() => handleDelete(promo.id)}
-                      className="text-slate-300 hover:text-red-500 transition-all hover:bg-red-50 p-1.5 rounded-lg"
+                      onClick={() => toggleStatus(promo.id, promo.is_active)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        promo.is_active 
+                        ? 'bg-green-50 text-green-600 border border-green-100' 
+                        : 'bg-red-50 text-red-600 border border-red-100'
+                      }`}
                     >
-                      <Trash2 size={14} />
+                      {promo.is_active ? 'Active' : 'Inactive'}
                     </button>
                   </div>
-                  
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight truncate">{promo.code}</h3>
-                  <div className="mt-1 inline-block px-2 py-0.5 bg-zamzam-teal/10 text-zamzam-teal text-[10px] font-black uppercase rounded">
-                    {promo.discount_value}{promo.discount_type?.toString().toLowerCase() === 'percentage' ? '%' : ` ${currency}`} OFF
-                  </div>
 
-                  <div className="space-y-2 mt-4 pt-4 border-t border-slate-100">
-                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
-                       <span className="text-slate-400">Min Spend</span>
-                       <span className="text-slate-700">{promo.min_spend} {currency}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
-                       <span className="text-slate-400">Ends On</span>
-                       <span className="text-slate-700 flex items-center gap-1">
-                         <Clock size={10} className="text-zamzam-teal" /> 
-                         {promo.valid_until ? new Date(promo.valid_until).toLocaleDateString() : 'Never'}
-                       </span>
-                    </div>
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 font-mono">{promo.code}</h3>
+                  <div className="flex items-center gap-2 text-zamzam-teal font-black text-sm uppercase tracking-tight">
+                    {promo.discount_type === 'percentage' ? <Percent size={14} /> : <DollarSign size={14} />}
+                    {promo.discount_value}{promo.discount_type === 'percentage' ? '%' : ' AED'} OFF
+                  </div>
+                </div>
+
+                <div className="mt-auto bg-slate-50/50 p-8 border-t border-slate-50 space-y-4">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Clock size={14} />
+                      Min Spend
+                    </span>
+                    <span className="text-slate-900">{promo.min_spend} AED</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Calendar size={14} />
+                      Valid Until
+                    </span>
+                    <span className="text-slate-900">
+                      {promo.valid_until ? new Date(promo.valid_until).toLocaleDateString() : 'No Expiry'}
+                    </span>
+                  </div>
+                  
+                  <div className="pt-4 flex items-center justify-between border-t border-slate-100">
+                     <button 
+                      onClick={() => deletePromo(promo.id)}
+                      className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                     >
+                        <Trash2 size={18} />
+                     </button>
+                     <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                        Details <ChevronRight size={14} />
+                     </div>
                   </div>
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
-      </div>
+      )}
 
-      {/* CREATE MODAL */}
+      {/* Create Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
-               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                 <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">New <span className="text-zamzam-teal">Campaign</span></h2>
-                 <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 bg-white text-slate-400 rounded-lg flex items-center justify-center hover:bg-slate-100 border border-slate-200 transition-all shadow-sm">
-                    <X size={16} />
-                 </button>
-               </div>
-               
-               <form onSubmit={handleSubmit} className="p-5 space-y-4">
-                  <div className="space-y-1.5">
-                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Promo Code</label>
-                     <div className="relative">
-                        <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input 
-                          required
-                          value={formData.code}
-                          onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
-                          placeholder="E.G. SUMMER20" 
-                          className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-bold uppercase outline-none focus:ring-2 focus:ring-zamzam-teal/20 focus:border-zamzam-teal transition-all shadow-sm" 
-                        />
-                     </div>
-                  </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-xl bg-white rounded-[3rem] shadow-2xl overflow-hidden p-10"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 uppercase">New Promotion</h2>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Configure your discount code</p>
+                </div>
+                <button onClick={() => setIsModalOpen(false)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-slate-600 transition-all">
+                  <X size={20} />
+                </button>
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Discount Type</label>
-                       <select 
-                        value={formData.discount_type}
-                        onChange={(e) => setFormData({...formData, discount_type: e.target.value as any})}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold uppercase outline-none focus:ring-2 focus:ring-zamzam-teal/20 focus:border-zamzam-teal transition-all shadow-sm appearance-none"
-                       >
-                          <option value="percentage">Percentage (%)</option>
-                          <option value="fixed">Fixed Amount ({currency})</option>
-                       </select>
-                    </div>
-                    <div className="space-y-1.5">
-                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Discount Value</label>
-                       <div className="relative">
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-black text-[10px]">
-                             {formData.discount_type === 'percentage' ? '%' : currency}
-                          </div>
-                          <input 
-                            required
-                            type="number" 
-                            value={formData.discount_value}
-                            onChange={(e) => setFormData({...formData, discount_value: parseFloat(e.target.value)})}
-                            className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-8 pr-3 text-xs font-bold outline-none focus:ring-2 focus:ring-zamzam-teal/20 focus:border-zamzam-teal transition-all shadow-sm" 
-                          />
-                       </div>
-                    </div>
-                  </div>
+              <form onSubmit={handleCreate} className="space-y-6">
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Promo Code</label>
+                  <input 
+                    required
+                    type="text"
+                    placeholder="E.G. ZAMZAM50"
+                    value={formData.code}
+                    onChange={e => setFormData({...formData, code: e.target.value})}
+                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none"
+                  />
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Min Spend ({currency})</label>
-                       <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                          <input 
-                            type="number" 
-                            value={formData.min_spend}
-                            onChange={(e) => setFormData({...formData, min_spend: parseFloat(e.target.value)})}
-                            className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-bold outline-none focus:ring-2 focus:ring-zamzam-teal/20 focus:border-zamzam-teal transition-all shadow-sm" 
-                          />
-                       </div>
-                    </div>
-                    <div className="space-y-1.5">
-                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Expiry Date</label>
-                       <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                          <input 
-                            type="date" 
-                            value={formData.end_date}
-                            onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-                            className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-[11px] font-bold outline-none focus:ring-2 focus:ring-zamzam-teal/20 focus:border-zamzam-teal transition-all shadow-sm" 
-                          />
-                       </div>
-                    </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Type</label>
+                    <select 
+                      value={formData.discount_type}
+                      onChange={e => setFormData({...formData, discount_type: e.target.value as any})}
+                      className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none appearance-none"
+                    >
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount (AED)</option>
+                    </select>
                   </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Value</label>
+                    <input 
+                      required
+                      type="number"
+                      placeholder="Value"
+                      value={formData.discount_value}
+                      onChange={e => setFormData({...formData, discount_value: e.target.value})}
+                      className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none"
+                    />
+                  </div>
+                </div>
 
-                  <button 
-                    type="submit" 
-                    disabled={isSaving}
-                    className="w-full bg-zamzam-teal text-white py-3 mt-2 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-teal-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isSaving ? 'Processing...' : 'Activate Campaign'}
-                  </button>
-               </form>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Min Spend</label>
+                    <input 
+                      type="number"
+                      placeholder="0"
+                      value={formData.min_spend}
+                      onChange={e => setFormData({...formData, min_spend: e.target.value})}
+                      className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Expiry Date</label>
+                    <input 
+                      type="date"
+                      value={formData.valid_until}
+                      onChange={e => setFormData({...formData, valid_until: e.target.value})}
+                      className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-4 focus:ring-zamzam-teal/10 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  className="w-full bg-zamzam-teal text-white py-5 rounded-3xl font-black uppercase tracking-widest text-sm shadow-xl shadow-teal-500/20 mt-4 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  Create Promotion
+                </button>
+              </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
