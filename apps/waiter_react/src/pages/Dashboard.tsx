@@ -13,35 +13,47 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { orderService } from '../services/orderService';
+import { orderService, tableService, menuService } from '../services/orderService';
 import NewOrder from './NewOrder';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
+  const [tables, setTables] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeMenuCategory, setActiveMenuCategory] = useState<any>(null);
   const { user, logout } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setError(null);
-        // Fetch orders and stats separately to avoid one failing the other
-        try {
-          const ordersData = await orderService.fetchOrders();
-          setOrders(Array.isArray(ordersData) ? ordersData : []);
-        } catch (e) { 
-          console.error('Orders fetch failed', e);
-          setError("Backend connection issue. Please restart your server.");
+        
+        // Parallel fetch for everything
+        const [ordersData, statsData, tablesData, menuData] = await Promise.allSettled([
+          orderService.fetchOrders(),
+          orderService.fetchDashboardStats(),
+          tableService.fetchTables(),
+          menuService.fetchAllItems()
+        ]);
+
+        if (ordersData.status === 'fulfilled') setOrders(Array.isArray(ordersData.value) ? ordersData.value : []);
+        if (statsData.status === 'fulfilled') setDashboardStats(statsData.value);
+        if (tablesData.status === 'fulfilled') setTables(Array.isArray(tablesData.value) ? tablesData.value : []);
+        if (menuData.status === 'fulfilled') {
+          const mData = Array.isArray(menuData.value) ? menuData.value : [];
+          setCategories(mData);
+          if (mData.length > 0 && !activeMenuCategory) setActiveMenuCategory(mData[0]);
         }
 
-        try {
-          const statsData = await orderService.fetchDashboardStats();
-          setDashboardStats(statsData);
-        } catch (e) { console.error('Dashboard stats fetch failed', e); }
+        if (ordersData.status === 'rejected') {
+          console.error('Orders fetch failed', ordersData.reason);
+          setError("Backend connection issue. Please restart your server.");
+        }
 
       } catch (err) {
         console.error('General data fetch error:', err);
@@ -259,25 +271,48 @@ const Dashboard = () => {
               <div className="space-y-6">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-teal-900">Digital Menu Viewer</h3>
-                  <button onClick={() => setShowNewOrder(true)} className="bg-zamzam-yellow px-6 py-2 rounded-xl font-bold text-sm shadow-sm active:scale-95 transition-all">
-                    START NEW ORDER
-                  </button>
+                  <div className="flex gap-2">
+                    {categories.map((cat: any) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setActiveMenuCategory(cat)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                          activeMenuCategory?.id === cat.id 
+                            ? 'bg-teal-900 text-white shadow-lg shadow-teal-900/20' 
+                            : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {dashboardStats?.popularDishes?.map((dish: any, idx: number) => (
-                    <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-900">
-                        <UtensilsCrossed size={20} />
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {activeMenuCategory?.items?.map((item: any) => (
+                    <div key={item.id} className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-3 group hover:border-teal-900/20 transition-all">
+                      <div className="aspect-square rounded-[1.5rem] bg-slate-50 overflow-hidden relative">
+                         <div className="absolute inset-0 flex items-center justify-center">
+                            <UtensilsCrossed className="text-slate-200 w-10 h-10 group-hover:scale-110 transition-transform" />
+                         </div>
+                         {!item.is_available && (
+                           <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+                             <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Out of Stock</span>
+                           </div>
+                         )}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-800">{dish.name}</p>
-                        <p className="text-xs text-slate-400 font-medium">Daily Favorite</p>
+                        <p className="font-bold text-slate-800 text-sm mb-1">{item.name}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-teal-900 font-black text-sm">£{parseFloat(item.price).toFixed(2)}</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">{item.badge || 'Standard'}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
-                  {(!dashboardStats?.popularDishes || dashboardStats.popularDishes.length === 0) && (
+                  {(!activeMenuCategory?.items || activeMenuCategory.items.length === 0) && (
                     <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                      <p className="text-slate-400 font-medium">Menu browsing is active. Click "Create New Order" to see the full catalog with categories.</p>
+                      <p className="text-slate-400 font-medium">Select a category to view items</p>
                     </div>
                   )}
                 </div>
@@ -327,17 +362,59 @@ const Dashboard = () => {
             )}
 
             {activeTab === 'table' && (
-              <div className="bg-white rounded-[2.5rem] p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 bg-teal-50 rounded-3xl flex items-center justify-center text-teal-900 mb-6">
-                  <LayoutDashboard size={32} />
+              <div className="space-y-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-teal-900">Floor Layout</h3>
+                  <div className="flex gap-2">
+                    <span className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-600 rounded-xl text-[10px] font-black uppercase border border-green-100">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Available
+                    </span>
+                    <span className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase border border-red-100">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Occupied
+                    </span>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-black text-teal-900 mb-2 uppercase tracking-tight">Table View</h3>
-                <p className="text-slate-500 max-w-xs font-medium text-sm">
-                  Switching to "Select Table" in the Order flow provides a live view of available tables.
-                </p>
-                <button onClick={() => setShowNewOrder(true)} className="mt-8 bg-teal-900 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-teal-900/20 active:scale-95 transition-all">
-                  Open Table Map
-                </button>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {tables.map((table: any) => {
+                    const isOccupied = table.status?.toLowerCase() === 'occupied' || table.status?.toLowerCase() === 'full';
+                    return (
+                      <div 
+                        key={table.id} 
+                        className={`bg-white p-5 rounded-[2.5rem] border transition-all shadow-sm flex flex-col items-center gap-4 ${
+                          isOccupied ? 'border-red-100 shadow-red-900/5' : 'border-slate-100'
+                        }`}
+                      >
+                        <div className={`w-16 h-16 rounded-[1.8rem] flex flex-col items-center justify-center font-black transition-all border-2 shadow-inner ${
+                          isOccupied ? 'bg-red-50 text-red-600 border-red-100' : 'bg-teal-50 text-teal-900 border-teal-100'
+                        }`}>
+                          <span className="text-xl leading-none">{table.table_number}</span>
+                          <span className="text-[8px] uppercase tracking-widest mt-1 opacity-50">Table</span>
+                        </div>
+                        
+                        <div className="text-center">
+                          <p className="text-xs font-black text-slate-800 uppercase tracking-tight mb-1">Capacity: {table.capacity}</p>
+                          <div className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
+                            isOccupied ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-teal-900 text-white'
+                          }`}>
+                            {table.status || 'Available'}
+                          </div>
+                        </div>
+
+                        {isOccupied && (
+                          <div className="w-full h-1 bg-slate-50 rounded-full overflow-hidden mt-2">
+                            <div className="h-full bg-red-500 animate-pulse" style={{ width: '100%' }} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {tables.length === 0 && (
+                    <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-200">
+                      <p className="text-slate-400 font-medium">No tables configured in the system</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>
