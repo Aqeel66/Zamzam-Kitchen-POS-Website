@@ -19,6 +19,11 @@ export const orderService = {
   fetchDashboardStats: async () => {
     const response = await api.get('reports/waiter-dashboard');
     return response.data;
+  },
+  
+  fetchSettings: async () => {
+    const response = await api.get('settings');
+    return response.data;
   }
 };
 

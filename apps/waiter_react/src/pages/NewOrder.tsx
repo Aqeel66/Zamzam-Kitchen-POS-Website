@@ -26,26 +26,31 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
 
   const { cart, tableId, setTableId, addItem, removeItem, clearCart, total } = useCart();
   const { user } = useAuth();
 
+  const currency = settings?.tenant?.currency_symbol || '$';
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        try {
-          const tablesData = await tableService.fetchTables();
-          setTables(Array.isArray(tablesData) ? tablesData : []);
-        } catch (e) { console.error('Tables fetch failed', e); }
+        setIsLoading(true);
+        const [tablesData, menuData, settingsData] = await Promise.allSettled([
+          tableService.fetchTables(),
+          menuService.fetchAllItems(),
+          orderService.fetchSettings()
+        ]);
 
-        try {
-          const menuData = await menuService.fetchAllItems();
-          setCategories(Array.isArray(menuData) ? menuData : []);
-          if (Array.isArray(menuData) && menuData.length > 0) {
-            setActiveCategory(menuData[0]);
-          }
-        } catch (e) { console.error('Menu fetch failed', e); }
-        
+        if (tablesData.status === 'fulfilled') setTables(Array.isArray(tablesData.value) ? tablesData.value : []);
+        if (menuData.status === 'fulfilled') {
+          const mData = Array.isArray(menuData.value) ? menuData.value : [];
+          setCategories(mData);
+          if (mData.length > 0) setActiveCategory(mData[0]);
+        }
+        if (settingsData.status === 'fulfilled') setSettings(settingsData.value);
+
       } catch (err) {
         console.error('Failed to load order data:', err);
       } finally {
@@ -113,7 +118,7 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
             </div>
           )}
           <div className="bg-yellow-100 px-4 py-2 rounded-xl">
-            <span className="text-xs font-black text-yellow-700">£{total.toFixed(2)}</span>
+            <span className="text-xs font-black text-yellow-700">{currency}{total.toFixed(2)}</span>
           </div>
         </div>
       </header>
@@ -203,7 +208,7 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
                           </div>
                         </div>
                         <div className="flex items-center justify-between mt-6">
-                          <span className="font-black text-teal-900 text-xl tracking-tighter">£{item.price.toFixed(2)}</span>
+                          <span className="font-black text-teal-900 text-xl tracking-tighter">{currency}{item.price.toFixed(2)}</span>
                           <button
                             onClick={() => addItem({ id: parseInt(item.id), name: item.name, price: item.price, quantity: 1 })}
                             className="bg-zamzam-yellow text-slate-900 p-3 rounded-2xl shadow-lg shadow-yellow-500/20 hover:scale-110 active:scale-95 transition-all"
@@ -228,7 +233,7 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
                   <div key={item.id} className="bg-slate-50 rounded-2xl p-3 flex items-center gap-3">
                     <div className="flex-1">
                       <p className="text-sm font-bold truncate">{item.name}</p>
-                      <p className="text-xs text-teal-900 font-black">£{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="text-xs text-teal-900 font-black">{currency}{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-2 bg-white rounded-lg p-1 border border-slate-200">
                       <button onClick={() => removeItem(item.id)} className="p-1 text-slate-400 hover:text-red-500"><Minus size={14} /></button>
@@ -241,7 +246,7 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
               <div className="p-6 border-t border-slate-100 bg-slate-50/50">
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-slate-400 font-bold text-sm uppercase">Total</span>
-                  <span className="text-2xl font-black text-teal-900">£{total.toFixed(2)}</span>
+                  <span className="text-2xl font-black text-teal-900">{currency}{total.toFixed(2)}</span>
                 </div>
                 <button
                   disabled={cart.length === 0}
@@ -267,7 +272,7 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
                     </div>
                     <div className="text-left">
                       <p className="text-[10px] font-bold uppercase opacity-70">Review Order</p>
-                      <p className="text-sm font-black">£{total.toFixed(2)}</p>
+                      <p className="text-sm font-black">{currency}{total.toFixed(2)}</p>
                     </div>
                   </div>
                   <ArrowRight size={20} />
@@ -298,14 +303,14 @@ const NewOrder = ({ onClose }: NewOrderProps) => {
                         </span>
                         <span className="font-bold text-slate-800">{item.name}</span>
                       </div>
-                      <span className="font-black text-slate-600 text-sm">£{(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="font-black text-slate-600 text-sm">{currency}{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
                 <div className="h-px bg-slate-100 my-8" />
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Total Amount</span>
-                  <span className="text-4xl font-black text-teal-900">£{total.toFixed(2)}</span>
+                  <span className="text-4xl font-black text-teal-900">{currency}{total.toFixed(2)}</span>
                 </div>
               </div>
 

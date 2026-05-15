@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { orderService, tableService, menuService } from '../services/orderService';
+import { resolveImageUrl } from '../services/api';
 import NewOrder from './NewOrder';
 
 const Dashboard = () => {
@@ -23,10 +24,13 @@ const Dashboard = () => {
   const [tables, setTables] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeMenuCategory, setActiveMenuCategory] = useState<any>(null);
   const { user, logout } = useAuth();
+
+  const currency = settings?.tenant?.currency_symbol || '$';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,16 +38,18 @@ const Dashboard = () => {
         setError(null);
         
         // Parallel fetch for everything
-        const [ordersData, statsData, tablesData, menuData] = await Promise.allSettled([
+        const [ordersData, statsData, tablesData, menuData, settingsData] = await Promise.allSettled([
           orderService.fetchOrders(),
           orderService.fetchDashboardStats(),
           tableService.fetchTables(),
-          menuService.fetchAllItems()
+          menuService.fetchAllItems(),
+          orderService.fetchSettings()
         ]);
 
         if (ordersData.status === 'fulfilled') setOrders(Array.isArray(ordersData.value) ? ordersData.value : []);
         if (statsData.status === 'fulfilled') setDashboardStats(statsData.value);
         if (tablesData.status === 'fulfilled') setTables(Array.isArray(tablesData.value) ? tablesData.value : []);
+        if (settingsData.status === 'fulfilled') setSettings(settingsData.value);
         if (menuData.status === 'fulfilled') {
           const mData = Array.isArray(menuData.value) ? menuData.value : [];
           setCategories(mData);
@@ -292,9 +298,11 @@ const Dashboard = () => {
                   {activeMenuCategory?.items?.map((item: any) => (
                     <div key={item.id} className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-3 group hover:border-teal-900/20 transition-all">
                       <div className="aspect-square rounded-[1.5rem] bg-slate-50 overflow-hidden relative">
-                         <div className="absolute inset-0 flex items-center justify-center">
-                            <UtensilsCrossed className="text-slate-200 w-10 h-10 group-hover:scale-110 transition-transform" />
-                         </div>
+                         <img 
+                            src={resolveImageUrl(item.image_url || item.image)} 
+                            alt={item.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500"
+                         />
                          {!item.is_available && (
                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
                              <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Out of Stock</span>
@@ -304,7 +312,7 @@ const Dashboard = () => {
                       <div>
                         <p className="font-bold text-slate-800 text-sm mb-1">{item.name}</p>
                         <div className="flex justify-between items-center">
-                          <span className="text-teal-900 font-black text-sm">£{parseFloat(item.price).toFixed(2)}</span>
+                          <span className="text-teal-900 font-black text-sm">{currency}{parseFloat(item.price).toFixed(2)}</span>
                           <span className="text-[10px] text-slate-400 font-bold uppercase">{item.badge || 'Standard'}</span>
                         </div>
                       </div>
@@ -348,7 +356,7 @@ const Dashboard = () => {
                       </div>
                       <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                         <span className="text-xs text-slate-400 font-medium">{order.item_count || 0} Items Selected</span>
-                        <span className="text-sm font-black text-teal-900">£{parseFloat(order.total_amount).toFixed(2)}</span>
+                        <span className="text-sm font-black text-teal-900">{currency}{parseFloat(order.total_amount).toFixed(2)}</span>
                       </div>
                     </div>
                   ))}
