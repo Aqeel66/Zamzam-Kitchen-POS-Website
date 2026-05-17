@@ -7,7 +7,7 @@ export const orderService = {
   },
   
   fetchOrders: async () => {
-    const response = await api.get('orders?kds=true');
+    const response = await api.get('orders?includeSplits=true');
     return response.data;
   },
   
