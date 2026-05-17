@@ -25,7 +25,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeMenuCategory, setActiveMenuCategory] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
-  const [tables, setTables] = useState<any[]>([]);
+  const [_tables, setTables] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -91,12 +91,6 @@ const Dashboard = () => {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const stats = {
-    new: orders.filter(o => o.status === 'Pending').length,
-    total: orders.length,
-    waiting: orders.filter(o => o.status === 'Preparing').length
-  };
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-[#F8F9FA] overflow-hidden">
@@ -503,26 +497,6 @@ const Dashboard = () => {
   </div>
   );
 };
-
-const QuickLink = ({ icon, label, badge, color, onClick, active }: any) => (
-  <button 
-    onClick={onClick}
-    className={`${active ? 'bg-teal-900 border-teal-900 shadow-lg shadow-teal-900/20' : 'bg-white border-slate-100 hover:border-slate-200'} border transition-all rounded-2xl flex items-center gap-3 px-4 py-2 shadow-sm hover:shadow-md active:scale-95 group`}
-  >
-    <div className={`p-1.5 rounded-lg ${active ? 'bg-white/20 text-white' : color}`}>
-      {icon}
-    </div>
-    <span className={`text-[10px] font-bold uppercase tracking-widest ${active ? 'text-white' : 'text-slate-500'}`}>{label}</span>
-    {badge !== undefined && (
-      <div className={`min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] font-bold px-1.5 ${
-        active ? 'bg-white text-teal-900' : 
-        badge > 0 ? 'bg-teal-900 text-white shadow-lg shadow-teal-900/20' : 'bg-slate-100 text-slate-400'
-      }`}>
-        {badge}
-      </div>
-    )}
-  </button>
-);
 
 const SidebarItem = ({ icon, label, active, onClick, badge, color }: any) => (
   <button 

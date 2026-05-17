@@ -35,7 +35,7 @@ const NewOrder = ({ onClose, onOrderPlaced, embedded }: NewOrderProps) => {
   const [showTablePicker, setShowTablePicker] = useState(false);
 
   const { 
-    cart, tableId, setTableId, addItem, removeItem, updateQuantity, clearCart, 
+    cart, tableId, setTableId, addItem, updateQuantity, clearCart, 
     editingOrderId, total 
   } = useCart();
   const { user } = useAuth();
