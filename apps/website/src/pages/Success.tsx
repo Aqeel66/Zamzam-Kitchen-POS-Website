@@ -14,6 +14,34 @@ export default function Success() {
 
   const [settings, setSettings] = useState<any>(null);
 
+  const formatDate = (dateValue: any) => {
+    if (!dateValue) return 'N/A';
+    let d = new Date(dateValue);
+    if (isNaN(d.getTime())) {
+      if (typeof dateValue === 'string' && dateValue.includes('/')) {
+        const parts = dateValue.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const year = parseInt(parts[2]);
+          d = new Date(year, month, day);
+        }
+      }
+    }
+    
+    if (isNaN(d.getTime())) {
+      return 'N/A';
+    }
+    
+    return d.toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
   useEffect(() => {
     fetch(`${API_BASE_URL}/settings`)
       .then(res => res.json())
@@ -43,7 +71,7 @@ export default function Success() {
 
   // Generate Action Links
   const orderSummaryText = orderData 
-    ? `Hello! My order #${orderData.order_number || orderData.id} from Zamzam Kitchen is confirmed. Total: ${currencyDisplay}${orderData.total.toFixed(2)}. Check it here: ${window.location.href}`
+    ? `Hello! My order #${orderData.order_number || orderData.id} from Zamzam Kitchen is confirmed. Total: ${currencyDisplay}${(orderData.total || orderData.total_amount || 0).toFixed(2)}. Check it here: ${window.location.href}`
     : `Hello! My Table Reservation at Zamzam Kitchen is confirmed. Looking forward to it!`;
     
   const waLink = `https://wa.me/?text=${encodeURIComponent(orderSummaryText)}`;
@@ -178,7 +206,7 @@ export default function Success() {
                     <span className={`status-badge-alt ${(orderData.status || 'PAID').toUpperCase()}`}>{(orderData.status || 'PAID').toUpperCase()}</span>
                   </div>
                   <p className="meta-row"><strong>Order No:</strong> {orderData.order_number?.startsWith('#') ? orderData.order_number : `#${orderData.order_number || orderData.id}`}</p>
-                  <p className="meta-row"><strong>Date:</strong> {new Date(orderData.date || orderData.order_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="meta-row"><strong>Date:</strong> {formatDate(orderData.date || orderData.order_time)}</p>
                 </div>
               </div>
             </div>

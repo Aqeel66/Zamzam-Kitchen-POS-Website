@@ -17,9 +17,42 @@ export default function Menu() {
   useEffect(() => {
     const table = searchParams.get('table');
     const tid = searchParams.get('tid');
-    if (table && tid) {
-      setTableContext(parseInt(tid), table);
-      setBannerDismissed(false);
+    
+    if (table) {
+      if (tid) {
+        setTableContext(parseInt(tid), table);
+        setBannerDismissed(false);
+      } else {
+        // Fallback: Fetch tables from API to find the correct table ID by table number
+        const resolveTableId = async () => {
+          try {
+            const response = await fetch(`${API_BASE_URL}/tables`);
+            if (response.ok) {
+              const tables = await response.json();
+              if (Array.isArray(tables)) {
+                // Find matching table case-insensitively and ignore formatting differences (like spaces/dashes)
+                const match = tables.find((t: any) => 
+                  t.table_number.toLowerCase().replace(/[\s-]/g, '') === table.toLowerCase().replace(/[\s-]/g, '')
+                );
+                if (match) {
+                  setTableContext(match.id, match.table_number);
+                  setBannerDismissed(false);
+                } else {
+                  // Fallback so it still displays on UI
+                  setTableContext(1, table);
+                  setBannerDismissed(false);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error resolving table ID:', error);
+            // Default fallback so it still displays on UI
+            setTableContext(1, table);
+            setBannerDismissed(false);
+          }
+        };
+        resolveTableId();
+      }
     }
   }, [searchParams]);
 

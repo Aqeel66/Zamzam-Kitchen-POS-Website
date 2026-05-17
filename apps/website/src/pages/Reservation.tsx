@@ -211,7 +211,7 @@ export default function Reservation() {
           order_number: `RES-${String(data.reservationId).padStart(4, '0')}`,
           customer_name: formData.name,
           order_type: 'Reservation',
-          date: new Date().toLocaleDateString('en-GB'),
+          date: new Date().toISOString(),
           items: [
             { 
               name: `Table Reservation (Table ${selectedTable.table_number})`, 

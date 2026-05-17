@@ -279,6 +279,9 @@ app.use('/api/waiter-diagnostics', (req, res) => {
     servedIndexSnippet = `Error reading index.html: ${err.message}`;
   }
 
+  const websitePath = path.join(__dirname, '../public/index.html');
+  const websitePathExists = fs.existsSync(websitePath);
+
   res.json({
     timestamp: new Date(),
     processCwd: process.cwd(),
@@ -287,7 +290,9 @@ app.use('/api/waiter-diagnostics', (req, res) => {
     localGitPath,
     localInfo,
     destInfo,
-    servedIndexSnippet
+    servedIndexSnippet,
+    websitePath,
+    websitePathExists
   });
 });
 
@@ -374,10 +379,26 @@ app.get(/.*/, (req, res, next) => {
     return next();
   }
 
-  const websitePath = path.join(__dirname, '../../website/dist/index.html');
-  if (fs.existsSync(websitePath)) {
+  const possiblePaths = [
+    path.join(__dirname, '../public/index.html'),
+    path.join(__dirname, '../../website/dist/index.html'),
+    path.join(__dirname, '../../../../public_html/index.html'),
+    path.join(__dirname, '../../../public_html/index.html'),
+    '/home/u824115399/domains/zamzamkitchen.net/public_html/index.html'
+  ];
+  
+  const websitePath = possiblePaths.find(p => {
+    try {
+      return fs.existsSync(p);
+    } catch (e) {
+      return false;
+    }
+  });
+
+  if (websitePath) {
     res.sendFile(websitePath);
   } else {
+    console.warn(`[WEBSITE ROUTE] index.html not found. Checked paths:`, possiblePaths);
     res.status(404).send('Website not found');
   }
 });

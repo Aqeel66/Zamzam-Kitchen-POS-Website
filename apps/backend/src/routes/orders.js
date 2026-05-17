@@ -488,7 +488,7 @@ router.get('/', async (req, res) => {
     }
 
     if (startDate && req.query.kds !== 'true') {
-      query += ` AND DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) >= ?`;
+      query += ` AND DATE(DATE_ADD(o.order_time, INTERVAL 5 HOUR)) >= ?`;
       params.push(startDate);
     }
 
@@ -497,14 +497,14 @@ router.get('/', async (req, res) => {
       // OR any orders from the specific date (if selected) or today.
       const targetDate = startDate || 'CURDATE()';
       if (startDate) {
-        query += ` AND (o.status IN ('Pending', 'Ordered', 'Preparing', 'Ready', 'Paid', 'Partially Paid', 'Rejected', 'Cancelled') OR DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) = ?)`;
+        query += ` AND (o.status IN ('Pending', 'Ordered', 'Preparing', 'Ready', 'Paid', 'Partially Paid', 'Rejected', 'Cancelled') OR DATE(DATE_ADD(o.order_time, INTERVAL 5 HOUR)) = ?)`;
         params.push(startDate);
       } else {
-        query += ` AND (o.status IN ('Pending', 'Ordered', 'Preparing', 'Ready', 'Paid', 'Partially Paid', 'Rejected', 'Cancelled') OR DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) = CURDATE())`;
+        query += ` AND (o.status IN ('Pending', 'Ordered', 'Preparing', 'Ready', 'Paid', 'Partially Paid', 'Rejected', 'Cancelled') OR DATE(DATE_ADD(o.order_time, INTERVAL 5 HOUR)) = CURDATE())`;
       }
     } else {
       if (endDate) {
-        query += ` AND DATE(CONVERT_TZ(o.order_time, '+00:00', '+05:00')) <= ?`;
+        query += ` AND DATE(DATE_ADD(o.order_time, INTERVAL 5 HOUR)) <= ?`;
         params.push(endDate);
       }
     }

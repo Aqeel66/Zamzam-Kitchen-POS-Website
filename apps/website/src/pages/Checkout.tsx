@@ -153,6 +153,7 @@ export default function Checkout() {
 
     if (isQrOrder && tableId) {
       orderData.table_id = tableId;
+      orderData.table_number = tableNumber;
     }
 
     if (paymentMethod === 'card') {

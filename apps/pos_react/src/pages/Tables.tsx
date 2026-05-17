@@ -411,7 +411,7 @@ export default function Tables() {
 function QRModal({ isOpen, onClose, table, printRef, onPrint }: any) {
   if (!isOpen || !table) return null;
 
-  const menuUrl = `${window.location.origin}/menu?table=${table.table_number}`;
+  const menuUrl = `${window.location.origin}/menu?table=${table.table_number}&tid=${table.id}`;
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(menuUrl)}`;
 
   return (

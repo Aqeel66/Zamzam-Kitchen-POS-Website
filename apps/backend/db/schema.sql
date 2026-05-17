@@ -10,7 +10,7 @@ USE zamzam_db;
 CREATE TABLE IF NOT EXISTS tenant_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     restaurant_name VARCHAR(100) DEFAULT 'ZAMZAM KITCHEN',
-    theme_mode ENUM('Light', 'Dark', 'Adaptive') DEFAULT 'Adaptive',
+    theme_mode ENUM('Light', 'Dark', 'Adaptive', 'Midnight Blue', 'Emerald Green', 'Aura Purple') DEFAULT 'Adaptive',
     primary_accent_color VARCHAR(10) DEFAULT '#F15A24',
     logo_url VARCHAR(255) DEFAULT NULL,
     secondary_logo_url VARCHAR(255) DEFAULT NULL,
@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS tenant_settings (
     business_email VARCHAR(255) DEFAULT NULL,
     business_phone VARCHAR(20) DEFAULT NULL,
     business_address TEXT DEFAULT NULL,
+    ui_scale DECIMAL(3,2) DEFAULT 1.00,
+    reservation_gap_minutes INT DEFAULT 30,
+    default_stay_duration_minutes INT DEFAULT 60,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -118,6 +121,9 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     is_tax_enabled TINYINT(1) DEFAULT 1,
     tax_rate DECIMAL(5,2) DEFAULT 10.00,
     payment_policy VARCHAR(50) DEFAULT 'Pay Last',
+    receipt_header TEXT DEFAULT NULL,
+    receipt_footer TEXT DEFAULT NULL,
+    show_qr_on_receipt BOOLEAN DEFAULT TRUE,
     opening_time TIME DEFAULT '09:00:00',
     closing_time TIME DEFAULT '22:00:00',
     first_order_time TIME DEFAULT '09:30:00',
@@ -143,15 +149,23 @@ CREATE TABLE IF NOT EXISTS inventory_items (
     unit VARCHAR(20),
     low_stock_threshold DECIMAL(10,2) DEFAULT 10,
     supplier_id INT,
+    min_stock_level DECIMAL(10,2) DEFAULT 0.00,
+    cost_per_unit DECIMAL(10,2) DEFAULT 0.00,
+    pack_unit VARCHAR(50) DEFAULT NULL,
+    pack_size DECIMAL(10,2) DEFAULT 1.00,
+    category_id INT DEFAULT NULL,
     FOREIGN KEY (branch_id) REFERENCES branches(id),
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
 -- ─── MENU ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    description TEXT
+    description TEXT,
+    image VARCHAR(255) DEFAULT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS menu_items (
@@ -166,6 +180,8 @@ CREATE TABLE IF NOT EXISTS menu_items (
     badge VARCHAR(50) DEFAULT NULL,
     dietary_info VARCHAR(255),
     prep_station ENUM('Bar', 'Grill', 'Fryer', 'Salad', 'Dessert', 'General') DEFAULT 'General',
+    image VARCHAR(255) DEFAULT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
@@ -298,20 +314,29 @@ CREATE TABLE IF NOT EXISTS orders (
     branch_id INT,
     table_id INT,
     customer_id INT NULL,
+    customer_name VARCHAR(255) DEFAULT NULL,
+    customer_phone VARCHAR(20) DEFAULT NULL,
     user_id INT NULL,
-    order_number VARCHAR(20) DEFAULT NULL,
-    party_size INT DEFAULT 1,
     session_id VARCHAR(50),
     order_type ENUM('Dine-In', 'Takeaway', 'Delivery') DEFAULT 'Dine-In',
     status ENUM('Pending', 'Ordered', 'Preparing', 'Ready', 'Served', 'Paid', 'Partially Paid', 'Cancelled', 'Rejected') DEFAULT 'Pending',
+    rejection_reason TEXT DEFAULT NULL,
     total_amount DECIMAL(10,2) DEFAULT 0.00,
     discount_amount DECIMAL(10,2) DEFAULT 0.00,
     order_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    origin ENUM('Website', 'In-Store', 'QR-Menu') DEFAULT 'In-Store',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    estimated_release_time TIMESTAMP DEFAULT NULL,
+    party_size INT DEFAULT 1,
+    waiter_id INT DEFAULT NULL,
+    waiter_name VARCHAR(100) DEFAULT NULL,
+    promo_id INT DEFAULT NULL,
     parent_order_id INT DEFAULT NULL,
     FOREIGN KEY (branch_id) REFERENCES branches(id),
     FOREIGN KEY (table_id) REFERENCES restaurant_tables(id),
     FOREIGN KEY (customer_id) REFERENCES customers(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (promo_id) REFERENCES promo_codes(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
@@ -379,6 +404,79 @@ CREATE TABLE IF NOT EXISTS delivery_details (
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (courier_id) REFERENCES users(id) ON DELETE SET NULL
 );
+-- ─── CONTACT MESSAGES ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    subject VARCHAR(255) DEFAULT NULL,
+    message TEXT NOT NULL,
+    status ENUM('New', 'Read', 'Replied') DEFAULT 'New',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ─── EXPENSES ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS expenses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    branch_id INT DEFAULT 1,
+    category VARCHAR(100) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
+);
+
+-- ─── INVENTORY TRANSACTIONS ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS inventory_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    inventory_item_id INT NOT NULL,
+    type ENUM('Purchase', 'Adjustment', 'Sale', 'Wastage', 'Correction') NOT NULL,
+    quantity_change DECIMAL(10,2) NOT NULL,
+    previous_quantity DECIMAL(10,2) NOT NULL,
+    new_quantity DECIMAL(10,2) NOT NULL,
+    reason TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE CASCADE
+);
+
+-- ─── PAYMENT GATEWAYS ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS payment_gateway_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    gateway_name VARCHAR(50) NOT NULL UNIQUE,
+    public_key VARCHAR(255) DEFAULT NULL,
+    secret_key VARCHAR(255) DEFAULT NULL,
+    webhook_secret VARCHAR(255) DEFAULT NULL,
+    is_active BOOLEAN DEFAULT FALSE,
+    environment ENUM('sandbox', 'production') DEFAULT 'sandbox',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ─── PURCHASE ORDERS ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS purchase_orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    invoice_number VARCHAR(50) DEFAULT NULL,
+    branch_id INT DEFAULT NULL,
+    supplier_id INT DEFAULT NULL,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('Pending', 'Approved', 'Received', 'Cancelled') DEFAULT 'Pending',
+    total_amount DECIMAL(10,2) DEFAULT NULL,
+    FOREIGN KEY (branch_id) REFERENCES branches(id),
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE
+);
+
+-- ─── PURCHASE ORDER ITEMS ────────────────────────────────────
+CREATE TABLE IF NOT EXISTS purchase_order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    purchase_order_id INT DEFAULT NULL,
+    inventory_item_id INT DEFAULT NULL,
+    quantity DECIMAL(10,2) NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE CASCADE
+);
+
 -- ─── INITIAL DATA ───────────────────────────────────────────
 INSERT IGNORE INTO branches (id, name, location, contact_number, status) VALUES (1, 'Zamzam Main', 'Main Street', '123456789', 'Active');
 INSERT IGNORE INTO branch_settings (branch_id, kds_timer_minutes, allow_qr_pay, booking_fee_amount, is_booking_fee_enabled) VALUES (1, 15, 1, 10.00, 1);
