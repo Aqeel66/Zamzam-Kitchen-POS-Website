@@ -231,6 +231,66 @@ app.use('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Zamzam Kitchen API is running', timestamp: new Date() });
 });
 
+app.use('/api/waiter-diagnostics', (req, res) => {
+  const localGitPath = path.resolve(__dirname, '../../waiter_react/dist');
+  const destinations = [
+    '/home/u824115399/persistent_assets/waiter',
+    '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter'
+  ];
+  
+  const getDirInfo = (dirPath) => {
+    try {
+      if (!fs.existsSync(dirPath)) return { exists: false };
+      const stats = fs.statSync(dirPath);
+      const files = fs.readdirSync(dirPath);
+      const fileDetails = files.map(f => {
+        const fp = path.join(dirPath, f);
+        const fstats = fs.statSync(fp);
+        return {
+          name: f,
+          size: fstats.size,
+          mtime: fstats.mtime,
+          isDir: fstats.isDirectory()
+        };
+      });
+      return {
+        exists: true,
+        path: dirPath,
+        mtime: stats.mtime,
+        files: fileDetails
+      };
+    } catch (err) {
+      return { exists: true, error: err.message };
+    }
+  };
+
+  const localInfo = getDirInfo(localGitPath);
+  const destInfo = destinations.map(d => ({ path: d, info: getDirInfo(d) }));
+  
+  // Read served index.html content to see what JS file it requests
+  let servedIndexSnippet = null;
+  try {
+    const servedIndexPath = path.join(waiterAppPath, 'index.html');
+    if (fs.existsSync(servedIndexPath)) {
+      const content = fs.readFileSync(servedIndexPath, 'utf8');
+      servedIndexSnippet = content.substring(0, 1000); // return first 1000 chars
+    }
+  } catch (err) {
+    servedIndexSnippet = `Error reading index.html: ${err.message}`;
+  }
+
+  res.json({
+    timestamp: new Date(),
+    processCwd: process.cwd(),
+    __dirname,
+    activeWaiterAppPath: waiterAppPath,
+    localGitPath,
+    localInfo,
+    destInfo,
+    servedIndexSnippet
+  });
+});
+
 // API Request Logger (Debugging 405)
 app.use('/api', (req, res, next) => {
   console.log(`📡 [${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
