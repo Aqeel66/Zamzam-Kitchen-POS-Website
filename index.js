@@ -11,6 +11,46 @@ const waiterAppPaths = [
     '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter', // 3. Hostinger Path 2
 ];
 
+// Helper to recursively copy directories
+function copyDirSync(src, dest) {
+    try {
+        if (!fs.existsSync(src)) return;
+        if (!fs.existsSync(dest)) {
+            fs.mkdirSync(dest, { recursive: true });
+        }
+        const entries = fs.readdirSync(src, { withFileTypes: true });
+        for (const entry of entries) {
+            const srcPath = path.join(src, entry.name);
+            const destPath = path.join(dest, entry.name);
+            if (entry.isDirectory()) {
+                copyDirSync(srcPath, destPath);
+            } else {
+                fs.copyFileSync(srcPath, destPath);
+            }
+        }
+    } catch (err) {
+        console.error(`⚠️ [WAITER SYNC] Failed to copy from ${src} to ${dest}:`, err.message);
+    }
+}
+
+// Auto-sync waiter react dist folder with persistent assets on Hostinger
+const localGitPath = path.join(__dirname, 'apps/waiter_react/dist');
+if (fs.existsSync(path.join(localGitPath, 'index.html'))) {
+    console.log('🔄 [WAITER SYNC] Synchronizing Waiter App build from local git to Hostinger persistent storage...');
+    const destinations = [
+        '/home/u824115399/persistent_assets/waiter',
+        '/home/u824115399/domains/zamzamkitchen.net/persistent_assets/waiter'
+    ];
+    for (const dest of destinations) {
+        const parentDir = path.dirname(dest);
+        if (fs.existsSync(parentDir)) {
+            console.log(`📁 Syncing to: ${dest}`);
+            copyDirSync(localGitPath, dest);
+        }
+    }
+    console.log('✅ [WAITER SYNC] Synchronization complete.');
+}
+
 let waiterAppPath = waiterAppPaths[2]; // Default to local
 for (const p of waiterAppPaths) {
     if (fs.existsSync(path.join(p, 'index.html'))) {
