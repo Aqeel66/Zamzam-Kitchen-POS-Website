@@ -339,7 +339,7 @@ const Dashboard = () => {
                     <div className="flex justify-between items-center mb-6">
                       <h3 className="text-lg font-bold text-teal-900">Live Order Tracking</h3>
                     </div>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {orders.slice(0, 10).map((order) => (
                         <OrderListItem 
                           key={order.id}
@@ -554,21 +554,23 @@ const StatCard = ({ title, value, icon, theme, subtitle, trend, trendColor = 'te
 );
 
 const OrderListItem = ({ id, name, items, status, subStatus, color }: any) => (
-  <div className="flex items-center gap-3 group cursor-pointer hover:bg-slate-50 p-2 rounded-2xl transition-colors border border-transparent hover:border-slate-100">
-    <div className={`w-11 h-11 rounded-full ${color} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+  <div className="flex items-center gap-3 group cursor-pointer hover:bg-slate-50/80 p-3 bg-slate-50/30 rounded-2xl transition-all border border-slate-100/50 hover:border-teal-900/10 hover:shadow-sm">
+    <div className={`px-2.5 py-1.5 rounded-xl ${color} flex items-center justify-center text-white text-[9px] font-bold uppercase tracking-widest shrink-0 shadow-sm min-w-[70px] text-center`}>
       {id}
     </div>
     <div className="flex-1 min-w-0">
-      <p className="font-bold text-sm truncate">{name}</p>
-      <p className="text-xs text-slate-400 font-medium">{items} Items</p>
+      <p className="font-bold text-xs text-slate-800 truncate">{name}</p>
+      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{items} Items</p>
     </div>
-    <div className="text-right">
-      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${
-        status === 'Ready' || status === 'Completed' ? 'bg-teal-50 text-teal-600' : 'bg-yellow-50 text-yellow-600'
+    <div className="text-right shrink-0">
+      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg ${
+        status === 'Ready' || status === 'Completed' || status === 'Served' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/50' : 
+        status === 'Pending' || status === 'Ordered' ? 'bg-amber-50 text-amber-600 border border-amber-100/50' : 
+        'bg-teal-50 text-teal-600 border border-teal-100/50'
       }`}>
-        <span className="text-[10px] font-bold uppercase tracking-wider">{status}</span>
+        <span className="text-[9px] font-bold uppercase tracking-widest">{status}</span>
       </div>
-      <p className="text-[10px] text-slate-400 font-medium mt-1">{subStatus}</p>
+      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">{subStatus}</p>
     </div>
   </div>
 );
