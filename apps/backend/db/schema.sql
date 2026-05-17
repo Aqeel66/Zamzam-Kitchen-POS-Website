@@ -160,12 +160,43 @@ CREATE TABLE IF NOT EXISTS menu_items (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     price DECIMAL(10,2) NOT NULL,
+    sale_price DECIMAL(10,2) DEFAULT NULL,
     is_available BOOLEAN DEFAULT TRUE,
     is_featured TINYINT(1) DEFAULT 0,
     badge VARCHAR(50) DEFAULT NULL,
     dietary_info VARCHAR(255),
     prep_station ENUM('Bar', 'Grill', 'Fryer', 'Salad', 'Dessert', 'General') DEFAULT 'General',
     FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
+CREATE TABLE IF NOT EXISTS menu_item_variants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    menu_item_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    price_adjustment DECIMAL(10,2) DEFAULT 0.00,
+    sale_price_adjustment DECIMAL(10,2) DEFAULT NULL,
+    inventory_item_id INT,
+    quantity_required DECIMAL(10,4) DEFAULT 0.0000,
+    FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS menu_item_extras (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    menu_item_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    price_adjustment DECIMAL(10,2) DEFAULT 0.00,
+    sale_price_adjustment DECIMAL(10,2) DEFAULT NULL,
+    inventory_item_id INT,
+    quantity_required DECIMAL(10,4) DEFAULT 0.0000,
+    FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS menu_item_ingredients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    menu_item_id INT NOT NULL,
+    inventory_item_id INT NOT NULL,
+    quantity_required DECIMAL(10,4) NOT NULL,
+    FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
 );
 
 -- ─── TABLES & FLOOR PLAN ────────────────────────────────────
@@ -276,6 +307,7 @@ CREATE TABLE IF NOT EXISTS orders (
     total_amount DECIMAL(10,2) DEFAULT 0.00,
     discount_amount DECIMAL(10,2) DEFAULT 0.00,
     order_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    parent_order_id INT DEFAULT NULL,
     FOREIGN KEY (branch_id) REFERENCES branches(id),
     FOREIGN KEY (table_id) REFERENCES restaurant_tables(id),
     FOREIGN KEY (customer_id) REFERENCES customers(id),

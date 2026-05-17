@@ -78,14 +78,14 @@ export default function ClockTimePicker({ isOpen, onClose, onSelect, initialTime
                 <div className="flex items-center gap-4">
                   <button 
                     onClick={() => setMode('hour')}
-                    className={`text-6xl font-black rounded-2xl px-6 py-4 transition-all ${mode === 'hour' ? 'bg-orange-500 text-white shadow-xl shadow-orange-500/30' : 'bg-slate-50 text-slate-900'}`}
+                    className={`text-6xl font-bold rounded-2xl px-6 py-4 transition-all ${mode === 'hour' ? 'bg-orange-500 text-white shadow-xl shadow-orange-500/30' : 'bg-slate-50 text-slate-900'}`}
                   >
                     {hour}
                   </button>
-                  <span className="text-5xl font-black text-slate-900 mt-2">:</span>
+                  <span className="text-5xl font-bold text-slate-900 mt-2">:</span>
                   <button 
                     onClick={() => setMode('minute')}
-                    className={`text-6xl font-black rounded-2xl px-6 py-4 transition-all ${mode === 'minute' ? 'bg-orange-500 text-white shadow-xl shadow-orange-500/30' : 'bg-slate-50 text-slate-900'}`}
+                    className={`text-6xl font-bold rounded-2xl px-6 py-4 transition-all ${mode === 'minute' ? 'bg-orange-500 text-white shadow-xl shadow-orange-500/30' : 'bg-slate-50 text-slate-900'}`}
                   >
                     {minute.toString().padStart(2, '0')}
                   </button>
@@ -94,13 +94,13 @@ export default function ClockTimePicker({ isOpen, onClose, onSelect, initialTime
                 <div className="flex flex-col bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 mt-2">
                   <button 
                     onClick={() => setPeriod('AM')}
-                    className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all ${period === 'AM' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all ${period === 'AM' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}
                   >
                     AM
                   </button>
                   <button 
                     onClick={() => setPeriod('PM')}
-                    className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-t border-slate-100 ${period === 'PM' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all border-t border-slate-100 ${period === 'PM' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}
                   >
                     PM
                   </button>
@@ -132,7 +132,7 @@ export default function ClockTimePicker({ isOpen, onClose, onSelect, initialTime
                           }
                         }}
                         style={{ transform: `translate(${x}px, ${y}px)` }}
-                        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all ${isSelected ? 'bg-orange-500 text-white scale-125 z-10' : 'text-slate-400 hover:text-slate-900'}`}
+                        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${isSelected ? 'bg-orange-500 text-white scale-125 z-10' : 'text-slate-400 hover:text-slate-900'}`}
                       >
                         {mode === 'minute' ? val.toString().padStart(2, '0') : val}
                       </button>
@@ -157,13 +157,13 @@ export default function ClockTimePicker({ isOpen, onClose, onSelect, initialTime
                 <div className="flex items-center gap-4">
                   <button 
                     onClick={onClose}
-                    className="px-8 py-4 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all"
+                    className="px-8 py-4 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all"
                   >
                     Cancel
                   </button>
                   <button 
                     onClick={handleConfirm}
-                    className="px-8 py-4 bg-orange-500 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all active:scale-[0.98]"
+                    className="px-8 py-4 bg-orange-500 text-white text-xs font-bold uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all active:scale-[0.98]"
                   >
                     OK
                   </button>

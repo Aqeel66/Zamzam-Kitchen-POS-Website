@@ -47,9 +47,9 @@ export default function PrintSuccessModal({ isOpen, onClose, order, branch }: Pr
               <div className="w-24 h-24 bg-green-50 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-inner">
                 <CheckCircle2 size={48} className="text-green-500" />
               </div>
-              <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4 uppercase">Order <span className="text-zamzam-teal">Confirmed</span></h2>
+              <h2 className="text-4xl font-bold text-slate-900 tracking-tight mb-4 uppercase">Order <span className="text-zamzam-teal">Confirmed</span></h2>
               <p className="text-slate-400 font-bold mb-10 max-w-xs leading-relaxed">
-                Order <span className="text-slate-900 font-black">
+                Order <span className="text-slate-900 font-bold">
                   #{(order?.orderNumber || order?.order_number || '').toString()}
                 </span> has been sent to the kitchen and recorded successfully.
               </p>
@@ -57,17 +57,17 @@ export default function PrintSuccessModal({ isOpen, onClose, order, branch }: Pr
               <div className="w-full space-y-4">
                 <button 
                   onClick={handlePrint}
-                  className="w-full bg-zamzam-teal hover:bg-teal-400 text-white font-black py-5 rounded-3xl shadow-xl shadow-teal-500/20 flex items-center justify-center gap-4 transition-all active:scale-95 group"
+                  className="w-full bg-zamzam-teal hover:bg-teal-400 text-white font-bold py-5 rounded-3xl shadow-xl shadow-teal-500/20 flex items-center justify-center gap-4 transition-all active:scale-95 group"
                 >
                   <Printer size={22} className="group-hover:rotate-12 transition-transform" />
                   <span className="uppercase tracking-widest text-sm">Print Thermal Receipt</span>
                 </button>
                 <div className="grid grid-cols-2 gap-4">
-                  <button className="bg-slate-50 hover:bg-slate-100 text-slate-600 font-black py-4 rounded-2xl flex items-center justify-center gap-3 transition-all">
+                  <button className="bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 transition-all">
                     <Share2 size={18} />
                     <span className="uppercase tracking-widest text-[10px]">Digital Share</span>
                   </button>
-                  <button className="bg-slate-50 hover:bg-slate-100 text-slate-600 font-black py-4 rounded-2xl flex items-center justify-center gap-3 transition-all">
+                  <button className="bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 transition-all">
                     <Smartphone size={18} />
                     <span className="uppercase tracking-widest text-[10px]">Send SMS</span>
                   </button>
@@ -79,7 +79,7 @@ export default function PrintSuccessModal({ isOpen, onClose, order, branch }: Pr
                 className="mt-12 flex items-center gap-3 text-slate-300 hover:text-zamzam-teal transition-all group"
               >
                 <Plus size={18} className="group-hover:rotate-90 transition-transform" />
-                <span className="text-xs font-black uppercase tracking-widest">Start New Order</span>
+                <span className="text-xs font-bold uppercase tracking-widest">Start New Order</span>
               </button>
             </div>
 
@@ -92,7 +92,7 @@ export default function PrintSuccessModal({ isOpen, onClose, order, branch }: Pr
                 {/* Visible Preview for UI */}
                 <div className="bg-white p-6 w-[80mm] text-slate-900 font-mono text-[10px] leading-tight shadow-inner">
                   <div className="text-center mb-4">
-                    <h3 className="font-black text-sm uppercase">{branch.restaurant_name || 'Zamzam Kitchen'}</h3>
+                    <h3 className="font-bold text-sm uppercase">{branch.restaurant_name || 'Zamzam Kitchen'}</h3>
                     {branch.receipt_header ? (
                       <p className="opacity-50 whitespace-pre-line text-[8px] leading-tight">{branch.receipt_header}</p>
                     ) : (
@@ -152,7 +152,7 @@ export default function PrintSuccessModal({ isOpen, onClose, order, branch }: Pr
                         <span>+{order.tip_amount.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-100">
+                    <div className="flex justify-between font-bold text-sm pt-1 border-t border-slate-100">
                       <span>TOTAL</span>
                       <span>{branch.currency || 'USD'} {order.total_amount?.toFixed(2) || order.total}</span>
                     </div>

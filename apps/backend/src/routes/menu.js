@@ -25,12 +25,20 @@ router.get('/', async (req, res) => {
     let ingredients = [];
 
     try {
-      const [vRows] = await db.query('SELECT * FROM menu_item_variants');
+      const [vRows] = await db.query(`
+        SELECT v.*, ii.cost_per_unit 
+        FROM menu_item_variants v
+        LEFT JOIN inventory_items ii ON v.inventory_item_id = ii.id
+      `);
       variants = vRows;
     } catch (e) { console.warn('menu_item_variants table missing'); }
 
     try {
-      const [eRows] = await db.query('SELECT * FROM menu_item_extras');
+      const [eRows] = await db.query(`
+        SELECT e.*, ii.cost_per_unit 
+        FROM menu_item_extras e
+        LEFT JOIN inventory_items ii ON e.inventory_item_id = ii.id
+      `);
       extras = eRows;
     } catch (e) { console.warn('menu_item_extras table missing'); }
 
@@ -58,8 +66,19 @@ router.get('/', async (req, res) => {
           is_available: i.is_available, // Direct from DB (1 or 0)
           is_featured: Boolean(i.is_featured),
           badge: i.badge,
-          variants: variants.filter(v => v.menu_item_id === i.id).map(v => ({ ...v, price_offset: parseFloat(v.price_adjustment) })),
-          extras: extras.filter(e => e.menu_item_id === i.id).map(e => ({ ...e, price: parseFloat(e.price_adjustment) })),
+          sale_price: i.sale_price ? parseFloat(i.sale_price) : null,
+          variants: variants.filter(v => v.menu_item_id === i.id).map(v => ({ 
+            ...v, 
+            price_offset: v.price_adjustment !== null ? parseFloat(v.price_adjustment) : 0,
+            sale_price_offset: (v.sale_price_adjustment !== null && v.sale_price_adjustment !== undefined) ? parseFloat(v.sale_price_adjustment) : null,
+            cost: v.cost_per_unit ? (parseFloat(v.cost_per_unit) * parseFloat(v.quantity_required || 0)) : 0
+          })),
+          extras: extras.filter(e => e.menu_item_id === i.id).map(e => ({ 
+            ...e, 
+            price: e.price_adjustment !== null ? parseFloat(e.price_adjustment) : 0,
+            sale_price: (e.sale_price_adjustment !== null && e.sale_price_adjustment !== undefined) ? parseFloat(e.sale_price_adjustment) : null,
+            cost: e.cost_per_unit ? (parseFloat(e.cost_per_unit) * parseFloat(e.quantity_required || 0)) : 0
+          })),
           recipe: ingredients.filter(ing => ing.menu_item_id === i.id).map(ing => ({
             inventory_id: ing.inventory_item_id,
             ingredient_name: ing.ingredient_name,
@@ -156,7 +175,7 @@ router.post('/items', async (req, res) => {
   try {
     await connection.beginTransaction();
     const {
-      category_id, name, description, price, is_available,
+      category_id, name, description, price, sale_price, is_available,
       dietary_info, prep_station, image, is_featured, badge,
       recipe, variants, extras
     } = req.body;
@@ -167,10 +186,10 @@ router.post('/items', async (req, res) => {
 
     const [result] = await connection.query(
       `INSERT INTO menu_items 
-      (category_id, name, description, price, is_available, dietary_info, prep_station, image, is_featured, badge) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (category_id, name, description, price, sale_price, is_available, dietary_info, prep_station, image, is_featured, badge) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        category_id, name, description || null, price,
+        category_id, name, description || null, price, sale_price || null,
         is_available !== undefined ? is_available : true,
         dietary_info || null, prep_station || 'General',
         image || null, is_featured ? 1 : 0, badge || null
@@ -194,9 +213,14 @@ router.post('/items', async (req, res) => {
     // 3. Sync Variants
     if (variants && Array.isArray(variants)) {
       for (const v of variants) {
+        const pAdj = v.price_offset !== undefined ? v.price_offset : (v.price_adjustment || 0);
+        const sAdj = v.sale_price_offset !== undefined ? v.sale_price_offset : (v.sale_price_adjustment || null);
+        const invId = v.inventory_id !== undefined ? v.inventory_id : (v.inventory_item_id || null);
+        const qty = v.quantity !== undefined ? v.quantity : (v.quantity_required || 0);
+
         await connection.query(
-          'INSERT INTO menu_item_variants (menu_item_id, name, price_adjustment) VALUES (?, ?, ?)',
-          [itemId, v.name, v.price_offset || 0]
+          'INSERT INTO menu_item_variants (menu_item_id, name, price_adjustment, sale_price_adjustment, inventory_item_id, quantity_required) VALUES (?, ?, ?, ?, ?, ?)',
+          [itemId, v.name, pAdj, sAdj, invId, qty]
         );
       }
     }
@@ -204,9 +228,14 @@ router.post('/items', async (req, res) => {
     // 4. Sync Extras
     if (extras && Array.isArray(extras)) {
       for (const e of extras) {
+        const pAdj = e.price !== undefined ? e.price : (e.price_adjustment || 0);
+        const sAdj = e.sale_price !== undefined ? e.sale_price : (e.sale_price_adjustment || null);
+        const invId = e.inventory_id !== undefined ? e.inventory_id : (e.inventory_item_id || null);
+        const qty = e.quantity !== undefined ? e.quantity : (e.quantity_required || 0);
+
         await connection.query(
-          'INSERT INTO menu_item_extras (menu_item_id, name, price_adjustment) VALUES (?, ?, ?)',
-          [itemId, e.name, e.price || 0]
+          'INSERT INTO menu_item_extras (menu_item_id, name, price_adjustment, sale_price_adjustment, inventory_item_id, quantity_required) VALUES (?, ?, ?, ?, ?, ?)',
+          [itemId, e.name, pAdj, sAdj, invId, qty]
         );
       }
     }
@@ -233,7 +262,7 @@ router.put('/items/:id', async (req, res) => {
     await connection.beginTransaction();
     const { id } = req.params;
     const {
-      category_id, name, description, price, is_available,
+      category_id, name, description, price, sale_price, is_available,
       dietary_info, prep_station, image, is_featured, badge,
       recipe, variants, extras
     } = req.body;
@@ -241,10 +270,10 @@ router.put('/items/:id', async (req, res) => {
     // 1. Update Core Item
     await connection.query(
       `UPDATE menu_items 
-       SET category_id = ?, name = ?, description = ?, price = ?, is_available = ?, dietary_info = ?, prep_station = ?, image = ?, is_featured = ?, badge = ? 
+       SET category_id = ?, name = ?, description = ?, price = ?, sale_price = ?, is_available = ?, dietary_info = ?, prep_station = ?, image = ?, is_featured = ?, badge = ? 
        WHERE id = ?`,
       [
-        category_id, name, description, price,
+        category_id, name, description, price, sale_price || null,
         is_available !== undefined ? is_available : true,
         dietary_info, prep_station, image, is_featured ? 1 : 0, badge || null, id
       ]
@@ -267,9 +296,14 @@ router.put('/items/:id', async (req, res) => {
     await connection.query('DELETE FROM menu_item_variants WHERE menu_item_id = ?', [id]);
     if (variants && Array.isArray(variants)) {
       for (const v of variants) {
+        const pAdj = v.price_offset !== undefined ? v.price_offset : (v.price_adjustment || 0);
+        const sAdj = v.sale_price_offset !== undefined ? v.sale_price_offset : (v.sale_price_adjustment || null);
+        const invId = v.inventory_id !== undefined ? v.inventory_id : (v.inventory_item_id || null);
+        const qty = v.quantity !== undefined ? v.quantity : (v.quantity_required || 0);
+
         await connection.query(
-          'INSERT INTO menu_item_variants (menu_item_id, name, price_adjustment) VALUES (?, ?, ?)',
-          [id, v.name, v.price_offset || 0]
+          'INSERT INTO menu_item_variants (menu_item_id, name, price_adjustment, sale_price_adjustment, inventory_item_id, quantity_required) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, v.name, pAdj, sAdj, invId, qty]
         );
       }
     }
@@ -278,9 +312,14 @@ router.put('/items/:id', async (req, res) => {
     await connection.query('DELETE FROM menu_item_extras WHERE menu_item_id = ?', [id]);
     if (extras && Array.isArray(extras)) {
       for (const e of extras) {
+        const pAdj = e.price !== undefined ? e.price : (e.price_adjustment || 0);
+        const sAdj = e.sale_price !== undefined ? e.sale_price : (e.sale_price_adjustment || null);
+        const invId = e.inventory_id !== undefined ? e.inventory_id : (e.inventory_item_id || null);
+        const qty = e.quantity !== undefined ? e.quantity : (e.quantity_required || 0);
+
         await connection.query(
-          'INSERT INTO menu_item_extras (menu_item_id, name, price_adjustment) VALUES (?, ?, ?)',
-          [id, e.name, e.price || 0]
+          'INSERT INTO menu_item_extras (menu_item_id, name, price_adjustment, sale_price_adjustment, inventory_item_id, quantity_required) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, e.name, pAdj, sAdj, invId, qty]
         );
       }
     }
@@ -313,10 +352,10 @@ router.delete('/items/:id', async (req, res) => {
 // @route   POST /api/menu/variants
 router.post('/variants', async (req, res) => {
   try {
-    const { menu_item_id, name, price_adjustment, inventory_item_id, quantity_required } = req.body;
+    const { menu_item_id, name, price_adjustment, sale_price_adjustment, inventory_item_id, quantity_required } = req.body;
     const [result] = await db.query(
-      'INSERT INTO menu_item_variants (menu_item_id, name, price_adjustment, inventory_item_id, quantity_required) VALUES (?, ?, ?, ?, ?)',
-      [menu_item_id, name, price_adjustment || 0.00, inventory_item_id || null, quantity_required || 0]
+      'INSERT INTO menu_item_variants (menu_item_id, name, price_adjustment, sale_price_adjustment, inventory_item_id, quantity_required) VALUES (?, ?, ?, ?, ?, ?)',
+      [menu_item_id, name, price_adjustment || 0.00, sale_price_adjustment || null, inventory_item_id || null, quantity_required || 0]
     );
     res.status(201).json({ success: true, variantId: result.insertId });
   } catch (error) {
@@ -339,10 +378,10 @@ router.delete('/variants/:id', async (req, res) => {
 // @route   POST /api/menu/extras
 router.post('/extras', async (req, res) => {
   try {
-    const { menu_item_id, name, price_adjustment, inventory_item_id, quantity_required } = req.body;
+    const { menu_item_id, name, price_adjustment, sale_price_adjustment, inventory_item_id, quantity_required } = req.body;
     const [result] = await db.query(
-      'INSERT INTO menu_item_extras (menu_item_id, name, price_adjustment, inventory_item_id, quantity_required) VALUES (?, ?, ?, ?, ?)',
-      [menu_item_id, name, price_adjustment || 0.00, inventory_item_id || null, quantity_required || 0]
+      'INSERT INTO menu_item_extras (menu_item_id, name, price_adjustment, sale_price_adjustment, inventory_item_id, quantity_required) VALUES (?, ?, ?, ?, ?, ?)',
+      [menu_item_id, name, price_adjustment || 0.00, sale_price_adjustment || null, inventory_item_id || null, quantity_required || 0]
     );
     res.status(201).json({ success: true, extraId: result.insertId });
   } catch (error) {

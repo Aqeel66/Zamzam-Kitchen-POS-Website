@@ -60,7 +60,7 @@ const Login = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-4xl font-black text-white tracking-tighter uppercase mb-1"
+            className="text-4xl font-bold text-white tracking-tighter uppercase mb-1"
           >
             Zamzam <span className="text-yellow-500">Kitchen</span>
           </motion.h1>
@@ -97,7 +97,7 @@ const Login = () => {
             </AnimatePresence>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-teal-300/50 uppercase tracking-widest ml-1">Username</label>
+              <label className="text-[11px] font-bold text-teal-300/50 uppercase tracking-widest ml-1">Username</label>
               <div className="relative group">
                 <div className="absolute inset-0 bg-teal-500/5 rounded-2xl group-focus-within:bg-teal-500/10 transition-all duration-300" />
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500/50 w-5 h-5 group-focus-within:text-teal-400 transition-colors" />
@@ -113,7 +113,7 @@ const Login = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-teal-300/50 uppercase tracking-widest ml-1">Password</label>
+              <label className="text-[11px] font-bold text-teal-300/50 uppercase tracking-widest ml-1">Password</label>
               <div className="relative group">
                 <div className="absolute inset-0 bg-teal-500/5 rounded-2xl group-focus-within:bg-teal-500/10 transition-all duration-300" />
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500/50 w-5 h-5 group-focus-within:text-teal-400 transition-colors" />
@@ -133,7 +133,7 @@ const Login = () => {
               disabled={isLoading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="group relative w-full overflow-hidden bg-yellow-500 hover:bg-yellow-400 text-teal-950 font-black py-4 rounded-2xl shadow-[0_10px_30px_rgba(234,179,8,0.2)] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+              className="group relative w-full overflow-hidden bg-yellow-500 hover:bg-yellow-400 text-teal-950 font-bold py-4 rounded-2xl shadow-[0_10px_30px_rgba(234,179,8,0.2)] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               {isLoading ? (
@@ -149,7 +149,7 @@ const Login = () => {
             <div className="text-center pt-2">
               <button 
                 type="button"
-                className="text-white/30 hover:text-white/60 text-[10px] font-black tracking-widest uppercase transition-colors"
+                className="text-white/30 hover:text-white/60 text-[10px] font-bold tracking-widest uppercase transition-colors"
                 onClick={() => alert('Please contact your manager to reset your password.')}
               >
                 Forgot Password?
@@ -165,7 +165,7 @@ const Login = () => {
           className="flex items-center justify-center gap-3 mt-10"
         >
           <div className="h-px w-8 bg-white/10" />
-          <p className="text-white/20 text-[9px] font-black uppercase tracking-[0.4em]">
+          <p className="text-white/20 text-[9px] font-bold uppercase tracking-[0.4em]">
             Zamzam Kitchen RMS
           </p>
           <div className="h-px w-8 bg-white/10" />

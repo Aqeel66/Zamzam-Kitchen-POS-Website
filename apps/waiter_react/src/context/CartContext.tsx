@@ -16,8 +16,11 @@ interface CartContextType {
   tableId: number | null;
   setTableId: (id: number | null) => void;
   addItem: (item: CartItem) => void;
-  removeItem: (itemId: number) => void;
+  removeItem: (itemId: number, variantId?: number) => void;
+  updateQuantity: (itemId: number, delta: number, variantId?: number) => void;
   clearCart: () => void;
+  loadOrderIntoCart: (order: any) => void;
+  editingOrderId: number | null;
   total: number;
 }
 
@@ -26,6 +29,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [tableId, setTableId] = useState<number | null>(null);
+  const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
 
   const addItem = (item: CartItem) => {
     setCart(prev => {
@@ -37,22 +41,49 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const removeItem = (itemId: number) => {
-    setCart(prev => prev.filter(i => i.id !== itemId));
+  const removeItem = (itemId: number, variantId?: number) => {
+    setCart(prev => prev.filter(i => !(i.id === itemId && i.variantId === variantId)));
+  };
+
+  const updateQuantity = (itemId: number, delta: number, variantId?: number) => {
+    setCart(prev => prev.map(i => {
+      if (i.id === itemId && i.variantId === variantId) {
+        const newQty = Math.max(0, i.quantity + delta);
+        return { ...i, quantity: newQty };
+      }
+      return i;
+    }).filter(i => i.quantity > 0));
   };
 
   const clearCart = () => {
     setCart([]);
     setTableId(null);
+    setEditingOrderId(null);
+  };
+
+  const loadOrderIntoCart = (order: any) => {
+    setEditingOrderId(order.id);
+    setTableId(order.table_id);
+    setCart((order.items || []).map((item: any) => ({
+      id: item.menu_item_id || item.id,
+      name: item.name,
+      price: parseFloat(item.price || item.unit_price),
+      quantity: item.quantity,
+      variantId: item.variant_id,
+      extras: item.extras || []
+    })));
   };
 
   const total = cart.reduce((sum, item) => {
-    const extrasTotal = item.extras?.reduce((s, e) => s + e.price, 0) || 0;
+    const extrasTotal = item.extras?.reduce((s, e: any) => s + (e.price || 0), 0) || 0;
     return sum + (item.price + extrasTotal) * item.quantity;
   }, 0);
 
   return (
-    <CartContext.Provider value={{ cart, tableId, setTableId, addItem, removeItem, clearCart, total }}>
+    <CartContext.Provider value={{ 
+      cart, tableId, setTableId, addItem, removeItem, updateQuantity, clearCart, 
+      loadOrderIntoCart, editingOrderId, total 
+    }}>
       {children}
     </CartContext.Provider>
   );

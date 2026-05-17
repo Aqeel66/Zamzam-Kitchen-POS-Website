@@ -34,7 +34,7 @@ export const ReceiptTemplate = React.forwardRef<HTMLDivElement, ReceiptProps>(({
             )}
           </div>
         </div>
-        <h1 className="text-xl font-black uppercase tracking-tighter">{branch.restaurant_name || 'Zamzam Kitchen'}</h1>
+        <h1 className="text-xl font-bold uppercase tracking-tighter">{branch.restaurant_name || 'Zamzam Kitchen'}</h1>
         {branch.receipt_header ? (
           <div className="text-[10px] whitespace-pre-line leading-tight opacity-80">
             {branch.receipt_header}
@@ -52,14 +52,14 @@ export const ReceiptTemplate = React.forwardRef<HTMLDivElement, ReceiptProps>(({
           </>
         )}
         <div className="border-t border-dashed border-slate-300 my-2" />
-        <p className="font-black uppercase tracking-widest">Tax Invoice</p>
+        <p className="font-bold uppercase tracking-widest">Tax Invoice</p>
       </div>
 
       {/* Order Info */}
       <div className="mb-4 space-y-1">
         <div className="flex justify-between">
           <span>Order #:</span>
-          <span className="font-black">
+          <span className="font-bold">
             {(order?.orderNumber || order?.order_number || '').toString() || 'N/A'}
           </span>
         </div>
@@ -156,7 +156,7 @@ export const ReceiptTemplate = React.forwardRef<HTMLDivElement, ReceiptProps>(({
             <span>+{order.tip_amount.toFixed(2)}</span>
           </div>
         )}
-        <div className="flex justify-between text-base font-black border-t border-slate-200 pt-2">
+        <div className="flex justify-between text-base font-bold border-t border-slate-200 pt-2">
           <span>TOTAL:</span>
           <span>{(order?.total_amount || (subtotal + tax - (order?.discount_amount || 0) + (order?.tip_amount || 0))).toFixed(2)} {branch?.currency || 'USD'}</span>
         </div>

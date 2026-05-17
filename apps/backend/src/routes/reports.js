@@ -28,7 +28,7 @@ router.get('/financial', async (req, res) => {
         SUM(discount_amount) as total_discounts,
         (SUM(total_amount) - SUM(discount_amount)) as net_sales
       FROM orders o
-      WHERE ${dateFilter} AND status != 'Cancelled'
+      WHERE ${dateFilter} AND status != 'Cancelled' AND o.parent_order_id IS NULL
     `);
 
     // 2. Payments Breakdown
@@ -39,7 +39,7 @@ router.get('/financial', async (req, res) => {
         SUM(tip_amount) as tips
       FROM payments p
       JOIN orders o ON p.order_id = o.id
-      WHERE ${dateFilter} AND o.status != 'Cancelled'
+      WHERE ${dateFilter} AND o.status != 'Cancelled' AND o.parent_order_id IS NULL
       GROUP BY payment_method
     `);
 
@@ -66,7 +66,7 @@ router.get('/financial', async (req, res) => {
       JOIN orders o ON oi.order_id = o.id
       JOIN menu_item_ingredients mii ON oi.menu_item_id = mii.menu_item_id
       JOIN inventory_items ii ON mii.inventory_item_id = ii.id
-      WHERE ${dateFilter} AND o.status != 'Cancelled'
+      WHERE ${dateFilter} AND o.status != 'Cancelled' AND o.parent_order_id IS NULL
     `).catch((err) => {
       console.error('COGS Query Error:', err);
       return [[{ estimated_cogs: 0 }]];
@@ -118,7 +118,7 @@ router.get('/operational', async (req, res) => {
       FROM order_items oi
       JOIN menu_items mi ON oi.menu_item_id = mi.id
       JOIN orders o ON oi.order_id = o.id
-      WHERE ${dateFilter} AND o.status != 'Cancelled'
+      WHERE ${dateFilter} AND o.status != 'Cancelled' AND o.parent_order_id IS NULL
       GROUP BY mi.prep_station
     `);
 
@@ -129,7 +129,7 @@ router.get('/operational', async (req, res) => {
         COUNT(o.id) as sessions,
         COALESCE(SUM(o.total_amount), 0) as revenue
       FROM restaurant_tables rt
-      LEFT JOIN orders o ON o.table_id = rt.id AND ${dateFilter} AND o.status != 'Cancelled'
+      LEFT JOIN orders o ON o.table_id = rt.id AND ${dateFilter} AND o.status != 'Cancelled' AND o.parent_order_id IS NULL
       GROUP BY rt.id
       ORDER BY revenue DESC
     `);
@@ -141,7 +141,7 @@ router.get('/operational', async (req, res) => {
         COUNT(*) as count,
         COALESCE(SUM(total_amount), 0) as total
       FROM orders
-      WHERE ${ordersDateFilter} AND status != 'Cancelled'
+      WHERE ${ordersDateFilter} AND status != 'Cancelled' AND parent_order_id IS NULL
       GROUP BY origin
     `);
 
@@ -254,7 +254,7 @@ router.get('/waiter-dashboard', async (req, res) => {
       FROM order_items oi
       JOIN menu_items mi ON oi.menu_item_id = mi.id
       JOIN orders o ON oi.order_id = o.id
-      WHERE DATE(o.order_time) = CURDATE() AND o.status != 'Cancelled'
+      WHERE DATE(o.order_time) = CURDATE() AND o.status != 'Cancelled' AND o.parent_order_id IS NULL
       GROUP BY mi.id
       ORDER BY orders DESC
       LIMIT 3

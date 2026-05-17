@@ -135,11 +135,26 @@ const serveAsset = (req, res, next) => {
     const assetUrl = req.path;
     
     // Potential locations in priority order
-    const locations = [
+    let locations = [
       path.join(ASSETS_STORAGE, assetUrl),
       path.join(legacyAssetsPath, assetUrl),
       path.join(legacyPersistentPath, assetUrl)
-    ].filter(loc => {
+    ];
+
+    // If initial locations don't exist, try stripping prefixes (like /images/menu_items/)
+    // This handles cases where DB paths don't perfectly match storage structure
+    const segments = assetUrl.split('/').filter(Boolean);
+    if (segments.length > 1) {
+      const filename = segments[segments.length - 1];
+      locations.push(
+        path.join(ASSETS_STORAGE, filename),
+        path.join(ASSETS_STORAGE, 'menu_items', filename),
+        path.join(ASSETS_STORAGE, 'images/menu_items', filename),
+        path.join(legacyAssetsPath, filename)
+      );
+    }
+
+    const validLocations = locations.filter(loc => {
       try {
         return fs.existsSync(loc) && fs.lstatSync(loc).isFile();
       } catch (e) {
@@ -147,10 +162,10 @@ const serveAsset = (req, res, next) => {
       }
     });
 
-    if (locations.length > 0) {
+    if (validLocations.length > 0) {
       res.set('Access-Control-Allow-Origin', '*');
       res.set('Cache-Control', 'public, max-age=31536000, immutable');
-      return res.sendFile(locations[0]);
+      return res.sendFile(validLocations[0]);
     }
   } catch (err) {
     console.error('🔥 ASSET SERVE ERROR:', err.message);

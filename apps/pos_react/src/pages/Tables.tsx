@@ -114,18 +114,18 @@ export default function Tables() {
       <header className="flex items-end justify-between">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-[10px] font-black text-zamzam-teal uppercase tracking-[0.4em] block">Floor Management</span>
+            <span className="text-[10px] font-bold text-zamzam-teal uppercase tracking-[0.4em] block">Floor Management</span>
             <div className="flex items-center gap-2 bg-slate-100/50 px-2 py-0.5 rounded-full border border-slate-200/50">
                <div className={cn("w-1.5 h-1.5 rounded-full bg-green-500", isSyncing ? "animate-ping" : "animate-pulse")} />
-               <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Live Sync: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+               <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Live Sync: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
             </div>
           </div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Tables <span className="text-zamzam-teal">&</span> QR Codes</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Tables <span className="text-zamzam-teal">&</span> QR Codes</h1>
         </div>
         <div className="flex gap-4">
           <button 
             onClick={() => { setEditingTable(null); setIsModalOpen(true); }}
-            className="bg-zamzam-teal text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            className="bg-zamzam-teal text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
           >
             <Plus size={14} />
             Add Table
@@ -146,161 +146,159 @@ export default function Tables() {
             />
           </div>
           <div className="flex items-center gap-2">
-             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Status:</span>
+             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Status:</span>
              <div className="flex gap-1.5">
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-600 rounded-lg text-[9px] font-black uppercase tracking-widest border border-green-100">Available</span>
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-600 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-100">Occupied</span>
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-green-100">Available</span>
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-red-100">Occupied</span>
              </div>
           </div>
         </div>
 
-        <div className="p-4">
+        <div className="flex-1 overflow-y-auto no-scrollbar">
           {isLoading ? (
             <div className="py-12 flex items-center justify-center">
               <div className="w-8 h-8 border-4 border-slate-200 border-t-zamzam-teal rounded-full animate-spin" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {filteredTables.map((table) => {
-                const config = getStatusConfig(table.status);
-                const tableOrders = activeOrders.filter(o => {
-                   const orderTableId = o.table_id ? String(o.table_id) : null;
-                   const orderTableNum = o.table_number ? String(o.table_number).toLowerCase().trim() : null;
-                   const targetTableId = table.id ? String(table.id) : null;
-                   const targetTableNum = table.table_number ? String(table.table_number).toLowerCase().trim() : null;
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/50 border-b border-slate-100">
+                  <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <th className="px-8 py-5">Table Info</th>
+                    <th className="px-8 py-5 text-center">Occupancy</th>
+                    <th className="px-8 py-5">Status</th>
+                    <th className="px-8 py-5">Digital Menu</th>
+                    <th className="px-8 py-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredTables.map((table) => {
+                    const tableOrders = activeOrders.filter(o => {
+                       const orderTableId = o.table_id ? String(o.table_id) : null;
+                       const orderTableNum = o.table_number ? String(o.table_number).toLowerCase().trim() : null;
+                       const targetTableId = table.id ? String(table.id) : null;
+                       const targetTableNum = table.table_number ? String(table.table_number).toLowerCase().trim() : null;
 
-                   return (orderTableId && orderTableId === targetTableId) || 
-                          (orderTableNum && orderTableNum === targetTableNum);
-                });
-                const currentGuests = tableOrders.reduce((sum, o) => sum + (Number(o.guest_count) || 1), 0);
-                const occupancyPercent = Math.min(100, (currentGuests / (table.capacity || 1)) * 100);
-                
-                const releaseTimes = tableOrders.map(o => o.estimated_release_time).filter(t => t && !isNaN(new Date(t).getTime()));
-                const latestRelease = releaseTimes.length > 0 ? new Date(Math.max(...releaseTimes.map(t => new Date(t).getTime()))) : null;
-                const isValidRelease = latestRelease && !isNaN(latestRelease.getTime());
+                       return (orderTableId && orderTableId === targetTableId) || 
+                              (orderTableNum && orderTableNum === targetTableNum);
+                    });
+                    const currentGuests = tableOrders.reduce((sum, o) => sum + (Number(o.guest_count) || 1), 0);
+                    const occupancyPercent = Math.min(100, (currentGuests / (table.capacity || 1)) * 100);
+                    
+                    const releaseTimes = tableOrders.map(o => o.estimated_release_time).filter(t => t && !isNaN(new Date(t).getTime()));
+                    const latestRelease = releaseTimes.length > 0 ? new Date(Math.max(...releaseTimes.map(t => new Date(t).getTime()))) : null;
+                    const isValidRelease = latestRelease && !isNaN(latestRelease.getTime());
 
-                // SMART STATUS LOGIC: 
-                let activeConfig = getStatusConfig(table.status);
-                if (currentGuests >= table.capacity) {
-                  activeConfig = { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: AlertCircle, label: 'Full', pulse: true };
-                } else if (currentGuests > 0) {
-                  activeConfig = { color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100', icon: Users, label: 'Busy' };
-                } else if (activeConfig.label === 'Occupied') {
-                  activeConfig = getStatusConfig('Available');
-                }
+                    let activeConfig = getStatusConfig(table.status);
+                    if (currentGuests >= table.capacity) {
+                      activeConfig = { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: AlertCircle, label: 'Full', pulse: true };
+                    } else if (currentGuests > 0) {
+                      activeConfig = { color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100', icon: Users, label: 'Busy' };
+                    } else if (activeConfig.label === 'Occupied') {
+                      activeConfig = getStatusConfig('Available');
+                    }
 
-                const StatusIcon = activeConfig.icon;
+                    const StatusIcon = activeConfig.icon;
 
-                return (
-                  <motion.div
-                    layout
-                    key={table.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className={cn(
-                      "bg-white border rounded-xl p-3 relative group transition-all shadow-sm hover:shadow-lg hover:shadow-slate-200/50 overflow-hidden",
-                      activeConfig.border,
-                      activeConfig.pulse ? "hover:border-red-300" : "hover:border-zamzam-teal/30"
-                    )}
-                  >
-                    {/* Occupancy Progress Bar */}
-                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-100">
-                       <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${occupancyPercent}%` }}
-                        className={cn(
-                          "h-full transition-all duration-1000",
-                          occupancyPercent >= 100 ? "bg-red-500" : occupancyPercent > 50 ? "bg-orange-500" : "bg-zamzam-teal"
-                        )}
-                       />
-                    </div>
-
-                    <div className="absolute top-2 right-2 flex gap-1.5 z-10">
-                      {(activeConfig.label === 'Busy' || activeConfig.label === 'Full' || activeConfig.label === 'Occupied' || activeConfig.label === 'Reserved') && (
-                        <button 
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (confirm('Manually clear this table?')) {
-                              await fetch(`${API_BASE_URL}/tables/${table.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: 'Available' })
-                              });
-                              fetchTables();
-                            }
-                          }}
-                          className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
-                          title="Clear Table"
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      )}
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setEditingTable(table); setIsModalOpen(true); }}
-                        className="w-8 h-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-zamzam-teal hover:border-zamzam-teal/30 transition-all shadow-sm"
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={cn(
-                        "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black transition-all border-2 shadow-inner shrink-0",
-                        activeConfig.bg, activeConfig.color, activeConfig.border
-                      )}>
-                        <span className="text-sm leading-none tracking-tighter">{table.table_number}</span>
-                        <span className="text-[7px] uppercase tracking-widest mt-0.5 opacity-50">Table</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col gap-0.5 mb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <Users size={10} className="text-slate-300" />
-                            <span className="text-[10px] font-black text-slate-900">
-                              {currentGuests} <span className="text-[8px] text-slate-400 font-bold">/ {table.capacity}</span>
+                    return (
+                      <tr key={table.id} className="hover:bg-slate-50/30 transition-colors group">
+                        <td className="px-8 py-4">
+                          <div className="flex items-center gap-4">
+                            <div className={cn(
+                              "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold transition-all border shadow-inner shrink-0",
+                              activeConfig.bg, activeConfig.color, activeConfig.border
+                            )}>
+                              <span className="text-sm tracking-tighter leading-none">{table.table_number}</span>
+                              <span className="text-[7px] uppercase tracking-widest mt-0.5 opacity-50">Table</span>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Users size={12} className="text-slate-300" />
+                                <span className="text-xs font-bold text-slate-900">Capacity: {table.capacity} Guests</span>
+                              </div>
+                              {isValidRelease && (
+                                <div className="flex items-center gap-1.5 text-zamzam-teal font-bold uppercase tracking-widest text-[9px]">
+                                  <Clock size={10} />
+                                  Available ~ {latestRelease!.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-4 text-center">
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-700">
+                              {currentGuests} Seated
                             </span>
-                            {isValidRelease && (
-                               <div className="flex items-center gap-1 ml-auto bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
-                                  <Clock size={8} className="text-slate-400" />
-                                  <span className="text-[8px] font-black text-slate-600 uppercase">
-                                     Free {latestRelease!.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
-                               </div>
+                            <div className="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${occupancyPercent}%` }}
+                                className={cn(
+                                  "h-full transition-all duration-1000",
+                                  occupancyPercent >= 100 ? "bg-red-500" : occupancyPercent > 50 ? "bg-orange-500" : "bg-zamzam-teal"
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-4">
+                          <div className={cn(
+                            "flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest inline-flex",
+                            activeConfig.bg, activeConfig.color, activeConfig.border
+                          )}>
+                            <StatusIcon size={10} className={activeConfig.pulse ? "animate-pulse" : ""} />
+                            {activeConfig.label}
+                          </div>
+                        </td>
+                        <td className="px-8 py-4">
+                          <button 
+                            onClick={() => { setSelectedQRTable(table); setQrModalOpen(true); }}
+                            className="flex items-center gap-3 p-2 bg-slate-50 border border-slate-100 rounded-xl hover:bg-white hover:border-zamzam-teal/30 transition-all group/qr shadow-sm"
+                          >
+                            <QrCode size={14} className="text-slate-400 group-hover/qr:text-zamzam-teal transition-colors" />
+                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">QR Code</span>
+                          </button>
+                        </td>
+                        <td className="px-8 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {(currentGuests > 0) && (
+                              <button 
+                                onClick={async () => {
+                                  if (confirm('Manually clear this table?')) {
+                                    await fetch(`${API_BASE_URL}/tables/${table.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ status: 'Available' })
+                                    });
+                                    fetchTables();
+                                  }
+                                }}
+                                className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100"
+                                title="Clear Table"
+                              >
+                                <CheckCircle2 size={16} />
+                              </button>
                             )}
+                            <button 
+                              onClick={() => { setEditingTable(table); setIsModalOpen(true); }}
+                              className="p-2.5 bg-slate-50 text-slate-400 hover:text-zamzam-teal hover:bg-zamzam-teal/10 rounded-xl transition-all border border-slate-100"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteTable(table.id)}
+                              className="p-2.5 bg-red-50 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-100"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
-                          <div className="w-full h-1 bg-slate-50 rounded-full overflow-hidden">
-                             <div className={cn("h-full transition-all duration-500", occupancyPercent >= 100 ? "bg-red-500" : "bg-orange-500")} style={{ width: `${occupancyPercent}%` }} />
-                          </div>
-                        </div>
-                        <div className={cn(
-                          "flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest inline-flex",
-                          activeConfig.bg, activeConfig.color, activeConfig.border
-                        )}>
-                          <StatusIcon size={9} className={activeConfig.pulse ? "animate-pulse" : ""} />
-                          {activeConfig.label}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                       <button 
-                        onClick={() => { setSelectedQRTable(table); setQrModalOpen(true); }}
-                        className="w-full flex items-center justify-between p-2.5 bg-slate-50 rounded-xl hover:bg-zamzam-teal/5 group/btn transition-all border border-slate-100 hover:border-zamzam-teal/20"
-                       >
-                          <div className="flex items-center gap-2">
-                             <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center border border-slate-100 shadow-sm group-hover/btn:border-zamzam-teal/20 transition-all">
-                                <QrCode size={12} className="text-slate-400 group-hover/btn:text-zamzam-teal transition-colors" />
-                             </div>
-                             <div className="text-left">
-                                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block">Quick Link</span>
-                                <span className="text-[9px] font-black text-slate-900 uppercase tracking-tight group-hover/btn:text-zamzam-teal transition-colors">Digital Menu</span>
-                             </div>
-                          </div>
-                          <Printer size={12} className="text-slate-300 group-hover/btn:text-zamzam-teal transition-colors" />
-                       </button>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -325,8 +323,8 @@ export default function Tables() {
             >
               <div className="flex items-center justify-between mb-10">
                 <div>
-                  <span className="text-[10px] font-black text-zamzam-teal uppercase tracking-[0.4em] mb-2 block">Configuration</span>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                  <span className="text-[10px] font-bold text-zamzam-teal uppercase tracking-[0.4em] mb-2 block">Configuration</span>
+                  <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
                     {editingTable ? 'Edit' : 'Add New'} <span className="text-zamzam-teal">Table</span>
                   </h2>
                 </div>
@@ -362,18 +360,18 @@ export default function Tables() {
               }} className="space-y-8">
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Table Number</label>
-                    <input name="table_number" type="text" placeholder="e.g. T-12" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 transition-all" defaultValue={editingTable?.table_number} required />
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Table Number</label>
+                    <input name="table_number" type="text" placeholder="e.g. T-12" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 transition-all" defaultValue={editingTable?.table_number} required />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Capacity</label>
-                    <input name="capacity" type="number" placeholder="4" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 transition-all" defaultValue={editingTable?.capacity} required />
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Capacity</label>
+                    <input name="capacity" type="number" placeholder="4" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 transition-all" defaultValue={editingTable?.capacity} required />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Default Status</label>
-                  <select name="status" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 transition-all appearance-none" defaultValue={editingTable?.status || 'Available'}>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Default Status</label>
+                  <select name="status" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 transition-all appearance-none" defaultValue={editingTable?.status || 'Available'}>
                     <option value="Available">Available</option>
                     <option value="Occupied">Occupied</option>
                     <option value="Maintenance">Maintenance</option>
@@ -381,10 +379,10 @@ export default function Tables() {
                 </div>
 
                 <div className="flex gap-4 pt-4">
-                  <button type="submit" className="flex-1 bg-zamzam-teal text-white font-black py-5 rounded-2xl shadow-xl shadow-teal-900/20 uppercase tracking-widest text-xs">
+                  <button type="submit" className="flex-1 bg-zamzam-teal text-white font-bold py-5 rounded-2xl shadow-xl shadow-teal-900/20 uppercase tracking-widest text-xs">
                     {editingTable ? 'Update' : 'Save'} Table
                   </button>
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-10 bg-slate-100 text-slate-400 font-black py-5 rounded-2xl uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-10 bg-slate-100 text-slate-400 font-bold py-5 rounded-2xl uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">
                     Cancel
                   </button>
                 </div>
@@ -434,7 +432,7 @@ function QRModal({ isOpen, onClose, table, printRef, onPrint }: any) {
       >
         <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase leading-none">Digital Menu QR</h2>
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight uppercase leading-none">Digital Menu QR</h2>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Table {table.table_number} • {table.capacity} Guests</p>
           </div>
           <button onClick={onClose} className="p-3 text-slate-400 hover:bg-white hover:text-slate-900 rounded-2xl transition-all border border-transparent hover:border-slate-100">
@@ -446,7 +444,7 @@ function QRModal({ isOpen, onClose, table, printRef, onPrint }: any) {
            {/* Printable Area */}
            <div ref={printRef} className="p-8 bg-white text-center">
               <div className="mb-6">
-                 <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-1">Zamzam Kitchen</h1>
+                 <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-tighter mb-1">Zamzam Kitchen</h1>
                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Scan to View Menu</p>
               </div>
               
@@ -458,7 +456,7 @@ function QRModal({ isOpen, onClose, table, printRef, onPrint }: any) {
               </div>
 
               <div className="space-y-1">
-                 <p className="text-lg font-black text-slate-900 uppercase">Table {table.table_number}</p>
+                 <p className="text-lg font-bold text-slate-900 uppercase">Table {table.table_number}</p>
                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Powered by Zamzam POS</p>
               </div>
            </div>
@@ -469,14 +467,14 @@ function QRModal({ isOpen, onClose, table, printRef, onPrint }: any) {
                   navigator.clipboard.writeText(menuUrl);
                   alert('URL copied to clipboard!');
                 }}
-                className="flex items-center justify-center gap-3 py-4 bg-white border border-slate-200 rounded-2xl text-slate-600 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
+                className="flex items-center justify-center gap-3 py-4 bg-white border border-slate-200 rounded-2xl text-slate-600 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
               >
                 <Copy size={16} />
                 Copy Link
               </button>
               <button 
                 onClick={onPrint}
-                className="flex items-center justify-center gap-3 py-4 bg-zamzam-teal text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-teal-500/20 hover:bg-teal-600 transition-all active:scale-95"
+                className="flex items-center justify-center gap-3 py-4 bg-zamzam-teal text-white rounded-2xl font-bold text-[10px] uppercase tracking-widest shadow-xl shadow-teal-500/20 hover:bg-teal-600 transition-all active:scale-95"
               >
                 <Printer size={16} />
                 Print QR

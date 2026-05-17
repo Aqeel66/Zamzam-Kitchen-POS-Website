@@ -7,7 +7,7 @@ export const orderService = {
   },
   
   fetchOrders: async () => {
-    const response = await api.get('orders');
+    const response = await api.get('orders?kds=true');
     return response.data;
   },
   
@@ -18,6 +18,11 @@ export const orderService = {
   
   fetchDashboardStats: async () => {
     const response = await api.get('reports/waiter-dashboard');
+    return response.data;
+  },
+  
+  fetchSummary: async () => {
+    const response = await api.get('orders/summary');
     return response.data;
   },
   

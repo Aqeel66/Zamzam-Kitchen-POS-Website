@@ -51,7 +51,7 @@ const sendSMS = async (to, message) => {
     }
 };
 
-const sendEmail = async (to, subject, text) => {
+const sendEmail = async (to, subject, text, attachments = []) => {
     const settings = await getEmailSettings();
     if (!settings || !settings.smtp_host) {
         console.warn('⚠️ Email settings not found or inactive in Database. Skipping Email.');
@@ -73,7 +73,8 @@ const sendEmail = async (to, subject, text) => {
             from: `"${settings.from_name || 'Zamzam Kitchen'}" <${settings.from_email || settings.smtp_user}>`,
             to,
             subject,
-            text
+            text,
+            attachments
         });
         console.log('✅ Email Sent successfully to:', to);
         return true;

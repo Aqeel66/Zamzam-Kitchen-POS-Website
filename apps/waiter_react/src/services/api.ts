@@ -1,28 +1,36 @@
 import axios from 'axios';
 
-// Ensure we target the root API correctly regardless of where the app is hosted
+const API_URL = import.meta.env.VITE_API_URL || '/api/';
+export const POS_URL = import.meta.env.VITE_POS_URL || '/pos/';
+
 const api = axios.create({
-  baseURL: '/api/',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-export const resolveImageUrl = (path: string | null) => {
+export const resolveImageUrl = (path: string | null | undefined) => {
   if (!path) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
   if (path.startsWith('http')) return path;
   
-  // Normalize the path to ensure it points to the root /assets/ folder
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  let finalPath = cleanPath;
-  
-  // If it doesn't already start with assets/, add it
-  if (!cleanPath.startsWith('assets/')) {
-    finalPath = `assets/${cleanPath}`;
+  // Normalization for the assets path
+  // Strip any existing /assets/ or assets/ prefix from the database path
+  let cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  if (cleanPath.startsWith('assets/')) {
+    cleanPath = cleanPath.substring(7);
   }
   
-  // Prepend / to make it root-relative so it works from /waiter subfolder
-  return `/${finalPath}?t=${new Date().getMinutes()}`;
+  const finalPath = `assets/${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`;
+  
+  // Resolve base URL for assets (removes /api/ or /api)
+  const assetBase = API_URL.replace(/\/api\/?$/, '');
+  
+  // If absolute URL, use it; otherwise root-relative
+  const prefix = assetBase.startsWith('http') ? assetBase : '';
+  const separator = finalPath.startsWith('/') ? '' : '/';
+  
+  return `${prefix}${separator}${finalPath}`;
 };
 
 export default api;

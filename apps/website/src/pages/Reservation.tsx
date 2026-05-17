@@ -579,7 +579,7 @@ export default function Reservation() {
                                 <div className="mb-2">
                                    <h5 className="font-bold text-gray-800">Booking Advance Fee</h5>
                                 </div>
-                                <div className="text-3xl font-black text-orange-600 my-4">${feeAmount.toFixed(2)}</div>
+                                <div className="text-3xl font-bold text-orange-600 my-4">${feeAmount.toFixed(2)}</div>
                                 <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 mb-4">
                                     <p className="text-[11px] text-orange-800 leading-tight">
                                        <strong>Note:</strong> This fee will be <strong>adjusted against your food bill</strong> when you arrive. Otherwise it is <strong>non-refundable</strong>.

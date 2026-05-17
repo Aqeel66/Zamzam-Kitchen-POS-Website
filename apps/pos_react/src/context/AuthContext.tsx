@@ -23,12 +23,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
+      // Check for user data in URL (for embedded mode)
+      const urlParams = new URLSearchParams(window.location.search);
+      const userParam = urlParams.get('user');
+      
+      if (userParam) {
+        const decodedUser = JSON.parse(decodeURIComponent(userParam));
+        setUser(decodedUser);
+        localStorage.setItem('pos_user', JSON.stringify(decodedUser));
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+
       const savedUser = localStorage.getItem('pos_user');
       if (savedUser) {
         setUser(JSON.parse(savedUser));
       }
     } catch (err) {
-      console.error('Error parsing saved user:', err);
+      console.error('Error parsing user data:', err);
       localStorage.removeItem('pos_user');
     }
   }, []);

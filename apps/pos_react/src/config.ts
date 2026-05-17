@@ -5,13 +5,15 @@ export const resolveImageUrl = (path: any) => {
   if (!path || typeof path !== 'string') return undefined;
   if (path.startsWith('http')) return path;
   
-  // Ensure the path starts with /assets/ for the backend to serve it correctly
-  let normalizedPath = path;
-  if (!normalizedPath.startsWith('assets/') && !normalizedPath.startsWith('/assets/')) {
-    normalizedPath = `assets/${normalizedPath.startsWith('/') ? normalizedPath.slice(1) : normalizedPath}`;
+  // Strip any existing /assets/ or assets/ prefix
+  let cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  if (cleanPath.startsWith('assets/')) {
+    cleanPath = cleanPath.substring(7);
   }
   
+  // Ensure we have exactly one assets/ prefix
+  const normalizedPath = `assets/${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`;
+  
   const url = `${BASE_URL}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
-  // Add a simple cache buster using a daily timestamp or similar
-  return `${url}?t=${new Date().getMinutes()}`; // Busts every minute to stay fresh during configuration
+  return url;
 };

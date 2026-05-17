@@ -272,7 +272,7 @@ export default function Reservations() {
              <div className="w-8 h-8 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
                 <Calendar size={18} />
              </div>
-             <h1 className="text-xl font-black text-slate-900 tracking-tight">Live <span className="text-orange-500">Bookings</span></h1>
+             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Live <span className="text-orange-500">Bookings</span></h1>
           </div>
           
           <button 
@@ -294,7 +294,7 @@ export default function Reservations() {
               setFormStep(1);
               setIsModalOpen(true);
             }}
-            className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
           >
             <Plus size={16} strokeWidth={4} />
             Add New Booking
@@ -330,12 +330,12 @@ export default function Reservations() {
                       setSelectedDate(val);
                     }
                   }}
-                  className="bg-white border border-slate-200 rounded-xl py-1.5 pl-9 pr-3 text-[10px] font-black uppercase outline-none focus:border-orange-500/30 transition-all shadow-sm"
+                  className="bg-white border border-slate-200 rounded-xl py-1.5 pl-9 pr-3 text-[10px] font-bold uppercase outline-none focus:border-orange-500/30 transition-all shadow-sm"
                 />
              </div>
              <button 
                 onClick={() => setSelectedDate(getTodayStr())}
-                className="text-[9px] font-black text-orange-500 uppercase tracking-widest hover:bg-orange-100/50 px-3 py-1.5 rounded-xl transition-all border border-orange-200/30 bg-orange-50/50"
+                className="text-[9px] font-bold text-orange-500 uppercase tracking-widest hover:bg-orange-100/50 px-3 py-1.5 rounded-xl transition-all border border-orange-200/30 bg-orange-50/50"
              >
                 Today
              </button>
@@ -354,7 +354,7 @@ export default function Reservations() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  "px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 whitespace-nowrap shadow-sm",
+                  "px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border transition-all flex items-center gap-2 whitespace-nowrap shadow-sm",
                   activeTab === tab.id 
                     ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/30" 
                     : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
@@ -362,7 +362,7 @@ export default function Reservations() {
               >
                 {tab.label}
                 <span className={cn(
-                  "w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black",
+                  "w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold",
                   activeTab === tab.id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
                 )}>
                   {tab.id === 'UPCOMING' ? stats.UPCOMING : 
@@ -379,7 +379,7 @@ export default function Reservations() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Reservation List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="w-8 h-8 border-4 border-slate-200 border-t-orange-500 rounded-full animate-spin" />
@@ -389,79 +389,93 @@ export default function Reservations() {
               <Calendar size={48} className="mb-4 opacity-20" />
               <p className="font-bold uppercase tracking-widest text-xs">No bookings found</p>
             </div>
-          ) : filteredReservations.map((res) => (
-            <motion.div
-              layout
-              key={res.id}
-              onClick={() => setSelectedReservation(res)}
-              className={cn(
-                "bg-white border p-3 rounded-xl cursor-pointer transition-all hover:shadow-lg relative overflow-hidden group",
-                selectedReservation?.id === res.id 
-                  ? "border-orange-500 shadow-xl shadow-orange-500/10" 
-                  : "border-slate-100 shadow-sm hover:border-slate-200"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6 flex-1">
-                  <div className="min-w-[120px]">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-tight mb-0.5 group-hover:text-orange-600 transition-colors">
-                      {res.first_name} {res.last_name}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <Phone size={9} />
-                      <span className="text-[9px] font-bold tracking-wider">{res.phone || 'No phone'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Schedule</span>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded-lg border border-slate-100 shadow-sm whitespace-nowrap">
-                          <Calendar size={8} className="text-orange-500" />
-                          <span className="text-[9px] font-black uppercase tracking-widest">{res.reservation_date}</span>
+          ) : (
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/50 border-b border-slate-100">
+                  <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <th className="px-6 py-5">Guest</th>
+                    <th className="px-6 py-5">Schedule</th>
+                    <th className="px-6 py-5 text-center">Party</th>
+                    <th className="px-6 py-5">Table</th>
+                    <th className="px-6 py-5">Status</th>
+                    <th className="px-6 py-5 text-right"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredReservations.map((res) => (
+                    <tr 
+                      key={res.id} 
+                      onClick={() => setSelectedReservation(res)}
+                      className={cn(
+                        "hover:bg-slate-50/30 transition-colors group cursor-pointer",
+                        selectedReservation?.id === res.id ? "bg-orange-50/30" : ""
+                      )}
+                    >
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 uppercase tracking-tight group-hover:text-orange-600 transition-colors">
+                            {res.first_name} {res.last_name}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-slate-400 mt-0.5">
+                            <Phone size={10} />
+                            <span className="text-[9px] font-bold tracking-wider">{res.phone || 'No phone'}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded-lg border border-slate-100 shadow-sm whitespace-nowrap">
-                          <Clock3 size={8} className="text-orange-500" />
-                          <span className="text-[9px] font-black uppercase tracking-widest">{res.reservation_time?.substring(0, 5)}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 text-slate-600">
+                            <Calendar size={10} className="text-orange-500" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{res.reservation_date}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-slate-600">
+                            <Clock3 size={10} className="text-orange-500" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{res.reservation_time?.substring(0, 5)}</span>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Details</span>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-lg border border-orange-100 shadow-sm whitespace-nowrap">
-                          <Users size={8} />
-                          <span className="text-[9px] font-black uppercase tracking-widest">{res.party_size} Guests</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100 shadow-sm whitespace-nowrap">
-                          <span className="text-[8px] font-black uppercase tracking-widest opacity-70">Table</span>
-                          <span className="text-[9px] font-black uppercase tracking-widest">{res.table_number || res.table_id || 'TBD'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm border min-w-[60px] text-center",
-                    res.status?.toUpperCase() === 'CONFIRMED' ? "bg-green-50 border-green-200 text-green-700" :
-                    res.status?.toUpperCase() === 'PENDING' ? "bg-amber-50 border-amber-200 text-amber-700" :
-                    res.status?.toUpperCase() === 'SEATED' ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
-                    "bg-slate-50 border-slate-200 text-slate-600"
-                  )}>
-                    {res.status}
-                  </div>
-                  <ChevronRight size={14} className={cn(
-                    "transition-transform",
-                    selectedReservation?.id === res.id ? "text-orange-500 translate-x-1" : "text-slate-300"
-                  )} />
-                </div>
-              </div>
-            </motion.div>
-          ))}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-orange-100">
+                          {res.party_size} Guests
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          "px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border",
+                          res.table_number || res.table_id 
+                            ? "bg-blue-50 border-blue-100 text-blue-600" 
+                            : "bg-slate-50 border-slate-200 text-slate-400"
+                        )}>
+                          {res.table_number || res.table_id ? `Table ${res.table_number || res.table_id}` : 'Unassigned'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
+                          res.status?.toUpperCase() === 'CONFIRMED' ? "bg-green-50 border-green-200 text-green-700" :
+                          res.status?.toUpperCase() === 'PENDING' ? "bg-amber-50 border-amber-200 text-amber-700" :
+                          res.status?.toUpperCase() === 'SEATED' ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
+                          "bg-slate-50 border-slate-200 text-slate-600"
+                        )}>
+                          {res.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <ChevronRight 
+                          size={16} 
+                          className={cn(
+                            "ml-auto transition-transform",
+                            selectedReservation?.id === res.id ? "text-orange-500 translate-x-1" : "text-slate-300"
+                          )} 
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -478,7 +492,7 @@ export default function Reservations() {
                 {/* Panel Header */}
                 <div className="p-4 border-b border-slate-100 flex items-start justify-between gap-2">
                   <div>
-                    <h2 className="text-sm font-black text-slate-900 tracking-tight leading-tight">
+                    <h2 className="text-sm font-bold text-slate-900 tracking-tight leading-tight">
                       {selectedReservation.first_name} {selectedReservation.last_name}
                     </h2>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
@@ -487,7 +501,7 @@ export default function Reservations() {
                     {/* Status + Origin badges */}
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                       <span className={cn(
-                        "px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest",
+                        "px-2 py-0.5 rounded-full border text-[8px] font-bold uppercase tracking-widest",
                         selectedReservation.status?.toUpperCase() === 'CONFIRMED' ? "bg-green-50 border-green-400 text-green-700" :
                         selectedReservation.status?.toUpperCase() === 'PENDING'   ? "bg-amber-50 border-amber-400 text-amber-700" :
                         selectedReservation.status?.toUpperCase() === 'SEATED'    ? "bg-indigo-50 border-indigo-400 text-indigo-700" :
@@ -498,15 +512,15 @@ export default function Reservations() {
                       {(() => {
                         const origin = (selectedReservation.origin || 'Counter').toLowerCase();
                         if (origin === 'website') return (
-                          <span className="px-2 py-0.5 rounded-full border border-indigo-400 bg-indigo-50 text-indigo-700 text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full border border-indigo-400 bg-indigo-50 text-indigo-700 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1">
                             <Globe size={9} strokeWidth={3}/> Website
                           </span>
                         );
                         if (origin === 'qr menu' || origin === 'qr-menu') return (
-                          <span className="px-2 py-0.5 rounded-full border border-purple-400 bg-purple-50 text-purple-700 text-[8px] font-black uppercase tracking-widest">QR Menu</span>
+                          <span className="px-2 py-0.5 rounded-full border border-purple-400 bg-purple-50 text-purple-700 text-[8px] font-bold uppercase tracking-widest">QR Menu</span>
                         );
                         return (
-                          <span className="px-2 py-0.5 rounded-full border border-zamzam-teal bg-teal-50 text-zamzam-teal text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full border border-zamzam-teal bg-teal-50 text-zamzam-teal text-[8px] font-bold uppercase tracking-widest flex items-center gap-1">
                             <Users size={9} strokeWidth={3}/> Counter
                           </span>
                         );
@@ -529,7 +543,7 @@ export default function Reservations() {
                     <>
                       {/* Contact Information */}
                       <div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-2">Contact Information</span>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Contact Information</span>
                         <div className="space-y-2.5">
                           <div>
                             <label className="text-[9px] font-bold text-slate-500 mb-1 block">Full Name</label>
@@ -563,7 +577,7 @@ export default function Reservations() {
 
                       {/* Booking Logistics */}
                       <div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-2">Booking Logistics</span>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Booking Logistics</span>
                         <div className="space-y-2.5">
                           <div className="grid grid-cols-2 gap-2">
                             <div>
@@ -604,7 +618,7 @@ export default function Reservations() {
                       {/* Contact Information */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Contact Information</span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Contact Information</span>
                           <button
                             onClick={() => {
                               setEditFormValues({
@@ -620,7 +634,7 @@ export default function Reservations() {
                             className="flex items-center gap-1 text-orange-500 hover:text-orange-600 transition-colors"
                           >
                             <Pencil size={10} strokeWidth={3}/>
-                            <span className="text-[8px] font-black uppercase tracking-widest">Edit</span>
+                            <span className="text-[8px] font-bold uppercase tracking-widest">Edit</span>
                           </button>
                         </div>
                         <div className="space-y-2">
@@ -637,7 +651,7 @@ export default function Reservations() {
 
                       {/* Booking Logistics */}
                       <div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-2">Booking Logistics</span>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Booking Logistics</span>
                         <div className="space-y-2">
                           {[
                             { label: 'Reserved Date',  value: selectedReservation.reservation_date },
@@ -660,7 +674,7 @@ export default function Reservations() {
 
                   {/* Table Assignment dropdown — always visible */}
                   <div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-2">Table Assignment</span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Table Assignment</span>
                     <div className="relative">
                       <select
                         value={sidebarTableId !== '' ? sidebarTableId : (selectedReservation.table_id || '')}
@@ -723,13 +737,13 @@ export default function Reservations() {
                           } catch {}
                           setIsEditMode(false);
                         }}
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all"
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all"
                       >
                         Save Changes
                       </button>
                       <button
                         onClick={() => setIsEditMode(false)}
-                        className="w-full border border-slate-200 text-slate-500 hover:bg-slate-50 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
+                        className="w-full border border-slate-200 text-slate-500 hover:bg-slate-50 py-2 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all"
                       >
                         Cancel
                       </button>
@@ -739,20 +753,20 @@ export default function Reservations() {
                     <>
                       <button
                         onClick={() => handleStatusChange(selectedReservation.id, 'Seated', selectedReservation.table_id)}
-                        className="w-full bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-green-500/20 transition-all"
+                        className="w-full bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-green-500/20 transition-all"
                       >
                         Seat Guest Now
                       </button>
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleStatusChange(selectedReservation.id, 'No-Show', selectedReservation.table_id)}
-                          className="flex-1 border border-amber-400 text-amber-500 hover:bg-amber-50 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
+                          className="flex-1 border border-amber-400 text-amber-500 hover:bg-amber-50 py-2 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all"
                         >
                           No-Show
                         </button>
                         <button
                           onClick={() => handleStatusChange(selectedReservation.id, 'Cancelled', selectedReservation.table_id)}
-                          className="flex-1 text-red-500 hover:bg-red-50 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border border-transparent hover:border-red-100 transition-all"
+                          className="flex-1 text-red-500 hover:bg-red-50 py-2 rounded-xl font-bold text-[9px] uppercase tracking-widest border border-transparent hover:border-red-100 transition-all"
                         >
                           Cancel
                         </button>
@@ -764,7 +778,7 @@ export default function Reservations() {
             ) : (
               <div className="h-full flex flex-col items-center justify-center p-12 text-center text-slate-300">
                 <ClipboardList size={48} className="opacity-20 mb-4" />
-                <h3 className="text-xs font-black uppercase tracking-widest">Select a Booking</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest">Select a Booking</h3>
               </div>
             )}
           </AnimatePresence>
@@ -798,7 +812,7 @@ export default function Reservations() {
                      <ClipboardList size={32} className="text-white" />}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
                       {formStep === 1 ? 'Select Slot' : 
                        formStep === 2 ? 'Customer Info' :
                        formStep === 3 ? 'Assign Table' : 
@@ -827,12 +841,12 @@ export default function Reservations() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-8"
                     >
-                      <h3 className="text-lg font-black text-slate-800">When would you like to visit?</h3>
+                      <h3 className="text-lg font-bold text-slate-800">When would you like to visit?</h3>
                       
                       <div className="space-y-4">
                         {/* Date Input */}
                         <div className="group">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Date</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Date</label>
                           <div className="relative">
                             <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500" size={20} />
                             <input 
@@ -848,28 +862,28 @@ export default function Reservations() {
                                   setFormValues({...formValues, date: val});
                                 }
                               }}
-                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-black text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
+                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-bold text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
                             />
                           </div>
                         </div>
 
                         {/* Time Input */}
                         <div className="group">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Time</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Time</label>
                           <div className="relative">
                             <Clock3 className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500" size={20} />
                             <input 
                               type="time" 
                               value={formValues.time} 
                               onChange={(e) => setFormValues({...formValues, time: e.target.value})}
-                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-black text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
+                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-bold text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
                             />
                           </div>
                         </div>
 
                         {/* Guests Input */}
                         <div className="group">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Guests</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Guests</label>
                           <div className="relative">
                             <Users className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500" size={20} />
                             <input 
@@ -877,7 +891,7 @@ export default function Reservations() {
                               min="1"
                               value={formValues.guests} 
                               onChange={(e) => setFormValues({...formValues, guests: e.target.value})}
-                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-black text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
+                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-bold text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
                             />
                           </div>
                         </div>
@@ -893,10 +907,10 @@ export default function Reservations() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-6"
                     >
-                      <h3 className="text-lg font-black text-slate-800">Date & Time</h3>
+                      <h3 className="text-lg font-bold text-slate-800">Date & Time</h3>
                       <div className="grid grid-cols-1 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Select Date</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Select Date</label>
                           <input 
                             required 
                             type="date" 
@@ -911,11 +925,11 @@ export default function Reservations() {
                                 setFormValues({...formValues, date: selectedDate});
                               }
                             }} 
-                            className="w-full bg-white border-2 border-slate-100 rounded-3xl py-5 px-8 text-lg font-black outline-none focus:border-orange-500 transition-all shadow-sm" 
+                            className="w-full bg-white border-2 border-slate-100 rounded-3xl py-5 px-8 text-lg font-bold outline-none focus:border-orange-500 transition-all shadow-sm" 
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Select Time (Clock)</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Select Time (Clock)</label>
                           <div className="relative group">
                             <Clock3 className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={24} />
                             <input 
@@ -923,13 +937,13 @@ export default function Reservations() {
                               type="time" 
                               value={formValues.time} 
                               onChange={(e) => setFormValues({...formValues, time: e.target.value})} 
-                              className="w-full bg-white border-2 border-slate-100 rounded-[2.5rem] py-8 px-20 text-4xl font-black outline-none focus:border-orange-500 transition-all text-slate-900 shadow-lg shadow-orange-500/5" 
+                              className="w-full bg-white border-2 border-slate-100 rounded-[2.5rem] py-8 px-20 text-4xl font-bold outline-none focus:border-orange-500 transition-all text-slate-900 shadow-lg shadow-orange-500/5" 
                             />
                           </div>
                         </div>
 
                         <div className="pt-4 space-y-4">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Estimated Stay Duration</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Estimated Stay Duration</label>
                           <div className="grid grid-cols-4 gap-3">
                             {[30, 45, 60, 90, 120, 150, 180, 240].map(mins => (
                               <button
@@ -937,7 +951,7 @@ export default function Reservations() {
                                 type="button"
                                 onClick={() => setFormValues({...formValues, stay_duration: mins})}
                                 className={cn(
-                                  "py-4 rounded-2xl text-xs font-black border-2 transition-all flex flex-col items-center justify-center gap-1",
+                                  "py-4 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center justify-center gap-1",
                                   formValues.stay_duration === mins 
                                     ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/20" 
                                     : "bg-white border-slate-100 text-slate-400 hover:border-orange-200"
@@ -961,23 +975,23 @@ export default function Reservations() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-6"
                     >
-                      <h3 className="text-lg font-black text-slate-800">Who is visiting?</h3>
+                      <h3 className="text-lg font-bold text-slate-800">Who is visiting?</h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">First Name</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">First Name</label>
                           <input required type="text" value={formValues.first_name} onChange={(e) => setFormValues({...formValues, first_name: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-orange-500 transition-all" />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Last Name</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Last Name</label>
                           <input required type="text" value={formValues.last_name} onChange={(e) => setFormValues({...formValues, last_name: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-orange-500 transition-all" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Phone Number</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Phone Number</label>
                         <input required type="tel" value={formValues.phone} onChange={(e) => setFormValues({...formValues, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-orange-500 transition-all" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Email Address</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Email Address</label>
                         <input type="email" value={formValues.email} onChange={(e) => setFormValues({...formValues, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-orange-500 transition-all" />
                       </div>
                     </motion.div>
@@ -992,7 +1006,7 @@ export default function Reservations() {
                       className="space-y-6"
                     >
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-black text-slate-800">Assign a Table</h3>
+                        <h3 className="text-lg font-bold text-slate-800">Assign a Table</h3>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
@@ -1005,7 +1019,7 @@ export default function Reservations() {
                           )}
                         >
                           <Users size={24} className={formValues.table_id === '' ? "text-orange-500" : "text-slate-300"} />
-                          <span className="text-[10px] font-black uppercase">TBD</span>
+                          <span className="text-[10px] font-bold uppercase">TBD</span>
                         </button>
                         {isLoadingAvailableTables ? (
                           <div className="col-span-2 py-10 text-center text-slate-400 text-xs font-bold animate-pulse uppercase tracking-widest">Scanning Available Tables...</div>
@@ -1023,7 +1037,7 @@ export default function Reservations() {
                               )}
                             >
                               <Utensils size={24} className={formValues.table_id === table.id ? "text-orange-500" : "text-slate-300"} />
-                              <span className="text-[10px] font-black uppercase">Table {table.table_number}</span>
+                              <span className="text-[10px] font-bold uppercase">Table {table.table_number}</span>
                               <span className="text-[8px] font-bold text-slate-400">Cap: {table.capacity}</span>
                             </button>
                           ))
@@ -1041,10 +1055,10 @@ export default function Reservations() {
                       className="space-y-8"
                     >
                       <div className="text-center space-y-2">
-                        <h3 className="text-lg font-black text-slate-800">Booking Advance Fee</h3>
+                        <h3 className="text-lg font-bold text-slate-800">Booking Advance Fee</h3>
                         <div className="inline-flex items-center gap-2 bg-orange-50 text-orange-600 px-4 py-2 rounded-2xl border border-orange-100">
-                          <span className="text-2xl font-black">25.00</span>
-                          <span className="text-[10px] font-black uppercase tracking-widest mt-1">AED</span>
+                          <span className="text-2xl font-bold">25.00</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest mt-1">AED</span>
                         </div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select payment method to proceed</p>
                       </div>
@@ -1073,7 +1087,7 @@ export default function Reservations() {
                             </div>
                             <div>
                               <span className={cn(
-                                "text-xs font-black uppercase tracking-widest block mb-1",
+                                "text-xs font-bold uppercase tracking-widest block mb-1",
                                 formValues.payment_method === method.id ? "text-orange-600" : "text-slate-900"
                               )}>{method.id}</span>
                               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{method.label}</span>
@@ -1095,8 +1109,8 @@ export default function Reservations() {
                       <div className="bg-slate-50 rounded-[2.5rem] p-8 space-y-6 border border-slate-100">
                         <div className="flex items-center justify-between pb-6 border-b border-slate-200">
                           <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</p>
-                            <h4 className="text-xl font-black text-slate-900">{formValues.first_name} {formValues.last_name}</h4>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</p>
+                            <h4 className="text-xl font-bold text-slate-900">{formValues.first_name} {formValues.last_name}</h4>
                             <p className="text-xs font-bold text-slate-500">{formValues.phone}</p>
                           </div>
                           <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm border border-slate-100">
@@ -1106,25 +1120,25 @@ export default function Reservations() {
                         
                         <div className="grid grid-cols-2 gap-8">
                           <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Date & Time</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Date & Time</p>
                             <div className="flex items-center gap-2 text-slate-900">
                               <Calendar size={14} className="text-orange-500" />
-                              <span className="text-sm font-black">{formValues.date}</span>
+                              <span className="text-sm font-bold">{formValues.date}</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-900 mt-1">
                               <Clock3 size={14} className="text-orange-500" />
-                              <span className="text-sm font-black">{formValues.time}</span>
+                              <span className="text-sm font-bold">{formValues.time}</span>
                             </div>
                           </div>
                           <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Party Details</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Party Details</p>
                             <div className="flex items-center gap-2 text-slate-900">
                               <Users size={14} className="text-orange-500" />
-                              <span className="text-sm font-black">{formValues.guests} Guests</span>
+                              <span className="text-sm font-bold">{formValues.guests} Guests</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-900 mt-1">
                               <Utensils size={14} className="text-orange-500" />
-                              <span className="text-sm font-black">
+                              <span className="text-sm font-bold">
                                 {formValues.table_id ? `Table ${tables.find(t => t.id === formValues.table_id)?.table_number}` : 'Unassigned'}
                               </span>
                             </div>
@@ -1133,12 +1147,12 @@ export default function Reservations() {
 
                         <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
                           <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Method</p>
-                            <span className="text-sm font-black text-orange-600 uppercase">{formValues.payment_method}</span>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payment Method</p>
+                            <span className="text-sm font-bold text-orange-600 uppercase">{formValues.payment_method}</span>
                           </div>
                           <div className="text-right">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount Due</p>
-                            <span className="text-xl font-black text-slate-900">25.00 AED</span>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount Due</p>
+                            <span className="text-xl font-bold text-slate-900">25.00 AED</span>
                           </div>
                         </div>
                       </div>
@@ -1152,7 +1166,7 @@ export default function Reservations() {
                     <button 
                       type="button" 
                       onClick={() => setFormStep(formStep - 1)}
-                      className="px-8 py-5 border-2 border-slate-100 text-slate-400 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+                      className="px-8 py-5 border-2 border-slate-100 text-slate-400 rounded-[1.5rem] font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
                     >
                       Back
                     </button>
@@ -1162,7 +1176,7 @@ export default function Reservations() {
                       if (formStep < 6) setFormStep(formStep + 1);
                       else handleSubmit({ preventDefault: () => {} });
                     }}
-                    className="flex-1 py-5 bg-orange-500 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-orange-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                    className="flex-1 py-5 bg-orange-500 text-white rounded-[1.5rem] font-bold text-sm uppercase tracking-[0.2em] shadow-xl shadow-orange-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
                   >
                     {formStep === 6 ? (isSubmitting ? 'Processing...' : 'Confirm Booking') : 'Next'}
                     {formStep < 6 && <ChevronRight size={20} strokeWidth={3} />}

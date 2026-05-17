@@ -43,14 +43,14 @@ const KPIBlock = ({ title, value, subValue, icon: Icon, trend, color, currency }
         color.includes('yellow') ? "bg-zamzam-yellow/10 text-zamzam-yellow" : "bg-slate-100 text-slate-900")}>
         <Icon size={28} strokeWidth={2.5} />
       </div>
-      <div className={cn("flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest",
+      <div className={cn("flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest",
         trend === 'up' ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600")}>
         {trend === 'up' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
         {subValue}
       </div>
     </div>
-    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{title}</p>
-    <h3 className="text-xl font-black text-slate-900 tracking-tight">{value} <span className="text-xs text-slate-400 font-bold">{currency && title.includes('Revenue') ? currency : ''}</span></h3>
+    <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">{title}</p>
+    <h3 className="text-xl font-bold text-slate-900 tracking-tight">{value} <span className="text-xs text-slate-400 font-bold">{currency && title.includes('Revenue') ? currency : ''}</span></h3>
   </motion.div>
 );
 
@@ -65,10 +65,10 @@ const SalesBar = ({ hour, value, max }: any) => (
           value > max * 0.8 ? "bg-zamzam-yellow" : "bg-zamzam-teal")}
       />
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="text-xs font-black text-slate-900 bg-white/90 backdrop-blur py-1 px-2 rounded-lg shadow-xl">{value}</span>
+        <span className="text-xs font-bold text-slate-900 bg-white/90 backdrop-blur py-1 px-2 rounded-lg shadow-xl">{value}</span>
       </div>
     </div>
-    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{hour}</span>
+    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{hour}</span>
   </div>
 );
 
@@ -78,22 +78,29 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const fetchSettings = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
+      const res = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`, { signal: controller.signal });
       const data = await res.json();
       setSettings(data);
     } catch (err) {
       console.error('Dashboard Settings Error:', err);
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
   useEffect(() => {
     fetchSettings();
 
-    fetch(`${API_BASE_URL}/orders/summary`)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    fetch(`${API_BASE_URL}/orders/summary`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => setSummary(data))
-      .catch(err => console.error('Dashboard Summary Error:', err));
+      .catch(err => console.error('Dashboard Summary Error:', err))
+      .finally(() => clearTimeout(timeoutId));
 
     window.addEventListener('settings-updated', fetchSettings);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -119,12 +126,12 @@ export default function Dashboard() {
             <LayoutDashboard size={32} />
           </div>
           <div>
-            <h1 className="text-lg font-black text-slate-900 tracking-tight uppercase leading-none mb-2">Operations <span className="text-zamzam-teal">Pulse</span></h1>
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight uppercase leading-none mb-2">Operations <span className="text-zamzam-teal">Pulse</span></h1>
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+              <span className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
                 <Clock size={14} className="text-zamzam-teal" /> {currentTime.toLocaleTimeString()}
               </span>
-              <span className="flex items-center gap-2 text-xs font-black text-green-600 uppercase tracking-widest bg-green-50 px-3 py-1.5 rounded-xl border border-green-100">
+              <span className="flex items-center gap-2 text-xs font-bold text-green-600 uppercase tracking-widest bg-green-50 px-3 py-1.5 rounded-xl border border-green-100">
                 <Activity size={14} /> Server Active
               </span>
             </div>
@@ -133,8 +140,8 @@ export default function Dashboard() {
 
         <div className="flex items-center gap-4">
           <div className="text-right mr-4">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Kitchen Load</p>
-            <p className="text-xs font-black text-zamzam-yellow bg-slate-900 px-4 py-2 rounded-xl flex items-center gap-2">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Kitchen Load</p>
+            <p className="text-xs font-bold text-zamzam-yellow bg-slate-900 px-4 py-2 rounded-xl flex items-center gap-2">
               <Flame size={14} className="text-orange-400" /> PEAK CAPACITY
             </p>
           </div>
@@ -156,8 +163,8 @@ export default function Dashboard() {
         
         <div className="relative h-full flex flex-col justify-center px-16 max-w-3xl">
           <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
-            <span className="px-5 py-2 bg-zamzam-yellow/20 backdrop-blur-md text-zamzam-yellow text-xs font-black uppercase tracking-[0.4em] rounded-full mb-6 inline-block border border-zamzam-yellow/30">Master Terminal v1.5</span>
-            <h1 className="text-2xl font-black text-white tracking-tighter leading-[0.9] mb-4 uppercase">
+            <span className="px-5 py-2 bg-zamzam-yellow/20 backdrop-blur-md text-zamzam-yellow text-xs font-bold uppercase tracking-[0.4em] rounded-full mb-6 inline-block border border-zamzam-yellow/30">Master Terminal v1.5</span>
+            <h1 className="text-2xl font-bold text-white tracking-tighter leading-[0.9] mb-4 uppercase">
               {settings?.tenant?.restaurant_name || 'Zamzam'} <br />
               <span className="text-zamzam-teal">Global Command</span>
             </h1>
@@ -165,10 +172,10 @@ export default function Dashboard() {
               {settings?.tenant?.tagline || 'Orchestrating culinary excellence across every terminal and table.'}
             </p>
             <div className="flex gap-4">
-              <button className="bg-zamzam-teal text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-teal-500/40 hover:bg-teal-400 transition-all flex items-center gap-3 active:scale-95">
+              <button className="bg-zamzam-teal text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-2xl shadow-teal-500/40 hover:bg-teal-400 transition-all flex items-center gap-3 active:scale-95">
                 <Globe size={18} /> Global Sync
               </button>
-              <button className="bg-white/10 backdrop-blur-lg border border-white/20 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-3">
+              <button className="bg-white/10 backdrop-blur-lg border border-white/20 text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-3">
                 <Calendar size={18} /> Daily Report
               </button>
             </div>
@@ -177,12 +184,12 @@ export default function Dashboard() {
 
         <div className="absolute bottom-10 right-16 flex gap-10">
           <div className="text-right">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-2">Web Orders</p>
-            <p className="text-xl font-black text-white">42 <span className="text-xs text-zamzam-teal">+8</span></p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Web Orders</p>
+            <p className="text-xl font-bold text-white">42 <span className="text-xs text-zamzam-teal">+8</span></p>
           </div>
           <div className="text-right">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-2">POS Terminal</p>
-            <p className="text-xl font-black text-white">128 <span className="text-xs text-zamzam-yellow">+12</span></p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-2">POS Terminal</p>
+            <p className="text-xl font-bold text-white">128 <span className="text-xs text-zamzam-yellow">+12</span></p>
           </div>
         </div>
       </motion.div>
@@ -215,12 +222,12 @@ export default function Dashboard() {
         <div className="col-span-12 lg:col-span-8 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex flex-col">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">Sales Velocity</h2>
+              <h2 className="text-base font-bold text-slate-900 uppercase tracking-tight">Sales Velocity</h2>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Hourly Performance Traffic</p>
             </div>
             <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                {['Hourly', 'Daily', 'Monthly'].map(tab => (
-                 <button key={tab} className={cn("px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all", tab === 'Hourly' ? "bg-white text-slate-900 shadow-lg" : "text-slate-400 hover:text-slate-600")}>{tab}</button>
+                 <button key={tab} className={cn("px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", tab === 'Hourly' ? "bg-white text-slate-900 shadow-lg" : "text-slate-400 hover:text-slate-600")}>{tab}</button>
                ))}
             </div>
           </div>
@@ -239,8 +246,8 @@ export default function Dashboard() {
            <div className="bg-slate-900 p-8 rounded-[2rem] text-white shadow-2xl relative overflow-hidden flex-1 flex flex-col">
               <div className="absolute top-0 right-0 w-40 h-40 bg-zamzam-teal/20 rounded-full -mr-20 -mt-20 blur-3xl" />
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-base font-black uppercase tracking-tight">Order Feed</h2>
-                <span className="px-3 py-1 bg-zamzam-teal rounded-lg text-[9px] font-black uppercase animate-pulse">LIVE STREAM</span>
+                <h2 className="text-base font-bold uppercase tracking-tight">Order Feed</h2>
+                <span className="px-3 py-1 bg-zamzam-teal rounded-lg text-[9px] font-bold uppercase animate-pulse">LIVE STREAM</span>
               </div>
               <div className="space-y-4 flex-1">
                  {[
@@ -251,13 +258,13 @@ export default function Dashboard() {
                  ].map((order, i) => (
                    <div key={i} className="flex items-center justify-between bg-white/5 p-5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer group">
                       <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-black text-xs">{order.id.slice(1)}</div>
+                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-xs">{order.id.slice(1)}</div>
                          <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-zamzam-yellow">{order.table}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-zamzam-yellow">{order.table}</p>
                             <p className="text-[9px] font-bold text-white/40 uppercase">{order.time}</p>
                          </div>
                       </div>
-                      <div className={cn("px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest", 
+                      <div className={cn("px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest", 
                         order.status === 'Served' ? "bg-green-500/20 text-green-400" :
                         order.status === 'Cooking' ? "bg-blue-500/20 text-blue-400" :
                         order.status === 'Ready' ? "bg-zamzam-yellow/20 text-zamzam-yellow" : "bg-white/20 text-white")}>
@@ -266,7 +273,7 @@ export default function Dashboard() {
                    </div>
                  ))}
               </div>
-              <button className="mt-8 w-full bg-zamzam-yellow text-slate-900 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-yellow-500/20">
+              <button className="mt-8 w-full bg-zamzam-yellow text-slate-900 py-4 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-yellow-500/20">
                  Launch Kitchen Monitor
               </button>
            </div>
@@ -274,8 +281,8 @@ export default function Dashboard() {
               <div className="flex items-center gap-4">
                  <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shadow-inner"><AlertCircle size={24} /></div>
                  <div>
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Inventory Alert</p>
-                    <p className="text-sm font-black text-slate-900 uppercase">3 Items Sold Out</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Inventory Alert</p>
+                    <p className="text-sm font-bold text-slate-900 uppercase">3 Items Sold Out</p>
                  </div>
               </div>
               <ChevronRight className="text-slate-300" />
@@ -288,7 +295,7 @@ export default function Dashboard() {
          <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex flex-col">
             <div className="flex items-center gap-4 mb-6">
                <div className="w-12 h-12 bg-zamzam-teal rounded-2xl flex items-center justify-center text-white"><Star size={24} strokeWidth={2.5} /></div>
-               <div><h3 className="text-base font-black text-slate-900 uppercase">Best Sellers</h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Popular Today</p></div>
+               <div><h3 className="text-base font-bold text-slate-900 uppercase">Best Sellers</h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Popular Today</p></div>
             </div>
             <div className="space-y-4">
                {[
@@ -297,9 +304,9 @@ export default function Dashboard() {
                  { name: 'Mixed Grill', count: 85, trend: 'down' },
                ].map((item, i) => (
                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
-                    <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{item.name}</span>
+                    <span className="text-xs font-bold text-slate-900 uppercase tracking-tight">{item.name}</span>
                     <div className="flex items-center gap-3">
-                       <span className="text-xs font-black text-zamzam-teal">{item.count}</span>
+                       <span className="text-xs font-bold text-zamzam-teal">{item.count}</span>
                        {item.trend === 'up' ? <TrendingUp size={14} className="text-green-500" /> : <TrendingUp size={14} className="text-red-500 rotate-180" />}
                     </div>
                  </div>
@@ -310,22 +317,22 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-8">
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white"><BarChart3 size={24} /></div>
-                   <div><h3 className="text-base font-black text-slate-900 uppercase">Profit Analysis</h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Recipe Margin Review</p></div>
+                   <div><h3 className="text-base font-bold text-slate-900 uppercase">Profit Analysis</h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Recipe Margin Review</p></div>
                </div>
-               <button className="text-xs font-black text-zamzam-teal uppercase tracking-widest hover:underline">Full Analytics</button>
+               <button className="text-xs font-bold text-zamzam-teal uppercase tracking-widest hover:underline">Full Analytics</button>
             </div>
             <div className="grid grid-cols-2 gap-8 mt-10">
                <div className="p-8 bg-slate-50 rounded-[2rem] flex flex-col justify-center items-center text-center">
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Target Food Cost %</p>
-                   <p className="text-xl font-black text-zamzam-teal">32%</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Target Food Cost %</p>
+                   <p className="text-xl font-bold text-zamzam-teal">32%</p>
                   <div className="w-full h-1.5 bg-slate-200 rounded-full mt-6 overflow-hidden">
                      <div className="w-[85%] h-full bg-zamzam-teal rounded-full shadow-lg shadow-teal-500/20" />
                   </div>
                </div>
                <div className="p-8 bg-slate-900 rounded-[2rem] flex flex-col justify-center items-center text-center text-white">
-                  <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-2">Net Margin Today</p>
-                   <p className="text-xl font-black text-zamzam-yellow">41.8%</p>
-                  <p className="text-xs font-black text-green-400 uppercase tracking-widest mt-6">+2.5% vs Yesterday</p>
+                  <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2">Net Margin Today</p>
+                   <p className="text-xl font-bold text-zamzam-yellow">41.8%</p>
+                  <p className="text-xs font-bold text-green-400 uppercase tracking-widest mt-6">+2.5% vs Yesterday</p>
                </div>
             </div>
          </div>

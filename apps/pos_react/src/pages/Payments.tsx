@@ -76,9 +76,9 @@ export default function Payments() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-zamzam-yellow">
             <ShieldCheck size={20} className="fill-current opacity-20" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em]">Financial Hub</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.4em]">Financial Hub</span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Payment <span className="text-zamzam-yellow">Gateways</span></h1>
+          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Payment <span className="text-zamzam-yellow">Gateways</span></h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -91,7 +91,7 @@ export default function Payments() {
                 className="bg-green-50 text-green-600 px-4 py-2 rounded-xl flex items-center gap-2 border border-green-100"
               >
                 <CheckCircle2 size={16} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Safe & Secured</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest">Safe & Secured</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -110,7 +110,7 @@ export default function Payments() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={cn(
-              "flex items-center gap-3 px-6 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all",
+              "flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all",
               activeTab === tab.id 
                 ? "bg-white text-zamzam-yellow shadow-sm shadow-slate-200" 
                 : "text-slate-500 hover:text-slate-900"
@@ -144,14 +144,14 @@ export default function Payments() {
                         <CreditCard size={32} />
                       </div>
                       <div>
-                        <h2 className="text-xl font-black text-slate-900 uppercase">Stripe Connect</h2>
+                        <h2 className="text-xl font-bold text-slate-900 uppercase">Stripe Connect</h2>
                         <p className="text-sm font-bold text-slate-400">Cards, Apple Pay, Google Pay</p>
                       </div>
                     </div>
                     <button 
                       onClick={() => handleUpdateGateway('Stripe', { is_active: !stripe.is_active })}
                       className={cn(
-                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                        "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
                         stripe.is_active 
                           ? "bg-green-50 text-green-600 border-green-100" 
                           : "bg-slate-50 text-slate-400 border-slate-100"
@@ -164,7 +164,7 @@ export default function Payments() {
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-8">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Publishable Key</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Publishable Key</label>
                         <input 
                           type="text" 
                           defaultValue={stripe.public_key || ''}
@@ -174,7 +174,7 @@ export default function Payments() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Secret Key</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Secret Key</label>
                         <input 
                           type="password" 
                           defaultValue={stripe.secret_key || ''}
@@ -189,14 +189,14 @@ export default function Payments() {
                       <div className="flex items-center gap-4">
                         <Zap size={20} className="text-zamzam-yellow" />
                         <div>
-                          <p className="text-xs font-black text-slate-900 uppercase">Environment</p>
+                          <p className="text-xs font-bold text-slate-900 uppercase">Environment</p>
                           <p className="text-[10px] font-bold text-slate-400">Toggle between testing and live transactions</p>
                         </div>
                       </div>
                       <select 
                         defaultValue={stripe.environment || 'sandbox'}
                         onChange={(e) => handleUpdateGateway('Stripe', { environment: e.target.value })}
-                        className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-zamzam-yellow/10"
+                        className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-4 focus:ring-zamzam-yellow/10"
                       >
                         <option value="sandbox">Sandbox (Test)</option>
                         <option value="production">Production (Live)</option>
@@ -216,14 +216,14 @@ export default function Payments() {
                         <Globe size={32} />
                       </div>
                       <div>
-                        <h2 className="text-xl font-black text-slate-900 uppercase">PayPal Checkout</h2>
+                        <h2 className="text-xl font-bold text-slate-900 uppercase">PayPal Checkout</h2>
                         <p className="text-sm font-bold text-slate-400">PayPal balance & BNPL</p>
                       </div>
                     </div>
                     <button 
                       onClick={() => handleUpdateGateway('PayPal', { is_active: !paypal.is_active })}
                       className={cn(
-                        "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                        "px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
                         paypal.is_active ? "bg-green-50 text-green-600 border border-green-100" : "bg-[#003087] text-white shadow-lg shadow-blue-900/20"
                       )}
                     >
@@ -238,7 +238,7 @@ export default function Payments() {
                       className="grid grid-cols-2 gap-8 mt-8 border-t border-slate-100 pt-8"
                     >
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Client ID</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Client ID</label>
                         <input 
                           type="text" 
                           defaultValue={paypal.public_key || ''}
@@ -247,7 +247,7 @@ export default function Payments() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Secret Key</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Secret Key</label>
                         <input 
                           type="password" 
                           defaultValue={paypal.secret_key || ''}
@@ -276,7 +276,7 @@ export default function Payments() {
                         <QrCode size={32} />
                       </div>
                       <div>
-                        <h2 className="text-xl font-black text-slate-900 uppercase">Scan to Pay (QR)</h2>
+                        <h2 className="text-xl font-bold text-slate-900 uppercase">Scan to Pay (QR)</h2>
                         <p className="text-sm font-bold text-slate-400">Enable table-side payments for diners</p>
                       </div>
                     </div>
@@ -287,16 +287,16 @@ export default function Payments() {
 
                   <div className="grid grid-cols-3 gap-6">
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">QR Provider</p>
-                      <p className="text-xs font-black text-slate-900">Zamzam Internal Gateway</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">QR Provider</p>
+                      <p className="text-xs font-bold text-slate-900">Zamzam Internal Gateway</p>
                     </div>
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Transaction Fee</p>
-                      <p className="text-xs font-black text-slate-900">0.00% (Direct)</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Transaction Fee</p>
+                      <p className="text-xs font-bold text-slate-900">0.00% (Direct)</p>
                     </div>
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Payout Speed</p>
-                      <p className="text-xs font-black text-slate-900">Instant to Wallet</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Payout Speed</p>
+                      <p className="text-xs font-bold text-slate-900">Instant to Wallet</p>
                     </div>
                   </div>
                 </div>
@@ -308,8 +308,8 @@ export default function Payments() {
         <div className="col-span-4 space-y-6">
           <div className="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden group">
             <div className="relative z-10">
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] mb-2 opacity-60">Security Protocol</h3>
-              <p className="text-2xl font-black mb-6 tracking-tight">PCI Compliance</p>
+              <h3 className="text-sm font-bold uppercase tracking-[0.2em] mb-2 opacity-60">Security Protocol</h3>
+              <p className="text-2xl font-bold mb-6 tracking-tight">PCI Compliance</p>
               
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -330,13 +330,13 @@ export default function Payments() {
           </div>
 
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Settlement Currency</h3>
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-6">Settlement Currency</h3>
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-zamzam-yellow/10 text-zamzam-yellow rounded-xl flex items-center justify-center font-black">
+                <div className="w-10 h-10 bg-zamzam-yellow/10 text-zamzam-yellow rounded-xl flex items-center justify-center font-bold">
                   {settings.tenant.currency}
                 </div>
-                <p className="text-xs font-black text-slate-900 uppercase">Primary Currency</p>
+                <p className="text-xs font-bold text-slate-900 uppercase">Primary Currency</p>
               </div>
               <ArrowRight size={16} className="text-slate-300" />
             </div>

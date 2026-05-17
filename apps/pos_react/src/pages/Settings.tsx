@@ -27,7 +27,7 @@ function SettingsToggle({ label, sublabel, enabled, onToggle, disabled = false }
   return (
     <div className="flex items-center justify-between group">
       <div className="space-y-1">
-        <h4 className="text-sm font-black text-slate-800">{label}</h4>
+        <h4 className="text-sm font-bold text-slate-800">{label}</h4>
         <p className="text-[10px] font-bold text-slate-400 uppercase">{sublabel}</p>
       </div>
       <button 
@@ -58,7 +58,7 @@ function SettingsInput({ label, sublabel, value, onSave, type = "number", disabl
   return (
     <div className="flex items-center justify-between group">
       <div className="space-y-1">
-        <h4 className="text-sm font-black text-slate-800">{label}</h4>
+        <h4 className="text-sm font-bold text-slate-800">{label}</h4>
         <p className="text-[10px] font-bold text-slate-400 uppercase">{sublabel}</p>
       </div>
       <div className="relative flex items-center gap-3">
@@ -72,7 +72,7 @@ function SettingsInput({ label, sublabel, value, onSave, type = "number", disabl
             if (finalVal !== value) onSave(finalVal);
           }}
           className={cn(
-            "w-32 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-right text-xs font-black outline-none focus:ring-4 focus:ring-orange-500/5 focus:bg-white transition-all",
+            "w-32 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-right text-xs font-bold outline-none focus:ring-4 focus:ring-orange-500/5 focus:bg-white transition-all",
             disabled ? "opacity-50 cursor-not-allowed" : ""
           )}
         />
@@ -213,7 +213,7 @@ export default function Settings() {
   if (!settings) return (
     <div className="h-full flex flex-col items-center justify-center gap-6">
       <div className="w-12 h-12 border-4 border-slate-100 border-t-zamzam-teal rounded-full animate-spin" />
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Initialising System Settings...</p>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Initialising System Settings...</p>
     </div>
   );
 
@@ -223,13 +223,13 @@ export default function Settings() {
         <ShieldAlert size={32} />
       </div>
       <div className="space-y-2">
-        <h3 className="text-xl font-black text-slate-900 uppercase">Connection Failed</h3>
+        <h3 className="text-xl font-bold text-slate-900 uppercase">Connection Failed</h3>
         <p className="text-xs font-bold text-slate-400 max-w-xs mx-auto">We couldn't retrieve the system configuration. This might be due to a server error or database sync issue.</p>
-        <p className="text-[10px] font-black text-red-500/60 uppercase tracking-widest pt-2">Error: {settings._error}</p>
+        <p className="text-[10px] font-bold text-red-500/60 uppercase tracking-widest pt-2">Error: {settings._error}</p>
       </div>
       <button 
         onClick={() => { setSettings(null); fetchSettings(); }}
-        className="mt-4 bg-zamzam-teal text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all"
+        className="mt-4 bg-zamzam-teal text-white px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-teal-900/10 hover:scale-105 active:scale-95 transition-all"
       >
         Retry Connection
       </button>
@@ -241,8 +241,8 @@ export default function Settings() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <span className="text-[10px] font-black text-zamzam-teal uppercase tracking-[0.4em] mb-2 block">Control Center</span>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">System <span className="text-zamzam-teal">Settings</span></h1>
+          <span className="text-[10px] font-bold text-zamzam-teal uppercase tracking-[0.4em] mb-2 block">Control Center</span>
+          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">System <span className="text-zamzam-teal">Settings</span></h1>
         </div>
         
         <AnimatePresence>
@@ -254,7 +254,7 @@ export default function Settings() {
               className="bg-green-50 text-green-600 px-6 py-4 rounded-2xl flex items-center gap-3 border border-green-100 shadow-lg shadow-green-900/5"
             >
               <CheckCircle2 size={20} />
-              <span className="text-xs font-black uppercase tracking-widest">Changes Saved</span>
+              <span className="text-xs font-bold uppercase tracking-widest">Changes Saved</span>
             </motion.div>
           )}
           {saveStatus === 'error' && (
@@ -265,7 +265,7 @@ export default function Settings() {
               className="bg-red-50 text-red-600 px-6 py-4 rounded-2xl flex items-center gap-3 border border-red-100 shadow-lg shadow-red-900/5"
             >
               <ShieldAlert size={20} />
-              <span className="text-xs font-black uppercase tracking-widest">Save Failed</span>
+              <span className="text-xs font-bold uppercase tracking-widest">Save Failed</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -294,7 +294,7 @@ export default function Settings() {
             >
               <div className="flex items-center gap-4">
                 <item.icon size={20} />
-                <span className="text-xs font-black uppercase tracking-widest">{item.label}</span>
+                <span className="text-xs font-bold uppercase tracking-widest">{item.label}</span>
               </div>
               <ChevronRight size={16} className={cn("transition-transform", activeSection === item.id ? "translate-x-0" : "-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0")} />
             </button>
@@ -314,7 +314,7 @@ export default function Settings() {
               >
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Restaurant Name</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Restaurant Name</label>
                     <input 
                       type="text" 
                       defaultValue={settings?.tenant?.restaurant_name || ''}
@@ -323,11 +323,11 @@ export default function Settings() {
                           handleUpdateTenant({ restaurant_name: e.target.value });
                         }
                       }}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Contact Email</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Contact Email</label>
                     <input 
                       type="email" 
                       defaultValue={settings?.tenant?.business_email || ''}
@@ -336,11 +336,11 @@ export default function Settings() {
                           handleUpdateTenant({ business_email: e.target.value });
                         }
                       }}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Contact Phone</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Contact Phone</label>
                     <input 
                       type="text" 
                       defaultValue={settings?.tenant?.business_phone || ''}
@@ -349,12 +349,12 @@ export default function Settings() {
                           handleUpdateTenant({ business_phone: e.target.value });
                         }
                       }}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Business Address</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Business Address</label>
                   <textarea 
                     rows={3}
                     defaultValue={settings?.tenant?.business_address || ''}
@@ -363,7 +363,7 @@ export default function Settings() {
                         handleUpdateTenant({ business_address: e.target.value });
                       }
                     }}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all resize-none"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all resize-none"
                   />
                 </div>
               </motion.section>
@@ -380,7 +380,7 @@ export default function Settings() {
                 {/* Tagline Card */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Business Tagline</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Business Tagline</label>
                     <input 
                       type="text" 
                       defaultValue={settings?.tenant?.tagline || ''}
@@ -389,7 +389,7 @@ export default function Settings() {
                           handleUpdateTenant({ tagline: e.target.value });
                         }
                       }}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
                     />
                   </div>
                 </div>
@@ -401,16 +401,16 @@ export default function Settings() {
                       <div className="w-8 h-8 bg-zamzam-teal/10 rounded-xl flex items-center justify-center text-zamzam-teal">
                         <Settings2 size={16} />
                       </div>
-                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Button Styling</h3>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Button Styling</h3>
                     </div>
 
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">UI Theme Mode</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">UI Theme Mode</label>
                         <select 
                           value={settings?.tenant?.theme_mode || 'Adaptive'}
                           onChange={(e) => handleUpdateTenant({ theme_mode: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all appearance-none"
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all appearance-none"
                         >
                           <option value="Light">Light Mode</option>
                           <option value="Dark">Dark Mode</option>
@@ -424,10 +424,10 @@ export default function Settings() {
 
                         <div className="space-y-2">
                           <div className="flex justify-between items-center px-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primary Button Color</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Primary Button Color</label>
                             <button 
                               onClick={() => handleUpdateTenant({ primary_accent_color: '#0D9488' })}
-                              className="text-[9px] font-black text-zamzam-teal hover:underline uppercase tracking-widest"
+                              className="text-[9px] font-bold text-zamzam-teal hover:underline uppercase tracking-widest"
                             >
                               Reset Default
                             </button>
@@ -449,7 +449,7 @@ export default function Settings() {
                                 type="text" 
                                 value={settings?.tenant?.primary_accent_color || '#0D9488'}
                                 onChange={(e) => handleUpdateTenant({ primary_accent_color: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black uppercase outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold uppercase outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
                               />
                             </div>
                           </div>
@@ -463,15 +463,15 @@ export default function Settings() {
                       <div className="w-8 h-8 bg-zamzam-yellow/10 rounded-xl flex items-center justify-center text-zamzam-yellow">
                         <Palette size={16} />
                       </div>
-                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Visual Assets</h3>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Visual Assets</h3>
                     </div>
 
                     <div className="grid grid-cols-1 gap-10">
                       {/* Primary Logo */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between px-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primary Brand Logo</label>
-                          <span className="text-[8px] font-black bg-blue-50 text-blue-500 px-2 py-1 rounded-full uppercase tracking-tighter">High Res (PNG/SVG)</span>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Primary Brand Logo</label>
+                          <span className="text-[8px] font-bold bg-blue-50 text-blue-500 px-2 py-1 rounded-full uppercase tracking-tighter">High Res (PNG/SVG)</span>
                         </div>
                         <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
                           <div className="w-24 h-24 bg-white rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm transition-transform group-hover:scale-105">
@@ -496,7 +496,7 @@ export default function Settings() {
                                   if (file) handleImageUpload(file, 'logo', 'logo');
                                 }}
                               />
-                              <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer shadow-sm transition-all active:scale-95">
+                              <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer shadow-sm transition-all active:scale-95">
                                 Upload New Logo
                               </div>
                             </label>
@@ -507,8 +507,8 @@ export default function Settings() {
                       {/* Receipt Logo */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between px-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receipt Logo</label>
-                          <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase tracking-tighter">Thermal Optimized</span>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receipt Logo</label>
+                          <span className="text-[8px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase tracking-tighter">Thermal Optimized</span>
                         </div>
                         <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
                           <div className="w-24 h-24 bg-white rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm transition-transform group-hover:scale-105">
@@ -533,7 +533,7 @@ export default function Settings() {
                                   if (file) handleImageUpload(file, 'secondary-logo', 'logo');
                                 }}
                               />
-                              <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer shadow-sm transition-all active:scale-95">
+                              <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer shadow-sm transition-all active:scale-95">
                                 Upload Receipt Logo
                               </div>
                             </label>
@@ -549,12 +549,12 @@ export default function Settings() {
                       <div className="w-8 h-8 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-500">
                         <Settings2 size={16} />
                       </div>
-                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Background Images</h3>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Background Images</h3>
                     </div>
 
                     <div className="grid grid-cols-2 gap-8">
                       <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Login Background</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Login Background</label>
                         <div className="relative group rounded-2xl overflow-hidden border border-slate-100 aspect-video bg-slate-50 flex items-center justify-center">
                           {settings?.tenant?.login_background_url ? (
                             <img 
@@ -574,13 +574,13 @@ export default function Settings() {
                                 if (file) handleImageUpload(file, 'login-bg', 'image');
                               }}
                             />
-                            <span className="text-white text-xs font-black uppercase tracking-widest">Change Background</span>
+                            <span className="text-white text-xs font-bold uppercase tracking-widest">Change Background</span>
                           </label>
                         </div>
                       </div>
 
                       <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Hero Background</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Hero Background</label>
                         <div className="relative group rounded-2xl overflow-hidden border border-slate-100 aspect-video bg-slate-50 flex items-center justify-center">
                           {settings?.tenant?.hero_background_url ? (
                             <img 
@@ -600,7 +600,7 @@ export default function Settings() {
                                 if (file) handleImageUpload(file, 'hero-bg', 'image');
                               }}
                             />
-                            <span className="text-white text-xs font-black uppercase tracking-widest">Change Background</span>
+                            <span className="text-white text-xs font-bold uppercase tracking-widest">Change Background</span>
                           </label>
                         </div>
                       </div>
@@ -618,7 +618,7 @@ export default function Settings() {
                 className="space-y-8 pb-20"
               >
                 <div>
-                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">Operations Settings</h2>
+                  <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Operations Settings</h2>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure your restaurant floor and kitchen rules.</p>
                 </div>
 
@@ -628,7 +628,7 @@ export default function Settings() {
                     <div className="w-8 h-8 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-500">
                       <Clock size={16} />
                     </div>
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Restaurant Timings</h3>
+                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em]">Restaurant Timings</h3>
                   </div>
                   <div className="p-10 space-y-8">
                     <SettingsInput 
@@ -669,7 +669,7 @@ export default function Settings() {
                 {/* Taxes & Fees Section */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                   <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Taxes & Fees</h3>
+                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em]">Taxes & Fees</h3>
                   </div>
                   <div className="p-10 space-y-8">
                     {/* Enable Tax */}
@@ -704,7 +704,7 @@ export default function Settings() {
                 {/* Kitchen & Floor Section */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                   <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Kitchen & Floor</h3>
+                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em]">Kitchen & Floor</h3>
                   </div>
                   <div className="p-10 space-y-8">
                     {/* KDS Timer */}
@@ -719,7 +719,7 @@ export default function Settings() {
                     {/* QR Table Ordering */}
                     <div className="flex items-center justify-between group">
                       <div className="space-y-1">
-                        <h4 className="text-sm font-black text-slate-800">QR Table Ordering</h4>
+                        <h4 className="text-sm font-bold text-slate-800">QR Table Ordering</h4>
                         <p className="text-[10px] font-bold text-slate-400 uppercase">Allow customers to order from table</p>
                       </div>
                       <button 
@@ -741,7 +741,7 @@ export default function Settings() {
                     {/* Payment Policy */}
                     <div className="flex items-center justify-between group">
                       <div className="space-y-1">
-                        <h4 className="text-sm font-black text-slate-800">Payment Policy</h4>
+                        <h4 className="text-sm font-bold text-slate-800">Payment Policy</h4>
                         <p className="text-[10px] font-bold text-slate-400 uppercase">Determine when payment is collected</p>
                       </div>
                       <select 
@@ -749,7 +749,7 @@ export default function Settings() {
                         value={settings?.branch?.payment_policy || 'Pay Last'}
                         onChange={(e) => handleUpdateBranch({ payment_policy: e.target.value })}
                         className={cn(
-                          "bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-black outline-none focus:ring-4 focus:ring-orange-500/5 focus:bg-white transition-all appearance-none min-w-[120px] text-right",
+                          "bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-4 focus:ring-orange-500/5 focus:bg-white transition-all appearance-none min-w-[120px] text-right",
                           isSaving ? "opacity-50 cursor-not-allowed" : ""
                         )}
                       >
@@ -775,7 +775,7 @@ export default function Settings() {
                 {/* Order Channels Section */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                   <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Order Channels</h3>
+                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em]">Order Channels</h3>
                   </div>
                   <div className="p-10 space-y-8">
                     {/* Home Delivery */}
@@ -801,13 +801,13 @@ export default function Settings() {
                 {/* Reservations Section */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                   <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Reservations</h3>
+                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em]">Reservations</h3>
                   </div>
                   <div className="p-10 space-y-8">
                     {/* Enable Booking Fee */}
                     <div className="flex items-center justify-between group">
                       <div className="space-y-1">
-                        <h4 className="text-sm font-black text-slate-800">Enable Booking Fee</h4>
+                        <h4 className="text-sm font-bold text-slate-800">Enable Booking Fee</h4>
                         <p className="text-[10px] font-bold text-slate-400 uppercase">Charge a fee for table bookings</p>
                       </div>
                       <button 
@@ -860,7 +860,7 @@ export default function Settings() {
                   <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
                   <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Receipt Designer</h3>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-[0.2em]">Receipt Designer</h3>
                       <p className="text-[10px] font-bold text-white/40 uppercase mt-1">Configure thermal & digital templates</p>
                     </div>
                     <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
@@ -870,7 +870,7 @@ export default function Settings() {
                   <div className="p-10 space-y-8">
                     {/* Receipt Header */}
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-2">Receipt Header</label>
+                      <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2">Receipt Header</label>
                       <textarea 
                         rows={3}
                         defaultValue={settings?.branch?.receipt_header || ''}
@@ -886,7 +886,7 @@ export default function Settings() {
 
                     {/* Receipt Footer */}
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-2">Receipt Footer</label>
+                      <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2">Receipt Footer</label>
                       <textarea 
                         rows={3}
                         defaultValue={settings?.branch?.receipt_footer || ''}
@@ -903,7 +903,7 @@ export default function Settings() {
                     {/* QR Code Toggle */}
                     <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/5">
                       <div className="space-y-1">
-                        <h4 className="text-sm font-black text-white">Show Loyalty QR</h4>
+                        <h4 className="text-sm font-bold text-white">Show Loyalty QR</h4>
                         <p className="text-[10px] font-bold text-white/30 uppercase">Include QR for points & digital receipt</p>
                       </div>
                       <button 
@@ -924,7 +924,7 @@ export default function Settings() {
 
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
                    <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
                       <Coins size={14} className="text-zamzam-teal" /> 
                       System Currency
                     </label>
@@ -937,7 +937,7 @@ export default function Settings() {
                             handleUpdateTenant({ currency: val });
                           }
                         }}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all appearance-none min-w-[140px]"
+                        className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all appearance-none min-w-[140px]"
                       >
                         <option value="AED">AED (Dirham)</option>
                         <option value="USD">USD (Dollar)</option>
@@ -954,7 +954,7 @@ export default function Settings() {
                           placeholder="Enter Currency Code..."
                           defaultValue={settings?.tenant?.currency || ''}
                           onBlur={(e) => handleUpdateTenant({ currency: e.target.value })}
-                          className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
+                          className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
                         />
                       )}
                     </div>
@@ -996,7 +996,7 @@ export default function Settings() {
                 <div className="bg-red-50 p-8 rounded-[2rem] border border-red-100">
                   <div className="flex items-center gap-4 mb-4">
                     <AlertCircle size={24} className="text-red-600" />
-                    <h3 className="text-lg font-black text-red-900 uppercase tracking-tight">Reset Transactional Data</h3>
+                    <h3 className="text-lg font-bold text-red-900 uppercase tracking-tight">Reset Transactional Data</h3>
                   </div>
                   <p className="text-sm font-bold text-red-700/70 mb-8 leading-relaxed">
                     This action will permanently delete all order history, payments, and reservations. All settings and menu items will remain intact.
@@ -1004,7 +1004,7 @@ export default function Settings() {
                   <button 
                     onClick={handleResetData}
                     disabled={isSaving}
-                    className="bg-red-600 hover:bg-red-700 text-white font-black px-8 py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-red-900/20 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-red-900/20 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
                   >
                     <Trash2 size={18} />
                     {isSaving ? 'Processing...' : 'Reset All Transactions'}

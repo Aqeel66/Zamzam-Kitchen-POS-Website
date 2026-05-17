@@ -16,7 +16,8 @@ import {
   MoreVertical,
   CheckCircle2,
   Globe,
-  QrCode
+  QrCode,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
@@ -28,27 +29,23 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchCustomers();
   }, []);
 
-  useEffect(() => {
-    if (selectedCustomer) {
-      fetchCustomerOrders(selectedCustomer.id);
-    }
-  }, [selectedCustomer]);
-
   const fetchCustomers = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/customers`);
       const data = await res.json();
-      setCustomers(data);
-      if (data.length > 0 && !selectedCustomer) {
-        setSelectedCustomer(data[0]);
-      }
+      setCustomers(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching customers:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -56,231 +53,274 @@ export default function Customers() {
     try {
       const res = await fetch(`${API_BASE_URL}/orders?customer_id=${id}`);
       const data = await res.json();
-      setCustomerOrders(data);
+      setCustomerOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching customer orders:', err);
     }
   };
 
-  const filteredCustomers = customers.filter(c => 
-    `${c.first_name} ${c.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone?.includes(searchQuery)
+  const handleRowClick = (customer: any) => {
+    setSelectedCustomer(customer);
+    fetchCustomerOrders(customer.id);
+    setIsModalOpen(true);
+  };
+
+  const filteredCustomers = (customers || []).filter(c => 
+    `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.phone || '').includes(searchQuery)
   );
 
   return (
-    <div className="h-full flex bg-slate-50/50">
-      {/* Left Sidebar: List */}
-      <aside className="w-[400px] bg-white border-r border-slate-100 flex flex-col p-8 gap-8">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-black text-zamzam-teal uppercase tracking-[0.4em] mb-1 block">Directory</span>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Customer <span className="text-zamzam-teal">Hub</span></h1>
-            </div>
-            <button className="w-12 h-12 bg-zamzam-teal text-white rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all">
-              <UserPlus size={22} />
-            </button>
+    <div className="h-full bg-[#F8FAFC] p-8 overflow-hidden flex flex-col gap-8">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/10">
+            <Users size={24} strokeWidth={2.5} />
           </div>
-
-          <div className="relative group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-zamzam-teal transition-colors" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search name or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold shadow-sm outline-none focus:ring-4 focus:ring-zamzam-teal/5 focus:bg-white transition-all"
-            />
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight uppercase">Customer <span className="text-zamzam-teal">Registry</span></h1>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1">Manage guest profiles and loyalty data</p>
           </div>
         </div>
+        <button className="bg-zamzam-teal text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl shadow-teal-500/20 flex items-center gap-3 hover:bg-teal-600 transition-all active:scale-95 group">
+          <UserPlus size={20} strokeWidth={3} />
+          New Customer Profile
+        </button>
+      </div>
 
-        <nav className="flex-1 space-y-3 overflow-auto pr-2 custom-scrollbar">
-          {filteredCustomers.map((customer) => (
-            <button
-              key={customer.id}
-              onClick={() => setSelectedCustomer(customer)}
-              className={cn(
-                "w-full flex items-center gap-4 p-5 rounded-[2rem] transition-all group border text-left",
-                selectedCustomer?.id === customer.id 
-                  ? "bg-zamzam-teal text-white border-zamzam-teal shadow-xl shadow-teal-900/20" 
-                  : "bg-white text-slate-400 border-slate-100 hover:border-zamzam-teal/30 hover:bg-teal-50/30"
-              )}
-            >
-              <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm border-2",
-                selectedCustomer?.id === customer.id ? "bg-white/20 border-white/30 text-white" : "bg-slate-100 border-transparent text-slate-400"
-              )}>
-                {customer.first_name?.[0]}{customer.last_name?.[0]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={cn("text-sm font-black uppercase tracking-tight truncate", selectedCustomer?.id === customer.id ? "text-white" : "text-slate-900")}>
-                  {customer.first_name} {customer.last_name}
-                </p>
-                <p className={cn("text-[10px] font-bold mt-0.5", selectedCustomer?.id === customer.id ? "text-white/60" : "text-slate-400")}>
-                  {customer.phone || 'No phone'}
-                </p>
-              </div>
-              <ChevronRight size={16} className={cn("transition-transform", selectedCustomer?.id === customer.id ? "translate-x-0" : "-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0")} />
-            </button>
-          ))}
-        </nav>
-      </aside>
+      {/* Directory Control Bar */}
+      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center justify-between gap-6">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-zamzam-teal transition-colors" size={20} />
+          <input 
+            type="text" 
+            placeholder="SEARCH GUESTS BY NAME OR PHONE..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-16 pr-8 text-[11px] font-bold uppercase outline-none focus:border-zamzam-teal focus:bg-white transition-all shadow-inner"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl">
+            <Users size={16} className="text-slate-400" />
+            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">Total: {customers.length}</span>
+          </div>
+        </div>
+      </div>
 
-      {/* Main Area: Detailed Profile */}
-      <main className="flex-1 overflow-auto p-12">
-        <AnimatePresence mode="wait">
-          {selectedCustomer ? (
+      {/* Main Tabular View */}
+      <div className="flex-1 bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-0">
+        <div className="overflow-y-auto no-scrollbar flex-1">
+          {isLoading ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-200">
+               <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
+                <Users size={48} strokeWidth={1} />
+              </motion.div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-6">Syncing Directory...</p>
+            </div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-200 gap-4">
+              <Users size={64} strokeWidth={1} className="opacity-50" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">No guest profiles found</p>
+            </div>
+          ) : (
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/50 border-b border-slate-100 sticky top-0 z-10 backdrop-blur-md">
+                <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <th className="pl-10 py-6">Customer Name</th>
+                  <th className="px-8 py-6">Contact Info</th>
+                  <th className="px-8 py-6">Origin</th>
+                  <th className="px-8 py-6 text-center">Engagement</th>
+                  <th className="pr-10 py-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredCustomers.map((customer) => (
+                  <tr 
+                    key={customer.id} 
+                    onClick={() => handleRowClick(customer)}
+                    className="group cursor-pointer hover:bg-slate-50/50 transition-all"
+                  >
+                    <td className="pl-10 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-sm font-bold text-zamzam-yellow shadow-lg shadow-slate-900/10 group-hover:scale-105 transition-transform">
+                          {customer.first_name?.[0]}{customer.last_name?.[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 uppercase tracking-tight group-hover:text-zamzam-teal transition-colors">
+                            {customer.first_name} {customer.last_name}
+                          </p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">ID: #CST-{customer.id.toString().padStart(4, '0')}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-slate-600 font-bold text-[10px] uppercase">
+                          <Phone size={12} className="text-zamzam-teal" /> {customer.phone || 'N/A'}
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-400 font-bold text-[10px] uppercase">
+                          <Mail size={12} /> {customer.email || 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className={cn(
+                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-widest",
+                        (customer.origin || '').toLowerCase() === 'website' ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
+                        (customer.origin || '').toLowerCase() === 'qr-menu' ? "bg-teal-50 border-teal-100 text-teal-600" :
+                        "bg-slate-50 border-slate-100 text-slate-500"
+                      )}>
+                        {(() => {
+                          const origin = (customer.origin || '').toLowerCase();
+                          if (origin === 'website' || origin === 'web') return <><Globe size={12} /> Website</>;
+                          if (origin === 'qr menu' || origin === 'qr-menu') return <><QrCode size={12} /> QR Menu</>;
+                          return <><MapPin size={12} /> Counter</>;
+                        })()}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[11px] font-bold text-slate-900">{customer.order_count || '0'} Orders</span>
+                        <div className="flex gap-0.5">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} size={10} fill={s <= 4 ? "currentColor" : "none"} className={s <= 4 ? "text-zamzam-yellow" : "text-slate-200"} />
+                          ))}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="pr-10 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="w-10 h-10 bg-slate-50 text-slate-400 hover:text-zamzam-teal hover:bg-zamzam-teal/10 rounded-xl flex items-center justify-center border border-slate-100 transition-all"><History size={16} /></button>
+                        <button className="w-10 h-10 bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl flex items-center justify-center border border-slate-100 transition-all"><ChevronRight size={16} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Customer Detail Modal */}
+      <AnimatePresence>
+        {isModalOpen && selectedCustomer && (
+          <div className="fixed inset-0 z-50 flex items-center justify-end">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" 
+            />
             <motion.div
-              key={selectedCustomer.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-10"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-[600px] h-full bg-white shadow-2xl flex flex-col"
             >
-              {/* Profile Header Card */}
-              <div className="bg-white rounded-[3rem] border border-slate-100 p-10 shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-8">
-                  <div className="flex gap-2">
-                    <span className="bg-zamzam-yellow/10 text-zamzam-yellow text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest flex items-center gap-2">
-                      <Star size={12} fill="currentColor" /> VIP Regular
-                    </span>
-                    <button className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-all">
-                      <MoreVertical size={18} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-8 relative z-10">
-                  <div className="w-32 h-32 bg-zamzam-teal rounded-[2.5rem] flex items-center justify-center text-4xl font-black text-white shadow-2xl shadow-teal-500/30 ring-8 ring-teal-50">
+              <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
+                <div className="flex items-center gap-6">
+                  <div className="w-20 h-20 bg-zamzam-teal rounded-[1.8rem] flex items-center justify-center text-3xl font-bold text-white shadow-2xl shadow-teal-500/20 ring-4 ring-white/10">
                     {selectedCustomer.first_name?.[0]}{selectedCustomer.last_name?.[0]}
                   </div>
                   <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-2">
-                      {selectedCustomer.first_name} <span className="text-zamzam-teal">{selectedCustomer.last_name}</span>
-                    </h2>
-                    <div className="flex flex-wrap gap-6 mt-4">
-                      <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
-                        <Phone size={14} className="text-zamzam-teal" /> {selectedCustomer.phone || 'N/A'}
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
-                        <Mail size={14} className="text-zamzam-teal" /> {selectedCustomer.email || 'N/A'}
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
-                        {(() => {
-                          const origin = (selectedCustomer.origin || '').toLowerCase();
-                          if (origin === 'website' || origin === 'web') {
-                            return <><Globe size={14} className="text-zamzam-teal" /> Website</>;
-                          } else if (origin === 'qr menu' || origin === 'qr-menu') {
-                            return <><QrCode size={14} className="text-zamzam-teal" /> QR Menu</>;
-                          } else {
-                            return <><MapPin size={14} className="text-zamzam-teal" /> Counter</>;
-                          }
-                        })()}
-                      </div>
-                    </div>
+                    <h2 className="text-2xl font-bold uppercase tracking-tighter">{selectedCustomer.first_name} {selectedCustomer.last_name}</h2>
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] mt-1">Guest Insights</p>
                   </div>
                 </div>
-
-                {/* Quick Stats Banner */}
-                <div className="grid grid-cols-3 gap-6 mt-12 pt-10 border-t border-slate-50">
-                  <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100/50">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Orders</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-black text-slate-900">{customerOrders.length}</span>
-                      <ShoppingBag size={20} className="text-zamzam-teal opacity-30" />
-                    </div>
-                  </div>
-                  <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100/50">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Lifetime Spend</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-black text-slate-900">
-                        {customerOrders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0).toLocaleString()} <span className="text-xs text-slate-400">USD</span>
-                      </span>
-                      <TrendingUp size={20} className="text-green-500 opacity-30" />
-                    </div>
-                  </div>
-                  <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100/50">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Joined Since</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-black text-slate-900">
-                        {selectedCustomer.created_at ? new Date(selectedCustomer.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : 'N/A'}
-                      </span>
-                      <Calendar size={20} className="text-blue-500 opacity-30" />
-                    </div>
-                  </div>
-                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-12 h-12 bg-white/10 text-white rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all"
+                >
+                  <X size={24} />
+                </button>
               </div>
 
-              {/* Order History Table */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between px-4">
-                  <div className="flex items-center gap-3">
-                    <History size={20} className="text-zamzam-teal" />
-                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Order History</h3>
+              <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar">
+                {/* Statistics Grid */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Visits</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-slate-900">{customerOrders.length}</span>
+                      <ShoppingBag className="text-zamzam-teal opacity-20" size={32} />
+                    </div>
                   </div>
-                  <button className="text-[10px] font-black text-zamzam-teal uppercase tracking-widest hover:underline">View Full Statement</button>
+                  <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Revenue</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-slate-900">
+                        {customerOrders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0).toFixed(2)} <span className="text-xs text-slate-400">USD</span>
+                      </span>
+                      <TrendingUp className="text-green-500 opacity-20" size={32} />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
-                  <table className="w-full">
-                    <thead className="bg-slate-50 border-b border-slate-100">
-                      <tr>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</th>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {customerOrders.length > 0 ? customerOrders.map((order) => (
-                        <tr key={order.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
-                          <td className="px-8 py-6">
-                            <span className="text-sm font-black text-slate-900">#{order.id}</span>
-                          </td>
-                          <td className="px-8 py-6">
-                            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-tight">
-                              <Clock size={14} /> {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}
-                            </div>
-                          </td>
-                          <td className="px-8 py-6">
-                            <span className="bg-slate-100 text-slate-600 text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest">
-                              {order.order_type}
-                            </span>
-                          </td>
-                          <td className="px-8 py-6 font-black text-slate-900 text-sm">
-                            {parseFloat(order.total_amount || 0).toLocaleString()} <span className="text-[10px] text-slate-300">USD</span>
-                          </td>
-                          <td className="px-8 py-6">
-                            <span className={cn(
-                              "text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest inline-flex items-center gap-2",
-                              order.status === 'Completed' || order.status === 'Paid' ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-600"
-                            )}>
-                              {order.status === 'Completed' || order.status === 'Paid' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                              {order.status}
-                            </span>
-                          </td>
+                {/* Contact Information */}
+                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 space-y-6">
+                   <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                    <UserPlus size={14} className="text-zamzam-teal" /> Verified Contact Methods
+                   </h3>
+                   <div className="grid grid-cols-1 gap-4">
+                      <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                        <Phone className="text-zamzam-teal" size={20} />
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Phone Number</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedCustomer.phone || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                        <Mail className="text-zamzam-teal" size={20} />
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Email Identity</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedCustomer.email || 'N/A'}</p>
+                        </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Order History Table */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <History size={14} className="text-zamzam-teal" /> Transactional Activity
+                    </h3>
+                  </div>
+                  <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                          <th className="px-6 py-4">Order Node</th>
+                          <th className="px-6 py-4">Date</th>
+                          <th className="px-6 py-4 text-right">Amount</th>
                         </tr>
-                      )) : (
-                        <tr>
-                          <td colSpan={5} className="px-8 py-20 text-center text-slate-300">
-                            <p className="text-xs font-black uppercase tracking-widest">No order history found for this customer.</p>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {customerOrders.length > 0 ? customerOrders.map(o => (
+                          <tr key={o.id} className="text-xs hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-4 font-bold text-slate-900">#ORD-{o.id}</td>
+                            <td className="px-6 py-4 text-slate-400 font-bold uppercase">{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
+                            <td className="px-6 py-4 text-right font-bold text-slate-900">${parseFloat(o.total_amount).toFixed(2)}</td>
+                          </tr>
+                        )) : (
+                          <tr>
+                            <td colSpan={3} className="px-6 py-10 text-center text-[10px] font-bold text-slate-300 uppercase tracking-widest">No previous transactions</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </motion.div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-6">
-              <Users size={80} strokeWidth={1} className="opacity-20" />
-              <p className="text-sm font-black uppercase tracking-[0.2em] opacity-50">Select a customer to view profile</p>
-            </div>
-          )}
-        </AnimatePresence>
-      </main>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

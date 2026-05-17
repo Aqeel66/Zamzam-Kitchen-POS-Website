@@ -82,11 +82,11 @@ export default function QRMenu() {
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6">
           <CheckCircle2 size={48} className="text-green-500" />
         </motion.div>
-        <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Order Sent!</h2>
+        <h2 className="text-3xl font-bold text-slate-900 uppercase tracking-tighter">Order Sent!</h2>
         <p className="text-slate-400 font-bold mt-2">Your delicious meal is being prepared. We'll bring it to Table {tableId} shortly.</p>
         <button 
           onClick={() => setOrderStatus('idle')}
-          className="mt-10 bg-zamzam-teal text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs"
+          className="mt-10 bg-zamzam-teal text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs"
         >
           Order More
         </button>
@@ -109,7 +109,7 @@ export default function QRMenu() {
                 <Utensils size={20} className="text-zamzam-teal" />
              </div>
              <div>
-                <h1 className="font-black text-xl uppercase tracking-tighter">Zamzam Kitchen</h1>
+                <h1 className="font-bold text-xl uppercase tracking-tighter">Zamzam Kitchen</h1>
                 <p className="text-[10px] font-bold text-teal-300 uppercase tracking-widest">Table {tableId}</p>
              </div>
           </div>
@@ -121,7 +121,7 @@ export default function QRMenu() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+              className={`px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
                 activeCategory === cat ? 'bg-zamzam-yellow text-zamzam-teal shadow-lg' : 'bg-white/10 text-white/60 hover:bg-white/20'
               }`}
             >
@@ -145,10 +145,10 @@ export default function QRMenu() {
               >
                 <img src={resolveImageUrl(item.image) || '/placeholder.png'} className="w-24 h-24 rounded-2xl object-cover" />
                 <div className="flex-1">
-                  <h3 className="font-black text-slate-900 text-sm uppercase">{item.name}</h3>
+                  <h3 className="font-bold text-slate-900 text-sm uppercase">{item.name}</h3>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{item.category}</p>
                   <div className="flex items-center justify-between mt-3">
-                    <span className="font-black text-zamzam-teal text-lg">${parseFloat(item.price).toFixed(2)}</span>
+                    <span className="font-bold text-zamzam-teal text-lg">${parseFloat(item.price).toFixed(2)}</span>
                     <button 
                       onClick={() => addToCart(item)}
                       className="w-10 h-10 bg-slate-50 text-slate-400 hover:bg-zamzam-teal hover:text-white rounded-xl flex items-center justify-center transition-all active:scale-90"
@@ -176,19 +176,19 @@ export default function QRMenu() {
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <ShoppingBag size={24} className="text-zamzam-yellow" />
-                  <span className="absolute -top-2 -right-2 bg-white text-slate-900 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-white text-slate-900 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
                     {cart.reduce((s, i) => s + i.quantity, 0)}
                   </span>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Payable</p>
-                  <p className="text-xl font-black text-white">${total.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-white">${total.toFixed(2)}</p>
                 </div>
               </div>
               <button 
                 onClick={placeOrder}
                 disabled={isSubmitting}
-                className="bg-zamzam-yellow text-zamzam-teal px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-yellow-500/20"
+                className="bg-zamzam-yellow text-zamzam-teal px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-yellow-500/20"
               >
                 {isSubmitting ? 'Sending...' : 'Place Order'}
                 <ChevronRight size={16} />

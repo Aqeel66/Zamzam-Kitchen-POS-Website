@@ -52,10 +52,10 @@ const ReportKPI = ({ title, value, icon: Icon, color, currency }: any) => (
       <Icon size={20} />
     </div>
     <div className="text-left">
-      <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{title}</p>
+      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">{title}</p>
       <div className="flex items-baseline gap-1">
-        {currency && <span className="text-xs font-black text-slate-900 opacity-30">{currency}</span>}
-        <span className="text-xl font-black text-slate-900 tracking-tight">{value}</span>
+        {currency && <span className="text-xs font-bold text-slate-900 opacity-30">{currency}</span>}
+        <span className="text-xl font-bold text-slate-900 tracking-tight">{value}</span>
       </div>
     </div>
   </motion.div>
@@ -65,8 +65,8 @@ const CustomTooltip = ({ active, payload, currency }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-white/10 backdrop-blur-xl">
-        <p className="text-xs font-black uppercase tracking-widest text-white/50 mb-1">{payload[0].payload.hour}:00</p>
-        <p className="text-sm font-black">{currency} {parseFloat(payload[0].value).toFixed(2)}</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-white/50 mb-1">{payload[0].payload.hour}:00</p>
+        <p className="text-sm font-bold">{currency} {parseFloat(payload[0].value).toFixed(2)}</p>
       </div>
     );
   }
@@ -76,8 +76,8 @@ const CustomTooltip = ({ active, payload, currency }: any) => {
 const ChannelMetric = ({ label, value, color }: any) => (
   <div className="space-y-2">
     <div className="flex justify-between items-end">
-      <span className="text-xs font-black text-white/50 uppercase tracking-widest">{label}</span>
-      <span className="text-sm font-black text-white">{value}%</span>
+      <span className="text-xs font-bold text-white/50 uppercase tracking-widest">{label}</span>
+      <span className="text-sm font-bold text-white">{value}%</span>
     </div>
     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
       <motion.div 
@@ -244,7 +244,7 @@ export default function Reports() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#F8FAFC]">
         <div className="w-16 h-16 border-4 border-zamzam-teal border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-xs font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Initializing Financial Core...</p>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.4em] animate-pulse">Initializing Financial Core...</p>
       </div>
     );
   }
@@ -340,11 +340,11 @@ export default function Reports() {
           <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2rem] flex items-center justify-center mb-8">
             <AlertCircle size={40} />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-4">Analytics Unavailable</h2>
+          <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight mb-4">Analytics Unavailable</h2>
           <p className="text-sm font-bold text-slate-400 mb-8 leading-relaxed">We encountered a synchronization error while fetching the reporting suite. Please try again or check your server connection.</p>
           <button 
             onClick={() => window.location.reload()}
-            className="w-full bg-zamzam-teal text-white py-5 rounded-[2rem] text-xs font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-xl shadow-teal-900/20 active:scale-95"
+            className="w-full bg-zamzam-teal text-white py-5 rounded-[2rem] text-xs font-bold uppercase tracking-widest hover:bg-teal-700 transition-all shadow-xl shadow-teal-900/20 active:scale-95"
           >
             Retry Connection
           </button>
@@ -361,8 +361,8 @@ export default function Reports() {
         <div className="flex flex-wrap items-center justify-between gap-6 max-w-[1600px] mx-auto">
           <div className="flex items-center gap-6">
              <div className="flex flex-col">
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">REPORTS</h1>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Operational Intelligence Hub</p>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">REPORTS</h1>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">Operational Intelligence Hub</p>
              </div>
 
              <div className="h-10 w-px bg-slate-100" />
@@ -371,7 +371,7 @@ export default function Reports() {
              <div className="relative group">
                 <button 
                   onClick={() => setIsReportSelectorOpen(!isReportSelectorOpen)}
-                  className="bg-[#0F172A] px-5 py-3 rounded-2xl flex items-center gap-3 text-xs font-black text-white uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black transition-all"
+                  className="bg-[#0F172A] px-5 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold text-white uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black transition-all"
                 >
                    <Activity size={16} className="text-teal-400" />
                    {activeTab === 'overview' ? 'DASHBOARD SUMMARY' : 
@@ -403,7 +403,7 @@ export default function Reports() {
                                   <tab.icon size={18} />
                                </div>
                                <div>
-                                  <p className={cn("text-xs font-black uppercase tracking-widest leading-none mb-1", activeTab === tab.id ? "text-slate-900" : "text-slate-500")}>{tab.label}</p>
+                                  <p className={cn("text-xs font-bold uppercase tracking-widest leading-none mb-1", activeTab === tab.id ? "text-slate-900" : "text-slate-500")}>{tab.label}</p>
                                   <p className="text-xs font-medium text-slate-400">{tab.desc}</p>
                                </div>
                             </button>
@@ -417,18 +417,18 @@ export default function Reports() {
           <div className="flex items-center gap-3">
              <div className="hidden lg:flex items-center gap-6 px-6 py-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <div className="flex flex-col">
-                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Live Velocity</p>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Live Velocity</p>
                    <div className="flex items-center gap-2">
                       <Activity size={12} className="text-teal-500" />
-                      <p className="text-sm font-black text-slate-900 tracking-tight">{(data.summary?.live?.velocity || []).reduce((a: any, b: any) => a + b.orders, 0)} ORDERS/HR</p>
+                      <p className="text-sm font-bold text-slate-900 tracking-tight">{(data.summary?.live?.velocity || []).reduce((a: any, b: any) => a + b.orders, 0)} ORDERS/HR</p>
                    </div>
                 </div>
                 <div className="w-px h-6 bg-slate-200" />
                 <div className="flex flex-col">
-                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
                    <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-                      <p className="text-sm font-black text-slate-900 tracking-tight">STABLE</p>
+                      <p className="text-sm font-bold text-slate-900 tracking-tight">STABLE</p>
                    </div>
                 </div>
              </div>
@@ -481,13 +481,13 @@ export default function Reports() {
                   <div className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8">
                      <div className="flex items-center justify-between mb-8">
                         <div>
-                           <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Revenue Velocity</h3>
-                           <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Real-time performance metrics</p>
+                           <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Revenue Velocity</h3>
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Real-time performance metrics</p>
                         </div>
                         <div className="flex items-center gap-2">
                            <div className="flex items-center gap-1.5">
                               <div className="w-2 h-2 rounded-full bg-teal-500" />
-                              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Revenue</span>
+                              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Revenue</span>
                            </div>
                         </div>
                      </div>
@@ -529,7 +529,7 @@ export default function Reports() {
 
                   {/* Operational Summary */}
                   <div className="bg-[#0F172A] rounded-[2rem] p-8 text-white shadow-xl shadow-slate-200">
-                     <h3 className="text-lg font-black uppercase tracking-tight mb-8">Channel Split</h3>
+                     <h3 className="text-lg font-bold uppercase tracking-tight mb-8">Channel Split</h3>
                      <div className="space-y-8">
                         {(data.operational?.sales_by_origin || []).slice(0, 4).map((origin: any, idx: number) => (
                            <ChannelMetric 
@@ -546,8 +546,8 @@ export default function Reports() {
                               <Star className="text-amber-400" size={20} />
                            </div>
                            <div>
-                              <p className="text-xs font-black text-white/50 uppercase tracking-widest">Top Selling Item</p>
-                              <p className="text-lg font-black">{data.operational?.popular_items?.[0]?.name || 'N/A'}</p>
+                              <p className="text-xs font-bold text-white/50 uppercase tracking-widest">Top Selling Item</p>
+                              <p className="text-lg font-bold">{data.operational?.popular_items?.[0]?.name || 'N/A'}</p>
                            </div>
                         </div>
                      </div>
@@ -567,10 +567,10 @@ export default function Reports() {
                     <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center">
                       <BarChart3 size={10} className="text-white" />
                     </div>
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Gross Profit</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Gross Profit</span>
                   </div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{currency} {data.financials.revenue.toLocaleString()}</h2>
-                  <p className="text-xs font-black text-blue-500 uppercase tracking-widest mt-0.5">{(data.financials.revenue / (data.financials.gross_sales || 1) * 100).toFixed(1)}% Margin</p>
+                  <h2 className="text-2xl font-bold text-slate-900 tracking-tighter">{currency} {data.financials.revenue.toLocaleString()}</h2>
+                  <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mt-0.5">{(data.financials.revenue / (data.financials.gross_sales || 1) * 100).toFixed(1)}% Margin</p>
                 </div>
 
                 {/* BAR CHART SECTION */}
@@ -584,8 +584,8 @@ export default function Reports() {
                     ].map((m, i) => (
                       <div key={i} className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{m.label}</span>
-                          <span className="text-xs font-black text-slate-900 uppercase">{currency} {m.value.toLocaleString()}</span>
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{m.label}</span>
+                          <span className="text-xs font-bold text-slate-900 uppercase">{currency} {m.value.toLocaleString()}</span>
                         </div>
                         <div className="h-1 bg-slate-50 rounded-full overflow-hidden">
                           <div 
@@ -601,14 +601,14 @@ export default function Reports() {
                 {/* NET PROFIT BLOCK */}
                 <div className="flex-1 bg-slate-50/50 rounded-[1.8rem] p-4 flex flex-col justify-center border border-slate-100/50">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Net Profit</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Net Profit</span>
                     <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-green-500/20">
                       <DollarSign size={12} />
                     </div>
                   </div>
                   <div className="text-right">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{currency} {data.financials.profit.toLocaleString()}</h2>
-                    <p className="text-xs font-black text-green-500 uppercase tracking-widest mt-0.5">{(data.financials.profit / (data.financials.gross_sales || 1) * 100).toFixed(1)}% Margin</p>
+                    <h2 className="text-2xl font-bold text-slate-900 tracking-tighter">{currency} {data.financials.profit.toLocaleString()}</h2>
+                    <p className="text-xs font-bold text-green-500 uppercase tracking-widest mt-0.5">{(data.financials.profit / (data.financials.gross_sales || 1) * 100).toFixed(1)}% Margin</p>
                   </div>
                 </div>
             </div>
@@ -621,14 +621,14 @@ export default function Reports() {
                   <div className="flex items-center gap-1">
                      <input 
                        type="date" 
-                       className="text-xs font-black uppercase text-slate-900 border-none outline-none bg-transparent w-20" 
+                       className="text-xs font-bold uppercase text-slate-900 border-none outline-none bg-transparent w-20" 
                        value={startDate}
                        onChange={(e) => setStartDate(e.target.value)}
                      />
                      <span className="text-slate-300">/</span>
                      <input 
                        type="date" 
-                       className="text-xs font-black uppercase text-slate-900 border-none outline-none bg-transparent w-20" 
+                       className="text-xs font-bold uppercase text-slate-900 border-none outline-none bg-transparent w-20" 
                        value={endDate}
                        onChange={(e) => setEndDate(e.target.value)}
                      />
@@ -651,7 +651,7 @@ export default function Reports() {
                <select 
                  value={transactionType} 
                  onChange={(e) => setTransactionType(e.target.value)}
-                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-black uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
+                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-bold uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
                >
                  <option value="INCOME">INCOME</option>
                  <option value="EXPENSE">EXPENSE</option>
@@ -660,7 +660,7 @@ export default function Reports() {
                <select 
                  value={paymentFilter} 
                  onChange={(e) => setPaymentFilter(e.target.value)}
-                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-black uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
+                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-bold uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
                >
                  <option value="ALL">PAYMENTS</option>
                  <option value="CASH">CASH</option>
@@ -670,7 +670,7 @@ export default function Reports() {
                <select 
                  value={originFilter} 
                  onChange={(e) => setOriginFilter(e.target.value)}
-                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-black uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
+                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-bold uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
                >
                  <option value="ORIGINS">ORIGINS</option>
                  <option value="COUNTER/DINE-IN">COUNTER/DINE-IN</option>
@@ -682,7 +682,7 @@ export default function Reports() {
                <select 
                  value={categoryFilter} 
                  onChange={(e) => setCategoryFilter(e.target.value)}
-                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-black uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
+                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-bold uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
                >
                  <option value="CATEGORIES">CATEGORIES</option>
                  {data.menu.map((cat: any) => (
@@ -693,7 +693,7 @@ export default function Reports() {
                <select 
                  value={productFilter} 
                  onChange={(e) => setProductFilter(e.target.value)}
-                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-black uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
+                 className="bg-white px-2 py-2 rounded-xl border border-slate-100 shadow-sm text-xs font-bold uppercase tracking-widest text-slate-900 outline-none cursor-pointer hover:bg-slate-50"
                >
                  <option value="ITEMS">ITEMS</option>
                  {uniqueItems.map((item: any) => (
@@ -706,7 +706,7 @@ export default function Reports() {
                 <div className="relative">
                   <button 
                     onClick={() => setIsExportOpen(!isExportOpen)}
-                    className="bg-slate-900 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest text-white hover:bg-black transition-all shadow-sm flex items-center gap-2"
+                    className="bg-slate-900 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-white hover:bg-black transition-all shadow-sm flex items-center gap-2"
                   >
                     <Download size={14} />
                     Export
@@ -715,14 +715,14 @@ export default function Reports() {
                     <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50">
                       <button 
                         onClick={() => { exportToCSV(); setIsExportOpen(false); }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left border-b border-slate-50"
+                        className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left border-b border-slate-50"
                       >
                         <FileText size={14} />
                         CSV
                       </button>
                       <button 
                         onClick={() => { exportToPDF(); setIsExportOpen(false); }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left"
+                        className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left"
                       >
                         <Printer size={14} />
                         PDF
@@ -747,25 +747,25 @@ export default function Reports() {
             <div className="mt-4">
                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                   <div className="px-8 py-4 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
-                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Financial Ledger</h3>
+                    <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Financial Ledger</h3>
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{filteredOrders.length} Transactions</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="bg-[#FFF9F2] border-y border-slate-100">
-                          <th className="px-8 py-3 text-left text-xs font-black text-slate-900 uppercase tracking-[0.2em]">ID</th>
-                          <th className="px-8 py-3 text-left text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Time</th>
-                          <th className="px-8 py-3 text-left text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Items</th>
-                          <th className="px-8 py-3 text-center text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Type</th>
-                          <th className="px-8 py-3 text-center text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Total</th>
-                          <th className="px-8 py-3 text-right text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Status</th>
+                          <th className="px-8 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">ID</th>
+                          <th className="px-8 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Time</th>
+                          <th className="px-8 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Items</th>
+                          <th className="px-8 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Type</th>
+                          <th className="px-8 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Total</th>
+                          <th className="px-8 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {filteredOrders.map((t: any) => (
                           <tr key={t.id} className="hover:bg-slate-50/50 transition-all duration-300 group">
-                            <td className="px-8 py-3 font-black text-slate-600 uppercase tracking-tight text-sm">#{t.order_number || t.id || 'N/A'}</td>
+                            <td className="px-8 py-3 font-bold text-slate-600 uppercase tracking-tight text-sm">#{t.order_number || t.id || 'N/A'}</td>
                             <td className="px-8 py-3 text-xs font-bold text-slate-400 tabular-nums uppercase">
                               {(() => {
                                 try {
@@ -784,21 +784,21 @@ export default function Reports() {
                                     const firstItem = items[0];
                                     return (
                                       <div className="flex items-center gap-1.5">
-                                        <span className="bg-slate-50 text-xs font-black text-slate-500 px-2 py-1 rounded-md border border-slate-100">{firstItem.quantity}× {firstItem.name}</span>
-                                        {items.length > 1 && <span className="text-xs font-black text-orange-500 px-1 py-1 uppercase">+ {items.length - 1} MORE</span>}
+                                        <span className="bg-slate-50 text-xs font-bold text-slate-500 px-2 py-1 rounded-md border border-slate-100">{firstItem.quantity}× {firstItem.name}</span>
+                                        {items.length > 1 && <span className="text-xs font-bold text-orange-500 px-1 py-1 uppercase">+ {items.length - 1} MORE</span>}
                                       </div>
                                     );
                                   })()}
                                 </div>
                             </td>
                             <td className="px-8 py-3 text-center">
-                               <span className="text-xs font-black text-slate-600 uppercase tracking-tight">{t.order_type || 'Dine-In'}</span>
+                               <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{t.order_type || 'Dine-In'}</span>
                             </td>
-                            <td className="px-8 py-3 text-center font-black text-orange-500 tabular-nums text-lg">
+                            <td className="px-8 py-3 text-center font-bold text-orange-500 tabular-nums text-lg">
                               {currency} {parseFloat(t.total_amount || 0).toFixed(2)}
                             </td>
                             <td className="px-8 py-3 text-right">
-                               <span className={cn("px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest border shadow-sm", 
+                               <span className={cn("px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest border shadow-sm", 
                                  t.status?.toLowerCase() === 'paid' ? "bg-green-50 text-green-600 border-green-100" : 
                                  t.status?.toLowerCase() === 'ready' ? "bg-blue-50 text-blue-600 border-blue-100" :
                                  "bg-amber-50 text-amber-600 border-amber-100")}>
@@ -809,7 +809,7 @@ export default function Reports() {
                         ))}
                         {filteredOrders.length === 0 && (
                            <tr>
-                             <td colSpan={6} className="px-12 py-20 text-center text-xs font-black text-slate-400 uppercase tracking-[0.4em]">No matching financial records found</td>
+                             <td colSpan={6} className="px-12 py-20 text-center text-xs font-bold text-slate-400 uppercase tracking-[0.4em]">No matching financial records found</td>
                            </tr>
                         )}
                       </tbody>
@@ -825,7 +825,7 @@ export default function Reports() {
             {/* --- INVENTORY BI HEADER --- */}
             <div className="flex items-center justify-between">
                <div className="flex items-center gap-8">
-                  <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Business Intelligence</h1>
+                  <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-tighter">Business Intelligence</h1>
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-3">
                        <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center text-orange-400">
@@ -833,7 +833,7 @@ export default function Reports() {
                        </div>
                        <div>
                           <p className="text-xs font-bold text-slate-400 uppercase leading-none">Total Items</p>
-                          <p className="text-xl font-black text-slate-900 leading-none mt-1">{(data.inventory.items || []).length}</p>
+                          <p className="text-xl font-bold text-slate-900 leading-none mt-1">{(data.inventory.items || []).length}</p>
                        </div>
                     </div>
                     <div className="h-8 w-px bg-slate-100" />
@@ -843,7 +843,7 @@ export default function Reports() {
                        </div>
                        <div>
                           <p className="text-xs font-bold text-slate-400 uppercase leading-none">Low Stock</p>
-                          <p className="text-xl font-black text-slate-900 leading-none mt-1">{(data.inventory.low_stock_items || []).length}</p>
+                          <p className="text-xl font-bold text-slate-900 leading-none mt-1">{(data.inventory.low_stock_items || []).length}</p>
                        </div>
                     </div>
                     <div className="h-8 w-px bg-slate-100" />
@@ -853,7 +853,7 @@ export default function Reports() {
                        </div>
                        <div>
                           <p className="text-xs font-bold text-slate-400 uppercase leading-none">Inv. Value</p>
-                          <p className="text-xl font-black text-slate-900 leading-none mt-1">{currency}{data.inventory.total_value?.toFixed(2) || '0.00'}</p>
+                          <p className="text-xl font-bold text-slate-900 leading-none mt-1">{currency}{data.inventory.total_value?.toFixed(2) || '0.00'}</p>
                        </div>
                     </div>
                   </div>
@@ -864,7 +864,7 @@ export default function Reports() {
                     <div className="w-6 h-6 bg-orange-100 rounded-md flex items-center justify-center text-orange-500">
                        <Layout size={14} />
                     </div>
-                    <span className="text-xs font-black text-orange-500 uppercase tracking-widest">Inventory Status</span>
+                    <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Inventory Status</span>
                   </div>
                   <ChevronDown size={18} className="text-orange-300" />
                </div>
@@ -878,14 +878,14 @@ export default function Reports() {
                     type="date" 
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="bg-transparent border-none outline-none text-xs font-black text-slate-900 uppercase tracking-widest cursor-pointer"
+                    className="bg-transparent border-none outline-none text-xs font-bold text-slate-900 uppercase tracking-widest cursor-pointer"
                   />
                   <div className="w-px h-3 bg-slate-200 mx-1" />
                   <input 
                     type="date" 
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="bg-transparent border-none outline-none text-xs font-black text-slate-900 uppercase tracking-widest cursor-pointer"
+                    className="bg-transparent border-none outline-none text-xs font-bold text-slate-900 uppercase tracking-widest cursor-pointer"
                   />
                </div>
 
@@ -894,22 +894,22 @@ export default function Reports() {
                   <input 
                     type="text" 
                     placeholder="SEARCH..."
-                    className="bg-transparent border-none outline-none text-xs font-black text-slate-900 w-full placeholder:text-slate-300 uppercase tracking-widest"
+                    className="bg-transparent border-none outline-none text-xs font-bold text-slate-900 w-full placeholder:text-slate-300 uppercase tracking-widest"
                   />
                </div>
 
-               <select className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-50 text-xs font-black text-slate-600 uppercase tracking-widest outline-none appearance-none min-w-[100px] text-center hover:bg-slate-100 cursor-pointer transition-all">
+               <select className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-50 text-xs font-bold text-slate-600 uppercase tracking-widest outline-none appearance-none min-w-[100px] text-center hover:bg-slate-100 cursor-pointer transition-all">
                   <option>SUPPLIERS</option>
                </select>
 
-               <select className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-50 text-xs font-black text-slate-600 uppercase tracking-widest outline-none appearance-none min-w-[120px] text-center hover:bg-slate-100 cursor-pointer transition-all">
+               <select className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-50 text-xs font-bold text-slate-600 uppercase tracking-widest outline-none appearance-none min-w-[120px] text-center hover:bg-slate-100 cursor-pointer transition-all">
                   <option>STOCK STATUS</option>
                   <option>HEALTHY</option>
                   <option>LOW STOCK</option>
                   <option>OUT OF STOCK</option>
                </select>
 
-               <select className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-50 text-xs font-black text-slate-600 uppercase tracking-widest outline-none appearance-none min-w-[100px] text-center hover:bg-slate-100 cursor-pointer transition-all">
+               <select className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-50 text-xs font-bold text-slate-600 uppercase tracking-widest outline-none appearance-none min-w-[100px] text-center hover:bg-slate-100 cursor-pointer transition-all">
                   <option>ITEMS</option>
                </select>
 
@@ -917,7 +917,7 @@ export default function Reports() {
                   <div className="relative">
                     <button 
                       onClick={() => setIsExportOpen(!isExportOpen)}
-                      className="bg-[#0F172A] px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest text-white hover:bg-black transition-all shadow-sm flex items-center gap-2"
+                      className="bg-[#0F172A] px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-white hover:bg-black transition-all shadow-sm flex items-center gap-2"
                     >
                       <Download size={14} />
                       EXPORT
@@ -926,14 +926,14 @@ export default function Reports() {
                       <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50">
                         <button 
                           onClick={() => { exportToCSV(); setIsExportOpen(false); }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left border-b border-slate-50"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left border-b border-slate-50"
                         >
                           <FileText size={14} />
                           CSV
                         </button>
                         <button 
                           onClick={() => { exportToPDF(); setIsExportOpen(false); }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left"
                         >
                           <Printer size={14} />
                           PDF
@@ -954,18 +954,18 @@ export default function Reports() {
             {/* --- INVENTORY BREAKDOWN TABLE --- */}
             <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
                <div className="px-10 py-6 border-b border-slate-50 flex items-center justify-between">
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Inventory Breakdown</h3>
+                  <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Inventory Breakdown</h3>
                </div>
                <div className="overflow-x-auto">
                  <table className="w-full">
                     <thead>
                        <tr className="bg-[#FFF9F2] border-y border-slate-100">
-                          <th className="px-10 py-4 text-left text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Item Name</th>
-                          <th className="px-10 py-4 text-left text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Supplier</th>
-                          <th className="px-10 py-4 text-left text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Stock Level</th>
-                          <th className="px-10 py-4 text-left text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Cost/Unit</th>
-                          <th className="px-10 py-4 text-left text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Total Value</th>
-                          <th className="px-10 py-4 text-right text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Status</th>
+                          <th className="px-10 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Item Name</th>
+                          <th className="px-10 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Supplier</th>
+                          <th className="px-10 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Stock Level</th>
+                          <th className="px-10 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Cost/Unit</th>
+                          <th className="px-10 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Total Value</th>
+                          <th className="px-10 py-4 text-right text-xs font-bold text-slate-900 uppercase tracking-[0.2em]">Status</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -979,14 +979,14 @@ export default function Reports() {
 
                             return (
                                <tr key={idx} className="hover:bg-slate-50/50 transition-all group">
-                                  <td className="px-10 py-4 font-black text-slate-900 uppercase text-xs">{item.name}</td>
+                                  <td className="px-10 py-4 font-bold text-slate-900 uppercase text-xs">{item.name}</td>
                                   <td className="px-10 py-4 text-xs font-bold text-slate-400 uppercase">{item.supplier_name || 'NOT SET'}</td>
-                                  <td className="px-10 py-4 text-xs font-black text-slate-600 uppercase tracking-tight">{item.quantity} {item.unit || 'UNIT'}</td>
+                                  <td className="px-10 py-4 text-xs font-bold text-slate-600 uppercase tracking-tight">{item.quantity} {item.unit || 'UNIT'}</td>
                                   <td className="px-10 py-4 text-xs font-bold text-slate-500 tabular-nums">{currency} {cost.toFixed(2)}</td>
-                                  <td className="px-10 py-4 text-xs font-black text-orange-500 tabular-nums">{currency} {total.toFixed(2)}</td>
+                                  <td className="px-10 py-4 text-xs font-bold text-orange-500 tabular-nums">{currency} {total.toFixed(2)}</td>
                                   <td className="px-10 py-4 text-right">
                                      <span className={cn(
-                                       "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest",
+                                       "px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest",
                                        status === 'HEALTHY' ? "bg-green-50 text-green-600 border border-green-100" : "bg-red-50 text-red-600 border border-red-100"
                                      )}>
                                        {status}
@@ -1004,7 +1004,7 @@ export default function Reports() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                <div className="lg:col-span-1 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                   <div className="px-8 py-6 border-b border-slate-50">
-                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Trusted Suppliers</h3>
+                    <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Trusted Suppliers</h3>
                   </div>
                   <div className="p-6 space-y-4">
                      {(data.inventory.suppliers || []).slice(0, 5).map((s: any, idx: number) => (
@@ -1014,44 +1014,44 @@ export default function Reports() {
                                  <Building size={18} />
                               </div>
                               <div>
-                                 <p className="text-xs font-black text-slate-800 uppercase tracking-tight">{s.name}</p>
+                                 <p className="text-xs font-bold text-slate-800 uppercase tracking-tight">{s.name}</p>
                                  <p className="text-xs font-medium text-slate-400">{s.contact_email || 'No email'}</p>
                               </div>
                            </div>
-                           <span className="text-xs font-black text-green-500">{s.reliability_score || 100}%</span>
+                           <span className="text-xs font-bold text-green-500">{s.reliability_score || 100}%</span>
                         </div>
                      ))}
                      {(data.inventory.suppliers || []).length === 0 && (
-                        <p className="text-center py-10 text-xs font-black text-slate-300 uppercase tracking-widest">No suppliers registered</p>
+                        <p className="text-center py-10 text-xs font-bold text-slate-300 uppercase tracking-widest">No suppliers registered</p>
                      )}
                   </div>
                </div>
 
                <div className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
                   <div className="px-10 py-6 border-b border-slate-50">
-                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Recent Purchase Orders</h3>
+                    <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Recent Purchase Orders</h3>
                   </div>
                   <div className="overflow-x-auto">
                      <table className="w-full">
                         <thead>
                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                              <th className="px-10 py-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest">Date</th>
-                              <th className="px-10 py-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest">Invoice</th>
-                              <th className="px-10 py-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest">Supplier</th>
-                              <th className="px-10 py-4 text-center text-xs font-black text-slate-400 uppercase tracking-widest">Amount</th>
-                              <th className="px-10 py-4 text-right text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
+                              <th className="px-10 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Date</th>
+                              <th className="px-10 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Invoice</th>
+                              <th className="px-10 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Supplier</th>
+                              <th className="px-10 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Amount</th>
+                              <th className="px-10 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                            {(data.inventory.purchases || []).slice(0, 5).map((order: any) => (
                               <tr key={order.id} className="hover:bg-slate-50/50 transition-all">
                                  <td className="px-10 py-4 text-xs font-bold text-slate-400">{new Date(order.order_date).toLocaleDateString()}</td>
-                                 <td className="px-10 py-4 text-xs font-black text-slate-900 uppercase">#{order.invoice_number || order.id}</td>
-                                 <td className="px-10 py-4 text-xs font-black text-slate-700 uppercase">{order.supplier_name}</td>
-                                 <td className="px-10 py-4 text-center text-xs font-black text-indigo-500 tabular-nums">{currency} {parseFloat(order.total_amount).toFixed(2)}</td>
+                                 <td className="px-10 py-4 text-xs font-bold text-slate-900 uppercase">#{order.invoice_number || order.id}</td>
+                                 <td className="px-10 py-4 text-xs font-bold text-slate-700 uppercase">{order.supplier_name}</td>
+                                 <td className="px-10 py-4 text-center text-xs font-bold text-indigo-500 tabular-nums">{currency} {parseFloat(order.total_amount).toFixed(2)}</td>
                                  <td className="px-10 py-4 text-right">
                                     <span className={cn(
-                                       "px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border",
+                                       "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border",
                                        order.status === 'Received' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-orange-50 text-orange-600 border-orange-100"
                                     )}>
                                        {order.status}
@@ -1061,7 +1061,7 @@ export default function Reports() {
                            ))}
                            {(data.inventory.purchases || []).length === 0 && (
                               <tr>
-                                 <td colSpan={5} className="px-10 py-12 text-center text-xs font-black text-slate-300 uppercase tracking-[0.4em]">No recent orders tracked</td>
+                                 <td colSpan={5} className="px-10 py-12 text-center text-xs font-bold text-slate-300 uppercase tracking-[0.4em]">No recent orders tracked</td>
                               </tr>
                            )}
                         </tbody>
@@ -1082,17 +1082,17 @@ export default function Reports() {
 
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                <div className="px-12 py-2 bg-white/40 border-b border-slate-100 backdrop-blur-sm sticky top-[72px] z-[30]">
-                 <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Waitstaff Contribution</h3>
+                 <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Waitstaff Contribution</h3>
                </div>
                <div className="overflow-x-auto">
                  <table className="w-full">
                    <thead>
                      <tr className="bg-slate-50/50">
-                       <th className="px-8 py-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest">Professional</th>
-                       <th className="px-8 py-4 text-center text-xs font-black text-slate-400 uppercase tracking-widest">Role</th>
-                       <th className="px-8 py-4 text-center text-xs font-black text-slate-400 uppercase tracking-widest">Tickets</th>
-                       <th className="px-8 py-4 text-center text-xs font-black text-slate-400 uppercase tracking-widest">Volume</th>
-                       <th className="px-8 py-4 text-right text-xs font-black text-slate-400 uppercase tracking-widest">Performance</th>
+                       <th className="px-8 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Professional</th>
+                       <th className="px-8 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Role</th>
+                       <th className="px-8 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Tickets</th>
+                       <th className="px-8 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Volume</th>
+                       <th className="px-8 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-widest">Performance</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-50">
@@ -1104,25 +1104,25 @@ export default function Reports() {
                         <tr key={staff.user_id} className="hover:bg-slate-50/50 transition-colors group">
                           <td className="px-8 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center font-black text-slate-400 group-hover:bg-zamzam-teal group-hover:text-white transition-all uppercase text-xs">
+                              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-400 group-hover:bg-zamzam-teal group-hover:text-white transition-all uppercase text-xs">
                                 {staff.first_name?.[0]}{staff.last_name?.[0]}
                               </div>
-                              <span className="font-black text-slate-900 uppercase tracking-tight text-xs">{staff.first_name} {staff.last_name}</span>
+                              <span className="font-bold text-slate-900 uppercase tracking-tight text-xs">{staff.first_name} {staff.last_name}</span>
                             </div>
                           </td>
                           <td className="px-8 py-4 text-center">
-                            <span className="px-2 py-1 bg-teal-50 text-zamzam-teal rounded-md text-xs font-black uppercase tracking-widest border border-teal-100">
+                            <span className="px-2 py-1 bg-teal-50 text-zamzam-teal rounded-md text-xs font-bold uppercase tracking-widest border border-teal-100">
                               {primaryRole}
                             </span>
                           </td>
-                          <td className="px-8 py-4 text-center font-black text-slate-900 tabular-nums text-xs">{staff.order_count}</td>
-                          <td className="px-8 py-4 text-center font-black text-slate-900 tabular-nums text-xs">{currency} {parseFloat(staff.total_sales || 0).toFixed(2)}</td>
+                          <td className="px-8 py-4 text-center font-bold text-slate-900 tabular-nums text-xs">{staff.order_count}</td>
+                          <td className="px-8 py-4 text-center font-bold text-slate-900 tabular-nums text-xs">{currency} {parseFloat(staff.total_sales || 0).toFixed(2)}</td>
                           <td className="px-8 py-4 text-right">
                              <div className="flex items-center justify-end gap-2">
                                <div className="w-20 h-1 bg-slate-100 rounded-full overflow-hidden">
                                  <div className="h-full bg-zamzam-teal" style={{ width: `${Math.min(100, (staff.order_count / 50) * 100)}%` }} />
                                </div>
-                               <span className="text-xs font-black text-slate-400 uppercase">{Math.round((staff.order_count / 50) * 100)}%</span>
+                               <span className="text-xs font-bold text-slate-400 uppercase">{Math.round((staff.order_count / 50) * 100)}%</span>
                              </div>
                           </td>
                         </tr>
@@ -1130,7 +1130,7 @@ export default function Reports() {
                      })}
                      {(!Array.isArray(data.staff.stats) || data.staff.stats.length === 0) && (
                        <tr>
-                         <td colSpan={5} className="px-8 py-10 text-center text-xs font-black text-slate-400 uppercase tracking-[0.2em]">No performance data recorded for the selected period</td>
+                         <td colSpan={5} className="px-8 py-10 text-center text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">No performance data recorded for the selected period</td>
                        </tr>
                      )}
                    </tbody>
@@ -1173,7 +1173,7 @@ export default function Reports() {
                    />
                    <button 
                      onClick={() => startInputRef.current?.showPicker()}
-                     className="flex items-center gap-1.5 bg-slate-50 px-2 py-2 rounded-xl border border-slate-100 hover:bg-slate-100 transition-all text-xs font-black uppercase tracking-widest text-slate-900 shadow-sm"
+                     className="flex items-center gap-1.5 bg-slate-50 px-2 py-2 rounded-xl border border-slate-100 hover:bg-slate-100 transition-all text-xs font-bold uppercase tracking-widest text-slate-900 shadow-sm"
                    >
                      <Calendar size={14} className="text-orange-500" />
                      {startDate && endDate ? `${startDate} to ${endDate}` : 'DATE'}
@@ -1194,7 +1194,7 @@ export default function Reports() {
                 <select 
                   value={orderTypeFilter}
                   onChange={(e) => setOrderTypeFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-black uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[80px] text-center shadow-sm"
+                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[80px] text-center shadow-sm"
                 >
                   <option>ORDER TYPE</option>
                   <option>DINE-IN</option>
@@ -1206,7 +1206,7 @@ export default function Reports() {
                 <select 
                   value={paymentFilter}
                   onChange={(e) => setPaymentFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-black uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[80px] text-center shadow-sm"
+                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[80px] text-center shadow-sm"
                 >
                   <option>PAYMENTS</option>
                   <option>CASH</option>
@@ -1217,7 +1217,7 @@ export default function Reports() {
                 <select 
                   value={originFilter}
                   onChange={(e) => setOriginFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-black uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[80px] text-center shadow-sm"
+                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[80px] text-center shadow-sm"
                 >
                   <option>ORIGINS</option>
                   <option>IN-STORE</option>
@@ -1228,7 +1228,7 @@ export default function Reports() {
                 <select 
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-black uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[80px] text-center shadow-sm"
+                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[80px] text-center shadow-sm"
                 >
                   <option>STATUS</option>
                   <option>PAID</option>
@@ -1240,7 +1240,7 @@ export default function Reports() {
                 <select 
                   value={categoryFilter} 
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-black uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[100px] text-center shadow-sm"
+                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[100px] text-center shadow-sm"
                 >
                   <option>CATEGORIES</option>
                   {(data?.menu || []).map((cat: any) => (
@@ -1251,7 +1251,7 @@ export default function Reports() {
                 <select 
                   value={productFilter} 
                   onChange={(e) => setProductFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-black uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[100px] text-center shadow-sm"
+                  className="bg-slate-50 border border-slate-100 rounded-xl py-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-100 appearance-none min-w-[100px] text-center shadow-sm"
                 >
                   <option>ITEMS</option>
                   {uniqueItems.map((item: any) => (
@@ -1264,7 +1264,7 @@ export default function Reports() {
                   <div className="relative">
                     <button 
                       onClick={() => setIsExportOpen(!isExportOpen)}
-                      className="bg-slate-900 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest text-white hover:bg-black transition-all shadow-sm flex items-center gap-2"
+                      className="bg-slate-900 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-white hover:bg-black transition-all shadow-sm flex items-center gap-2"
                     >
                       <Download size={14} />
                       Export
@@ -1273,14 +1273,14 @@ export default function Reports() {
                       <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50">
                         <button 
                           onClick={() => { exportToCSV(); setIsExportOpen(false); }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left border-b border-slate-50"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-[9px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left border-b border-slate-50"
                         >
                           <FileText size={14} />
                           CSV
                         </button>
                         <button 
                           onClick={() => { exportToPDF(); setIsExportOpen(false); }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-[9px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all text-left"
                         >
                           <Printer size={14} />
                           PDF
@@ -1301,24 +1301,24 @@ export default function Reports() {
              {/* --- ORDERS TABLE --- */}
              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                 <div className="px-8 py-4 border-b border-slate-50 bg-slate-50/20">
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Orders in View</h3>
+                  <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Orders in View</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="bg-[#FFF9F2] border-y border-slate-100">
-                        <th className="px-8 py-3 text-left text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">ID</th>
-                        <th className="px-8 py-3 text-left text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Time</th>
-                        <th className="px-8 py-3 text-left text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Items</th>
-                        <th className="px-8 py-3 text-center text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Type</th>
-                        <th className="px-8 py-3 text-center text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Total</th>
-                        <th className="px-8 py-3 text-right text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Status</th>
+                        <th className="px-8 py-3 text-left text-[10px] font-bold text-slate-900 uppercase tracking-[0.2em]">ID</th>
+                        <th className="px-8 py-3 text-left text-[10px] font-bold text-slate-900 uppercase tracking-[0.2em]">Time</th>
+                        <th className="px-8 py-3 text-left text-[10px] font-bold text-slate-900 uppercase tracking-[0.2em]">Items</th>
+                        <th className="px-8 py-3 text-center text-[10px] font-bold text-slate-900 uppercase tracking-[0.2em]">Type</th>
+                        <th className="px-8 py-3 text-center text-[10px] font-bold text-slate-900 uppercase tracking-[0.2em]">Total</th>
+                        <th className="px-8 py-3 text-right text-[10px] font-bold text-slate-900 uppercase tracking-[0.2em]">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredOrders.map((t: any) => (
                         <tr key={t.id} className="hover:bg-slate-50/50 transition-all duration-300 group">
-                          <td className="px-8 py-3 font-black text-slate-600 uppercase tracking-tight text-sm">#{t.order_number || t.id || 'N/A'}</td>
+                          <td className="px-8 py-3 font-bold text-slate-600 uppercase tracking-tight text-sm">#{t.order_number || t.id || 'N/A'}</td>
                           <td className="px-8 py-3 text-xs font-bold text-slate-400 tabular-nums uppercase">
                             {(() => {
                               try {
@@ -1336,35 +1336,35 @@ export default function Reports() {
                                   
                                   if (productFilter !== 'ITEMS' && productFilter !== 'ALL ITEMS') {
                                     const target = items.find((i: any) => (i.name || '').toUpperCase() === productFilter);
-                                    if (target) return <span className="bg-orange-50 text-[10px] font-black text-orange-600 px-2 py-1 rounded-md border border-orange-100">{target.quantity}× {target.name}</span>;
+                                    if (target) return <span className="bg-orange-50 text-[10px] font-bold text-orange-600 px-2 py-1 rounded-md border border-orange-100">{target.quantity}× {target.name}</span>;
                                   }
 
                                   if (categoryFilter !== 'CATEGORIES' && categoryFilter !== 'ALL CATEGORIES') {
                                     const menuCategory = (data?.menu || []).find((c: any) => (c.name || '').toUpperCase() === categoryFilter);
                                     const catItems = items.filter((i: any) => menuCategory?.items?.some((mi: any) => mi.id === i.product_id));
                                     const totalQty = catItems.reduce((acc: number, i: any) => acc + (parseFloat(i.quantity) || 1), 0);
-                                    if (totalQty > 0) return <span className="bg-blue-50 text-[10px] font-black text-blue-600 px-2 py-1 rounded-md border border-blue-100 uppercase">{categoryFilter}: {totalQty} ITEMS</span>;
+                                    if (totalQty > 0) return <span className="bg-blue-50 text-[10px] font-bold text-blue-600 px-2 py-1 rounded-md border border-blue-100 uppercase">{categoryFilter}: {totalQty} ITEMS</span>;
                                   }
 
                                   if (items.length === 0) return <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">No items details</span>;
                                   const firstItem = items[0];
                                   return (
                                     <div className="flex items-center gap-1.5">
-                                      <span className="bg-slate-50 text-[10px] font-black text-slate-500 px-2 py-1 rounded-md border border-slate-100">{firstItem.quantity}× {firstItem.name}</span>
-                                      {items.length > 1 && <span className="text-[10px] font-black text-orange-500 px-1 py-1 uppercase">+ {items.length - 1} MORE</span>}
+                                      <span className="bg-slate-50 text-[10px] font-bold text-slate-500 px-2 py-1 rounded-md border border-slate-100">{firstItem.quantity}× {firstItem.name}</span>
+                                      {items.length > 1 && <span className="text-[10px] font-bold text-orange-500 px-1 py-1 uppercase">+ {items.length - 1} MORE</span>}
                                     </div>
                                   );
                                 })()}
                               </div>
                           </td>
                           <td className="px-8 py-3 text-center">
-                             <span className="text-xs font-black text-slate-600 uppercase tracking-tight">{t.order_type || 'Dine-In'}</span>
+                             <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{t.order_type || 'Dine-In'}</span>
                           </td>
-                          <td className="px-8 py-3 text-center font-black text-orange-500 tabular-nums text-lg">
+                          <td className="px-8 py-3 text-center font-bold text-orange-500 tabular-nums text-lg">
                             {currency} {parseFloat(t.total_amount || 0).toFixed(2)}
                           </td>
                           <td className="px-8 py-3 text-right">
-                             <span className={cn("px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm", 
+                             <span className={cn("px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm", 
                                t.status?.toLowerCase() === 'paid' ? "bg-green-50 text-green-600 border-green-100" : 
                                t.status?.toLowerCase() === 'ready' ? "bg-blue-50 text-blue-600 border-blue-100" :
                                "bg-amber-50 text-amber-600 border-amber-100")}>
@@ -1375,7 +1375,7 @@ export default function Reports() {
                       ))}
                       {filteredOrders.length === 0 && (
                          <tr>
-                           <td colSpan={6} className="px-12 py-20 text-center text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">No matching records found in this view</td>
+                           <td colSpan={6} className="px-12 py-20 text-center text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em]">No matching records found in this view</td>
                          </tr>
                       )}
                     </tbody>

@@ -22,7 +22,8 @@ import {
   ClipboardList,
   UserSquare2,
   Truck,
-  AlertCircle
+  AlertCircle,
+  UtensilsCrossed
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL, resolveImageUrl } from './config';
@@ -46,6 +47,8 @@ import Reservations from './pages/Reservations';
 import Tables from './pages/Tables';
 import OrderStatus from './pages/OrderStatus';
 import WaitingList from './pages/WaitingList';
+import Categories from './pages/Categories';
+import FoodItems from './pages/FoodItems';
 import { CartProvider } from './context/CartContext';
 
 function cn(...inputs: any[]) {
@@ -71,11 +74,11 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean,
           <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-500 mb-6">
             <AlertCircle size={40} />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Something went wrong</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2 uppercase tracking-tight">Something went wrong</h2>
           <p className="text-slate-500 mb-8 max-w-md text-sm font-medium">This page encountered an error while rendering. Try reloading the application.</p>
           <button 
             onClick={() => window.location.reload()}
-            className="bg-zamzam-teal text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-teal-900/20 active:scale-95 transition-all text-xs"
+            className="bg-zamzam-teal text-white px-10 py-5 rounded-2xl font-bold uppercase tracking-widest shadow-xl shadow-teal-900/20 active:scale-95 transition-all text-xs"
           >
             Reload POS Terminal
           </button>
@@ -122,15 +125,47 @@ export default function App() {
     { id: 'd1', title: 'System Online', time: 'Just now', content: 'POS Terminal initialized successfully', type: 'system' },
   ];
 
-  const fetchLiveStats = async () => {
+  const [isStatsFetching, setIsStatsFetching] = useState(false);
+  const fetchSettings = async () => {
     try {
-      // 1. Fetch Orders and Reservations in parallel
+      const res = await fetch(`${API_BASE_URL}/settings?t=${Date.now()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setSettings(data);
+      if (data?.tenant?.primary_accent_color) {
+        const color = data.tenant.primary_accent_color;
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+          document.documentElement.style.setProperty('--zamzam-teal-rgb', `${r} ${g} ${b}`);
+        }
+      }
+    } catch (err) {
+      console.error('Settings load failed:', err);
+    }
+  };
+
+  const fetchLiveStats = async () => {
+    if (isStatsFetching) return;
+    setIsStatsFetching(true);
+    
+    // If settings are still loading, try fetching them again
+    if (settings?.tenant?.tagline === 'Loading...') {
+      fetchSettings();
+    }
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
       const [ordRes, resRes, tableRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/orders?t=${Date.now()}`),
-        fetch(`${API_BASE_URL}/reservations?startDate=2024-01-01`),
-        fetch(`${API_BASE_URL}/tables`)
+        fetch(`${API_BASE_URL}/orders?includeSplits=true&t=${Date.now()}`, { signal: controller.signal }),
+        fetch(`${API_BASE_URL}/reservations?startDate=2024-01-01`, { signal: controller.signal }),
+        fetch(`${API_BASE_URL}/tables`, { signal: controller.signal })
       ]);
       
+      clearTimeout(timeoutId);
       const ordersData = await ordRes.json();
       const resData = await resRes.json();
       const tablesData = await tableRes.json();
@@ -139,123 +174,59 @@ export default function App() {
       const resArray = Array.isArray(resData) ? resData : [];
 
       console.log('--- POS LIVE STATS SYNC ---');
-      
-      // Standardize status checks
       const getLowerStatus = (o: any) => (o.status || '').toLowerCase().trim();
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // KDS Count
-      const kdsCount = ordersArray.filter((o: any) => {
-        const s = getLowerStatus(o);
-        return ['ordered', 'pending', 'preparing', 'paid', 'partially paid'].includes(s);
-      }).length;
-      setKdsCount(kdsCount);
+      // Exclude split child orders and split parent orders (Partially Paid) from standard live counts
+      const primaryOrders = ordersArray.filter((o: any) => {
+        const isChild = o.parent_order_id !== null && o.parent_order_id !== undefined;
+        const isParent = getLowerStatus(o) === 'partially paid';
+        return !isChild && !isParent;
+      });
 
-      // Reservations Count (Pending/Confirmed for Today or Future)
-      const activeRes = resArray.filter((r: any) => 
-        (r.status === 'Pending' || r.status === 'Confirmed') && 
-        r.reservation_date >= todayStr
-      ).length;
-      setReservationCount(activeRes);
+      setKdsCount(primaryOrders.filter((o: any) => ['ordered', 'pending', 'preparing', 'paid'].includes(getLowerStatus(o))).length);
+      setReservationCount(resArray.filter((r: any) => (r.status === 'Pending' || r.status === 'Confirmed') && r.reservation_date >= todayStr).length);
+      setOrderCount(primaryOrders.length);
+      setWaitingCount(primaryOrders.filter((o: any) => ['waiting', 'ready'].includes(getLowerStatus(o))).length);
+      setPendingCount(primaryOrders.filter((o: any) => ['pending', 'ordered'].includes(getLowerStatus(o))).length);
 
-      // Total Orders (for history tab)
-      setOrderCount(ordersArray.length);
-
-      // Waiting/Pickup Count
-      const waiting = ordersArray.filter((o: any) => {
-        const s = getLowerStatus(o);
-        return s === 'waiting' || s === 'ready';
-      }).length;
-      setWaitingCount(waiting);
-
-      // Pending Count (For attention)
-      const pending = ordersArray.filter((o: any) => {
-        const s = getLowerStatus(o);
-        return s === 'pending' || s === 'ordered';
-      }).length;
-      setPendingCount(pending);
-
-      // 3. Fetch Table count based on REAL Occupancy (active orders)
       if (Array.isArray(tablesData) && Array.isArray(ordersArray)) {
         const activeTableIdentifiers = new Set();
-        
-        ordersArray
-          .filter((o: any) => 
-            (o.table_id || o.table_number) &&
-            !['cancelled', 'rejected', 'served', 'paid'].includes((o.status || '').toLowerCase().trim())
-          )
-          .forEach((o: any) => {
-            const tableNum = o.table_number ? String(o.table_number).toLowerCase().trim() : null;
-            if (o.table_id) activeTableIdentifiers.add(String(o.table_id));
-            if (tableNum) {
-              const tableObj = tablesData.find((t: any) => String(t.table_number).toLowerCase().trim() === tableNum);
-              if (tableObj) activeTableIdentifiers.add(String(tableObj.id));
-            }
-          });
-        
+        primaryOrders.filter((o: any) => (o.table_id || o.table_number) && !['cancelled', 'rejected', 'served', 'paid'].includes(getLowerStatus(o))).forEach((o: any) => {
+          if (o.table_id) activeTableIdentifiers.add(String(o.table_id));
+          else if (o.table_number) {
+            const tableObj = tablesData.find((t: any) => String(t.table_number).toLowerCase().trim() === String(o.table_number).toLowerCase().trim());
+            if (tableObj) activeTableIdentifiers.add(String(tableObj.id));
+          }
+        });
         setOccupiedTableCount(activeTableIdentifiers.size);
       }
-      // 4. Update Dynamic Notifications
-      if (Array.isArray(resArray)) {
-        const websiteRes = resArray.filter((r: any) => 
-          (r.origin?.toLowerCase() === 'website' || r.origin?.toLowerCase() === 'web') && 
-          r.status === 'Pending'
-        );
-        const newNotifs = websiteRes.map((r: any) => ({
-          id: `res-${r.id}`,
-          title: 'New Web Booking',
-          time: 'Action Required',
-          content: `${r.first_name} booked Table ${r.assigned_table_number || 'TBD'} for ${r.party_size} guests`,
-          type: 'reservation'
-        }));
-        setLiveNotifications(prev => {
-          // Keep unique notifications
-          const existingIds = new Set(prev.map(n => n.id));
-          const filteredNew = newNotifs.filter(n => !existingIds.has(n.id));
-          return [...filteredNew, ...prev].slice(0, 10);
-        });
-      }
 
+      const websiteRes = resArray.filter((r: any) => (r.origin?.toLowerCase() === 'website' || r.origin?.toLowerCase() === 'web') && r.status === 'Pending');
+      setLiveNotifications(prev => {
+        const existingIds = new Set(prev.map(n => n.id));
+        const newNotifs = websiteRes.map((r: any) => ({ id: `res-${r.id}`, title: 'New Web Booking', time: 'Action Required', content: `${r.first_name} booked Table ${r.assigned_table_number || 'TBD'} for ${r.party_size} guests`, type: 'reservation' }));
+        const filteredNew = newNotifs.filter(n => !existingIds.has(n.id));
+        return [...filteredNew, ...prev].slice(0, 10);
+      });
     } catch (err) {
       console.error('Live Stats Error:', err);
+    } finally {
+      setIsStatsFetching(false);
+      clearTimeout(timeoutId);
     }
   };
 
   useEffect(() => {
-    const fetchSettings = () => {
-      fetch(`${API_BASE_URL}/settings?t=${Date.now()}`)
-        .then(res => res.json())
-        .then(data => {
-          setSettings(data);
-          if (data?.tenant?.primary_accent_color) {
-            const color = data.tenant.primary_accent_color;
-            const r = parseInt(color.slice(1, 3), 16);
-            const g = parseInt(color.slice(3, 5), 16);
-            const b = parseInt(color.slice(5, 7), 16);
-            if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
-              document.documentElement.style.setProperty('--zamzam-teal-rgb', `${r} ${g} ${b}`);
-            }
-          }
-        })
-        .catch(err => console.error('Settings load failed:', err));
-    };
-
     if (isAuthenticated) {
       fetchSettings();
       fetchLiveStats();
       const statsInterval = setInterval(fetchLiveStats, 10000);
-      
       const handleSettingsUpdate = () => fetchSettings();
-      const handleShowToast = (e: any) => {
-        showToast(e.detail.message, e.detail.type);
-      };
-
       window.addEventListener('settings-updated', handleSettingsUpdate);
-      window.addEventListener('show-toast', handleShowToast);
-
+      window.addEventListener('show-toast', (e: any) => showToast(e.detail.message, e.detail.type));
       return () => {
         window.removeEventListener('settings-updated', handleSettingsUpdate);
-        window.removeEventListener('show-toast', handleShowToast);
         clearInterval(statsInterval);
       };
     }
@@ -275,7 +246,10 @@ export default function App() {
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: LayoutGrid, label: 'Menu Designer', path: '/menu-designer' },
+    { type: 'header', label: 'Menu Management' },
+    { icon: UtensilsCrossed, label: 'Food Items', path: '/food-items' },
+    { icon: LayoutGrid, label: 'Categories', path: '/categories' },
+    { type: 'header', label: 'Operations' },
     { icon: Package, label: 'Inventory', path: '/inventory' },
     { icon: Truck, label: 'Purchases', path: '/purchases' },
     { icon: Users, label: 'Staff', path: '/staff' },
@@ -287,57 +261,61 @@ export default function App() {
   ];
 
   const getSidebarBg = () => {
-    switch(settings?.tenant?.theme_mode) {
+    const mode = settings?.tenant?.theme_mode || 'Light';
+    switch(mode) {
       case 'Zamzam Classic': return '#0D9488';
       case 'Emerald Green': return '#059669';
       case 'Aura Purple': return '#581c87';
       case 'Midnight Blue': return '#1e1b4b';
       case 'Dark': return '#0f172a';
       case 'Light': return '#f8fafc';
-      default: return settings?.tenant?.primary_accent_color || '#0D9488';
+      default: return settings?.tenant?.primary_accent_color || '#f8fafc';
     }
   };
 
-  const isLightSidebar = settings?.tenant?.theme_mode === 'Light';
+  const isLightSidebar = settings?.tenant?.theme_mode === 'Light' || !settings?.tenant?.theme_mode;
+
+  const isEmbedded = new URLSearchParams(location.search).get('embedded') === 'true';
 
   return (
     <div className="flex h-screen bg-bg-main overflow-hidden">
       {/* Sidebar */}
-      <aside 
-        style={{ backgroundColor: getSidebarBg() }}
-        className={cn(
-          "w-52 flex flex-col shadow-2xl z-20 transition-colors duration-500",
-          isLightSidebar ? "border-r border-slate-200" : "border-r border-white/5"
-        )}
-      >
+      {!isEmbedded && (
+        <aside 
+          style={{ backgroundColor: getSidebarBg() }}
+          className={cn(
+            "w-60 flex flex-col shadow-2xl z-20 transition-colors duration-500",
+            isLightSidebar ? "border-r border-slate-200" : "border-r border-white/5"
+          )}
+        >
         <div className={cn(
           "p-4 flex flex-col items-center gap-4 border-b pb-5 mb-1",
           isLightSidebar ? "border-slate-100" : "border-white/5"
         )}>
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 flex items-center justify-center overflow-hidden shrink-0 group transition-transform duration-500 hover:rotate-6">
+            <div className="w-16 h-16 flex items-center justify-center overflow-hidden shrink-0 group transition-transform duration-500 hover:rotate-6">
               {settings?.tenant?.logo_url ? (
-                <img src={resolveImageUrl(settings.tenant.logo_url) || ''} className="w-full h-full object-contain filter drop-shadow-lg" />
+                <img src={resolveImageUrl(settings.tenant.logo_url) || ''} className={cn("w-full h-full object-contain filter", isLightSidebar ? "drop-shadow-md" : "drop-shadow-lg")} />
               ) : (
-                <ShoppingCart className={cn("w-7 h-7", isLightSidebar ? "text-zamzam-teal" : "text-white")} />
+                <ShoppingCart className={cn("w-8 h-8", isLightSidebar ? "text-zamzam-teal" : "text-white")} />
               )}
             </div>
             {settings?.tenant?.secondary_logo_url && (
-              <div className="w-12 h-12 flex items-center justify-center overflow-hidden shrink-0 transition-all hover:scale-110">
-                <img src={resolveImageUrl(settings.tenant.secondary_logo_url) || ''} className={cn("w-full h-full object-contain", isLightSidebar ? "" : "brightness-0 invert opacity-70")} />
+              <div className="w-14 h-14 flex items-center justify-center overflow-hidden shrink-0 transition-all hover:scale-110">
+                <img src={resolveImageUrl(settings.tenant.secondary_logo_url) || ''} className={cn("w-full h-full object-contain", isLightSidebar ? "" : "brightness-0 invert opacity-80")} />
               </div>
             )}
           </div>
 
           <div className="text-center">
             <h1 className={cn(
-              "font-black text-sm tracking-tighter uppercase leading-none drop-shadow-md",
+              "font-bold text-sm tracking-tighter uppercase leading-none drop-shadow-md",
               isLightSidebar ? "text-slate-900" : "text-white"
             )}>
               {settings?.tenant?.restaurant_name || 'Zamzam'}
             </h1>
             <p className={cn(
-              "text-[8px] font-black uppercase tracking-[0.3em] mt-1 truncate max-w-[160px]",
+              "text-[8px] font-bold uppercase tracking-[0.3em] mt-1 truncate max-w-[160px]",
               isLightSidebar ? "text-slate-400" : "text-white/50"
             )}>
               {settings?.tenant?.tagline || 'POS Terminal'}
@@ -346,41 +324,65 @@ export default function App() {
         </div>
 
         <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto no-scrollbar">
-          {navItems.map((item) => {
+          {navItems.map((item, idx) => {
+            if ((item as any).type === 'header') {
+              return (
+                <div key={idx} className="px-4 pt-6 pb-2.5">
+                  <p className={cn(
+                    "text-[10px] font-semibold uppercase tracking-[0.15em]",
+                    isLightSidebar ? "text-slate-500/80" : "text-white/40"
+                  )}>
+                    {(item as any).label}
+                  </p>
+                </div>
+              );
+            }
             const isActive = location.pathname === item.path;
+            const isSettings = item.label === 'Settings';
             return (
-              <Link 
-                key={item.path} 
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-300 group relative",
-                  isActive 
-                    ? isLightSidebar 
-                        ? "bg-zamzam-teal/10 text-zamzam-teal shadow-inner shadow-teal-900/5"
-                        : "bg-white/10 text-white shadow-inner shadow-black/20" 
-                    : isLightSidebar
-                        ? "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                        : "text-white/80 hover:bg-white/20 hover:text-white"
-                )}
-              >
-                <item.icon className={cn(
-                  "w-4 h-4 transition-transform duration-300",
-                  isActive 
-                    ? "text-zamzam-yellow scale-110" 
-                    : isLightSidebar
-                        ? "text-slate-400 group-hover:text-zamzam-teal group-hover:scale-110"
-                        : "group-hover:scale-110 opacity-70 group-hover:opacity-100"
-                )} />
-                <span className="font-black text-[11px] uppercase tracking-[0.1em]">{item.label}</span>
-                {isActive && (
-                  <motion.div 
-                    layoutId="active-indicator"
-                    className="absolute left-0 w-1 h-5 bg-zamzam-yellow rounded-r-full shadow-[0_0_8px_#FFB300]"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                  />
-                )}
-              </Link>
+              <div key={item.path} className={cn(isSettings && "pt-4 mt-4 border-t border-white/10")}>
+                <Link 
+                  to={item.path!}
+                  className={cn(
+                    "flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-300 group relative",
+                    isActive 
+                      ? isLightSidebar 
+                          ? "bg-zamzam-teal/10 text-zamzam-teal shadow-sm"
+                          : "bg-white/12 text-white shadow-lg shadow-black/20" 
+                      : isLightSidebar
+                          ? "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                          : "text-white/70 hover:bg-white/15 hover:text-white"
+                  )}
+                >
+                  {(() => {
+                    const IconComponent = item.icon as any;
+                    return IconComponent ? (
+                      <IconComponent className={cn(
+                        "w-5 h-5 transition-all duration-300",
+                        isActive 
+                          ? "text-zamzam-yellow scale-110" 
+                          : isLightSidebar
+                              ? "text-slate-400 group-hover:text-zamzam-teal group-hover:scale-110"
+                              : "group-hover:scale-110 opacity-60 group-hover:opacity-100"
+                      )} />
+                    ) : null;
+                  })()}
+                  <span className={cn(
+                    "font-medium text-[13.5px] tracking-tight transition-all",
+                    isActive ? "font-semibold" : ""
+                  )}>
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="active-indicator"
+                      className="absolute left-0 w-1.5 h-6 bg-zamzam-yellow rounded-r-full shadow-[0_0_12px_rgba(255,179,0,0.5)]"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                    />
+                  )}
+                </Link>
+              </div>
             );
           })}
           
@@ -390,13 +392,14 @@ export default function App() {
                 localStorage.removeItem('pos_user');
                 window.location.href = '/pos/';
               }}
-              className="w-full px-4 py-2.5 bg-white/5 hover:bg-red-500/10 rounded-xl text-[8px] font-black text-white/20 hover:text-red-400 uppercase tracking-[0.3em] transition-all border border-transparent hover:border-red-500/20"
+              className="w-full px-4 py-2.5 bg-white/5 hover:bg-red-500/10 rounded-xl text-[8px] font-bold text-white/20 hover:text-red-400 uppercase tracking-[0.3em] transition-all border border-transparent hover:border-red-500/20"
             >
               Emergency Reset
             </button>
           </div>
         </nav>
       </aside>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -417,151 +420,157 @@ export default function App() {
             </div>
 
             {/* LIVE STATUS BADGES - Unified Header Tabs */}
-            <div className="flex items-center gap-3">
-              <Link to="/orders" className="flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-xl transition-all group shadow-sm">
-                <ShoppingCart size={16} className="text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
-                <span className="text-[10px] font-black text-orange-900 uppercase tracking-widest">POS</span>
-              </Link>
+            {!isEmbedded && (
+              <div className="flex items-center gap-3">
+                <Link to="/orders" className="flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-xl transition-all group shadow-sm">
+                  <ShoppingCart size={16} className="text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
+                  <span className="text-[10px] font-bold text-orange-900 uppercase tracking-widest">POS</span>
+                </Link>
 
-              <Link to="/kds" className="flex items-center gap-2 px-4 py-2 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-all group shadow-sm">
-                <div className="relative shrink-0">
-                  <ChefHat size={16} className="text-zamzam-teal group-hover:scale-110 transition-transform" />
-                  {kdsCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse shadow-sm shadow-teal-500/50" />}
-                </div>
-                <span className="text-[10px] font-black text-zamzam-teal uppercase tracking-widest">KDS</span>
-                <span className="text-[9px] font-black bg-teal-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{kdsCount}</span>
-              </Link>
+                <Link to="/kds" className="flex items-center gap-2 px-4 py-2 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-all group shadow-sm">
+                  <div className="relative shrink-0">
+                    <ChefHat size={16} className="text-zamzam-teal group-hover:scale-110 transition-transform" />
+                    {kdsCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse shadow-sm shadow-teal-500/50" />}
+                  </div>
+                  <span className="text-[10px] font-bold text-zamzam-teal uppercase tracking-widest">KDS</span>
+                  <span className="text-[9px] font-bold bg-teal-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{kdsCount}</span>
+                </Link>
 
-              <Link to="/order-status" className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all group shadow-sm">
-                <div className="relative shrink-0">
-                  <ClipboardList size={16} className="text-slate-600 group-hover:scale-110 transition-transform" />
-                  {pendingCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse shadow-sm shadow-amber-500/50" />}
-                </div>
-                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Orders</span>
-                <span className="text-[9px] font-black bg-slate-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{orderCount}</span>
-              </Link>
+                <Link to="/order-status" className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all group shadow-sm">
+                  <div className="relative shrink-0">
+                    <ClipboardList size={16} className="text-slate-600 group-hover:scale-110 transition-transform" />
+                    {pendingCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse shadow-sm shadow-amber-500/50" />}
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Orders</span>
+                  <span className="text-[9px] font-bold bg-slate-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{orderCount}</span>
+                </Link>
 
-              <Link to="/waiting-list" className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-all group shadow-sm">
-                <div className="relative shrink-0">
-                  <Users size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                  {waitingCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-sm shadow-blue-500/50" />}
-                </div>
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Waiting</span>
-                <span className="text-[9px] font-black bg-blue-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{waitingCount}</span>
-              </Link>
-            </div>
+                <Link to="/waiting-list" className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-all group shadow-sm">
+                  <div className="relative shrink-0">
+                    <Users size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                    {waitingCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-sm shadow-blue-500/50" />}
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Waiting</span>
+                  <span className="text-[9px] font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{waitingCount}</span>
+                </Link>
+              </div>
+            )}
           </div>
  
           {/* Right Side Actions & User Profile */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Link to="/reservations" className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-xl transition-all group shadow-sm border",
-                location.pathname === '/reservations'
-                  ? "bg-indigo-600 text-white shadow-indigo-500/20"
-                  : "bg-indigo-50 text-indigo-600 border-indigo-100"
-              )}>
-                <Calendar size={13} className={cn(
-                  "group-hover:scale-110 transition-transform shrink-0",
-                  location.pathname === '/reservations' ? "text-white" : "text-indigo-500"
-                )} />
-                <span className={cn(
-                  "text-[8px] font-black uppercase tracking-wider",
-                  location.pathname === '/reservations' ? "text-white" : "text-indigo-600"
-                )}>Reservation</span>
-                <span className={cn(
-                  "text-[7px] font-black px-1 py-0.5 rounded-full min-w-[14px] text-center",
-                  location.pathname === '/reservations' ? "bg-white/20 text-white" : "bg-indigo-500 text-white"
-                )}>{reservationCount}</span>
-              </Link>
- 
-              <Link to="/tables" className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 hover:bg-green-100 border border-green-100 rounded-xl transition-all group shadow-sm shadow-green-500/5">
-                <div className="relative shrink-0">
-                  <Table size={13} className="text-green-600 group-hover:scale-110 transition-transform" />
-                  {occupiedTableCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-green-500 rounded-full animate-pulse" />}
-                </div>
-                <span className="text-[8px] font-black text-green-700 uppercase tracking-wider">Tables</span>
-                <span className="text-[7px] font-black bg-green-600 text-white px-1 py-0.5 rounded-full min-w-[14px] text-center">{occupiedTableCount}</span>
-              </Link>
-            </div>
- 
-            <div className="h-6 w-px bg-slate-200 mx-1" />
- 
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <button 
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className={cn(
-                    "relative p-1.5 rounded-lg transition-all",
-                    showNotifications ? "bg-zamzam-teal text-white shadow-lg shadow-teal-900/20" : "text-slate-400 hover:text-zamzam-teal hover:bg-slate-50"
-                  )}
-                >
-                  <Bell className="w-4 h-4" />
-                  <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full border border-white" />
-                </button>
- 
-                <AnimatePresence>
-                  {showNotifications && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 mt-3 w-80 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden z-50 shadow-slate-900/10"
-                      >
-                        <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-                          <h3 className="font-black text-sm uppercase tracking-widest text-slate-900">Notifications</h3>
-                          <span className="text-[9px] font-black text-zamzam-teal bg-teal-50 px-2 py-1 rounded-lg">{liveNotifications.length + defaultNotifications.length} NEW</span>
-                        </div>
-                        <div className="max-h-96 overflow-y-auto no-scrollbar">
-                          {[...liveNotifications, ...defaultNotifications].map((n) => (
-                            <div key={n.id} className="p-4 hover:bg-slate-50 border-b border-slate-50 transition-colors cursor-pointer group">
-                              <div className="flex justify-between items-start mb-1">
-                                <p className={cn(
-                                  "text-[10px] font-black uppercase tracking-tight transition-colors",
-                                  n.type === 'reservation' ? "text-purple-600" : "text-slate-900 group-hover:text-zamzam-teal"
-                                )}>
-                                  {n.title}
-                                </p>
-                                <span className="text-[9px] font-bold text-slate-400">{n.time}</span>
-                              </div>
-                              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{n.content}</p>
-                            </div>
-                          ))}
-                        </div>
-                        <button className="w-full p-4 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-zamzam-teal transition-colors bg-slate-50/50">
-                          View All Activities
-                        </button>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
+            {!isEmbedded && (
+              <div className="flex items-center gap-2">
+                <Link to="/reservations" className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-xl transition-all group shadow-sm border",
+                  location.pathname === '/reservations'
+                    ? "bg-indigo-600 text-white shadow-indigo-500/20"
+                    : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                )}>
+                  <Calendar size={13} className={cn(
+                    "group-hover:scale-110 transition-transform shrink-0",
+                    location.pathname === '/reservations' ? "text-white" : "text-indigo-500"
+                  )} />
+                  <span className={cn(
+                    "text-[8px] font-bold uppercase tracking-wider",
+                    location.pathname === '/reservations' ? "text-white" : "text-indigo-600"
+                  )}>Reservation</span>
+                  <span className={cn(
+                    "text-[7px] font-bold px-1 py-0.5 rounded-full min-w-[14px] text-center",
+                    location.pathname === '/reservations' ? "bg-white/20 text-white" : "bg-indigo-500 text-white"
+                  )}>{reservationCount}</span>
+                </Link>
+   
+                <Link to="/tables" className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 hover:bg-green-100 border border-green-100 rounded-xl transition-all group shadow-sm shadow-green-500/5">
+                  <div className="relative shrink-0">
+                    <Table size={13} className="text-green-600 group-hover:scale-110 transition-transform" />
+                    {occupiedTableCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-green-500 rounded-full animate-pulse" />}
+                  </div>
+                  <span className="text-[8px] font-bold text-green-700 uppercase tracking-wider">Tables</span>
+                  <span className="text-[7px] font-bold bg-green-600 text-white px-1 py-0.5 rounded-full min-w-[14px] text-center">{occupiedTableCount}</span>
+                </Link>
               </div>
-              
-              <div className="h-5 w-px bg-slate-200" />
-              
+            )}
+ 
+            {!isEmbedded && <div className="h-6 w-px bg-slate-200 mx-1" />}
+ 
+            {!isEmbedded && (
               <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs font-black text-slate-900 leading-none uppercase">{user?.first_name} {user?.last_name}</p>
-                  <p className="text-[7px] font-bold text-teal-600 uppercase tracking-widest mt-0.5">{user?.roles}</p>
-                </div>
-                <div className="w-7 h-7 bg-zamzam-yellow/10 rounded-lg flex items-center justify-center border border-zamzam-yellow/20 shadow-sm font-black text-zamzam-yellow text-xs">
-                  {user?.first_name?.[0]}{user?.last_name?.[0]}
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className={cn(
+                      "relative p-1.5 rounded-lg transition-all",
+                      showNotifications ? "bg-zamzam-teal text-white shadow-lg shadow-teal-900/20" : "text-slate-400 hover:text-zamzam-teal hover:bg-slate-50"
+                    )}
+                  >
+                    <Bell className="w-4 h-4" />
+                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full border border-white" />
+                  </button>
+  
+                  <AnimatePresence>
+                    {showNotifications && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute right-0 mt-3 w-80 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden z-50 shadow-slate-900/10"
+                        >
+                          <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+                            <h3 className="font-bold text-sm uppercase tracking-widest text-slate-900">Notifications</h3>
+                            <span className="text-[9px] font-bold text-zamzam-teal bg-teal-50 px-2 py-1 rounded-lg">{liveNotifications.length + defaultNotifications.length} NEW</span>
+                          </div>
+                          <div className="max-h-96 overflow-y-auto no-scrollbar">
+                            {[...liveNotifications, ...defaultNotifications].map((n) => (
+                              <div key={n.id} className="p-4 hover:bg-slate-50 border-b border-slate-50 transition-colors cursor-pointer group">
+                                <div className="flex justify-between items-start mb-1">
+                                  <p className={cn(
+                                    "text-[10px] font-bold uppercase tracking-tight transition-colors",
+                                    n.type === 'reservation' ? "text-purple-600" : "text-slate-900 group-hover:text-zamzam-teal"
+                                  )}>
+                                    {n.title}
+                                  </p>
+                                  <span className="text-[9px] font-bold text-slate-400">{n.time}</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{n.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <button className="w-full p-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest hover:text-zamzam-teal transition-colors bg-slate-50/50">
+                            View All Activities
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
                 
-                <button 
-                  onClick={() => {
-                    logout();
-                    window.location.href = '/pos/';
-                  }}
-                  className="ml-1 p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all border border-red-100 shadow-sm"
-                  title="Sign Out"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
+                <div className="h-5 w-px bg-slate-200" />
+                
+                <div className="flex items-center gap-3">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-xs font-bold text-slate-900 leading-none uppercase">{user?.first_name} {user?.last_name}</p>
+                    <p className="text-[7px] font-bold text-teal-600 uppercase tracking-widest mt-0.5">{user?.roles}</p>
+                  </div>
+                  <div className="w-7 h-7 bg-zamzam-yellow/10 rounded-lg flex items-center justify-center border border-zamzam-yellow/20 shadow-sm font-bold text-zamzam-yellow text-xs">
+                    {user?.first_name?.[0]}{user?.last_name?.[0]}
+                  </div>
+                  
+                  <button 
+                    onClick={() => {
+                      logout();
+                      window.location.href = '/pos/';
+                    }}
+                    className="ml-1 p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all border border-red-100 shadow-sm"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </header>
 
@@ -576,6 +585,8 @@ export default function App() {
               <Route path="/tables" element={<Tables />} />
               <Route path="/kds" element={<KDS />} />
               <Route path="/menu-designer" element={<MenuDesigner />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/food-items" element={<FoodItems />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/purchases" element={<Purchases />} />
@@ -603,7 +614,7 @@ export default function App() {
               )}
             >
               {toast.type === 'success' ? <ShieldCheck size={20} /> : <AlertCircle size={20} />}
-              <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
+              <span className="text-xs font-bold uppercase tracking-widest">{toast.message}</span>
             </motion.div>
           )}
         </AnimatePresence>

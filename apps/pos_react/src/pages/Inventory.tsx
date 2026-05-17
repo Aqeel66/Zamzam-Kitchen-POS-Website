@@ -256,9 +256,9 @@ export default function Inventory() {
                <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-teal-500/20">
                   <Package size={16} />
                </div>
-               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Vault & Supply Chain</span>
+               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Vault & Supply Chain</span>
             </div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Inventory <span className="text-teal-500">Management</span></h1>
+            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Inventory <span className="text-teal-500">Management</span></h1>
           </div>
           
           <div className="flex gap-3">
@@ -272,7 +272,7 @@ export default function Inventory() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                    "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
                     activeTab === tab.id ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
                   )}
                 >
@@ -285,7 +285,7 @@ export default function Inventory() {
             {activeTab === 'stock' ? (
               <button 
                 onClick={() => { setSelectedItem(null); setIsItemModalOpen(true); }}
-                className="bg-teal-500 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-teal-500/20 hover:scale-105 transition-transform flex items-center gap-2"
+                className="bg-teal-500 px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-white shadow-xl shadow-teal-500/20 hover:scale-105 transition-transform flex items-center gap-2"
               >
                 <Plus size={18} />
                 Add Stock Item
@@ -293,7 +293,7 @@ export default function Inventory() {
             ) : activeTab === 'suppliers' ? (
               <button 
                 onClick={() => { setSelectedSupplier(null); setIsSupplierModalOpen(true); }}
-                className="bg-indigo-500 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-indigo-500/20 hover:scale-105 transition-transform flex items-center gap-2"
+                className="bg-indigo-500 px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-white shadow-xl shadow-indigo-500/20 hover:scale-105 transition-transform flex items-center gap-2"
               >
                 <Plus size={18} />
                 Add Supplier
@@ -328,34 +328,105 @@ export default function Inventory() {
             {isLoading ? (
               <motion.div key="loader" className="flex items-center justify-center h-64"><RefreshCw className="animate-spin text-teal-500" /></motion.div>
             ) : activeTab === 'stock' ? (
-              <motion.div key="stock" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                {filteredItems.map((item) => (
-                  <InventoryCard 
-                    key={item.id} 
-                    item={item} 
-                    onEdit={() => { setSelectedItem(item); setIsItemModalOpen(true); }}
-                    onAdjust={() => { setSelectedItem(item); setIsAdjustModalOpen(true); }}
-                    onDelete={() => handleDeleteItem(item.id)}
-                    statusColor={getStatusColor(item.quantity, item.low_stock_threshold)}
-                  />
-                ))}
+              <motion.div key="stock" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <th className="px-10 py-6">Item Name</th>
+                      <th className="px-10 py-6 text-center">Status</th>
+                      <th className="px-10 py-6 text-center">Quantity</th>
+                      <th className="px-10 py-6 text-center">Cost/Unit</th>
+                      <th className="px-10 py-6 text-center">Total Value</th>
+                      <th className="px-10 py-6 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {filteredItems.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/30 transition-colors">
+                        <td className="px-10 py-6">
+                          <p className="text-sm font-bold text-slate-900 uppercase">{item.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-tight">{item.supplier_name || 'No Supplier'}</p>
+                        </td>
+                        <td className="px-10 py-6 text-center">
+                          <span className={cn(
+                            "px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
+                            getStatusColor(item.quantity, item.low_stock_threshold)
+                          )}>
+                            {item.quantity <= 0 ? 'Out of Stock' : item.quantity <= item.low_stock_threshold ? 'Low Stock' : 'Optimal'}
+                          </span>
+                        </td>
+                        <td className="px-10 py-6 text-center">
+                          <p className="text-sm font-bold text-slate-900">{item.quantity} <span className="text-[10px] text-slate-400 uppercase">{item.unit}</span></p>
+                        </td>
+                        <td className="px-10 py-6 text-center font-bold text-slate-600 text-sm">
+                          {item.cost_per_unit} <span className="text-[10px] uppercase opacity-60">GBP</span>
+                        </td>
+                        <td className="px-10 py-6 text-center font-bold text-teal-600 text-sm">
+                          {(item.quantity * item.cost_per_unit).toFixed(2)} <span className="text-[10px] uppercase opacity-60">GBP</span>
+                        </td>
+                        <td className="px-10 py-6">
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => { setSelectedItem(item); setIsAdjustModalOpen(true); }} className="p-2.5 bg-slate-50 text-slate-400 hover:text-teal-500 hover:bg-teal-50 rounded-xl transition-all"><RefreshCw size={14} /></button>
+                            <button onClick={() => { setSelectedItem(item); setIsItemModalOpen(true); }} className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all"><Edit3 size={14} /></button>
+                            <button onClick={() => handleDeleteItem(item.id)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={14} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </motion.div>
             ) : activeTab === 'suppliers' ? (
-              <motion.div key="suppliers" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {suppliers.map((s) => (
-                  <SupplierCard 
-                     key={s.id} 
-                     supplier={s} 
-                     onEdit={() => { setSelectedSupplier(s); setIsSupplierModalOpen(true); }}
-                     onDelete={() => handleDeleteSupplier(s.id)}
-                  />
-                ))}
+              <motion.div key="suppliers" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <th className="px-10 py-6">Company Name</th>
+                      <th className="px-10 py-6">Contact Details</th>
+                      <th className="px-10 py-6 text-center">Reliability</th>
+                      <th className="px-10 py-6 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {suppliers.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-50/30 transition-colors">
+                        <td className="px-10 py-6">
+                          <p className="text-sm font-bold text-slate-900 uppercase">{s.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                            <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest">Active Partner</span>
+                          </div>
+                        </td>
+                        <td className="px-10 py-6">
+                          <div className="space-y-1">
+                            <p className="text-xs font-bold text-slate-600 flex items-center gap-2"><Mail size={12} className="text-slate-300" /> {s.contact_email}</p>
+                            <p className="text-xs font-bold text-slate-600 flex items-center gap-2"><Phone size={12} className="text-slate-300" /> {s.contact_phone}</p>
+                          </div>
+                        </td>
+                        <td className="px-10 py-6 text-center">
+                          <div className="flex flex-col items-center gap-2">
+                             <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <motion.div initial={{ width: 0 }} animate={{ width: `${s.reliability_score}%` }} className="h-full bg-zamzam-teal" />
+                             </div>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.reliability_score}% Reliable</span>
+                          </div>
+                        </td>
+                        <td className="px-10 py-6">
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => { setSelectedSupplier(s); setIsSupplierModalOpen(true); }} className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all"><Edit3 size={14} /></button>
+                            <button onClick={() => handleDeleteSupplier(s.id)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={14} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </motion.div>
             ) : (
               <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 border-b border-slate-100">
-                    <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       <th className="px-10 py-6">Event Time</th>
                       <th className="px-10 py-6">Item</th>
                       <th className="px-10 py-6">Type</th>
@@ -373,11 +444,11 @@ export default function Inventory() {
                            </div>
                         </td>
                         <td className="px-10 py-6">
-                          <p className="text-sm font-black text-slate-900 uppercase">{t.item_name}</p>
+                          <p className="text-sm font-bold text-slate-900 uppercase">{t.item_name}</p>
                         </td>
                         <td className="px-10 py-6">
                           <span className={cn(
-                            "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
+                            "px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
                             t.type === 'Purchase' ? "bg-teal-50 text-teal-600 border-teal-100" :
                             t.type === 'Wastage' ? "bg-red-50 text-red-600 border-red-100" :
                             "bg-slate-50 text-slate-600 border-slate-100"
@@ -386,12 +457,12 @@ export default function Inventory() {
                           </span>
                         </td>
                         <td className="px-10 py-6">
-                          <div className={cn("flex items-center gap-2 font-black text-sm", t.quantity_change > 0 ? "text-teal-500" : "text-red-500")}>
+                          <div className={cn("flex items-center gap-2 font-bold text-sm", t.quantity_change > 0 ? "text-teal-500" : "text-red-500")}>
                              {t.quantity_change > 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
                              {Math.abs(t.quantity_change)} <span className="text-[10px] text-slate-300 uppercase">{t.unit}</span>
                           </div>
                         </td>
-                        <td className="px-10 py-6 font-black text-slate-900 text-sm">
+                        <td className="px-10 py-6 font-bold text-slate-900 text-sm">
                            {t.new_quantity} <span className="text-[10px] text-slate-300 uppercase">{t.unit}</span>
                         </td>
                         <td className="px-10 py-6">
@@ -458,8 +529,8 @@ const StatCard = ({ title, value, icon: Icon, color }: any) => (
       <Icon size={24} />
     </div>
     <div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{title}</p>
-      <p className="text-2xl font-black text-slate-900 tracking-tight leading-none">{value}</p>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">{title}</p>
+      <p className="text-2xl font-bold text-slate-900 tracking-tight leading-none">{value}</p>
     </div>
   </div>
 );
@@ -477,20 +548,20 @@ const InventoryCard = ({ item, onEdit, onAdjust, onDelete, statusColor }: any) =
     </div>
     
     <div className="mb-8">
-      <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
+      <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
       <div className="flex items-center gap-2 mt-2">
          <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
-         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.supplier_name || 'No Supplier Linked'}</p>
+         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.supplier_name || 'No Supplier Linked'}</p>
       </div>
     </div>
 
     <div className="space-y-5">
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Available Stock</p>
-          <p className="text-3xl font-black text-slate-900 tabular-nums">{item.quantity} <span className="text-xs font-bold text-slate-300 uppercase tracking-normal">{item.unit}</span></p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Available Stock</p>
+          <p className="text-3xl font-bold text-slate-900 tabular-nums">{item.quantity} <span className="text-xs font-bold text-slate-300 uppercase tracking-normal">{item.unit}</span></p>
         </div>
-        <div className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm", statusColor)}>
+        <div className={cn("px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm", statusColor)}>
           {item.quantity <= 0 ? 'Out of Stock' : item.quantity <= item.low_stock_threshold ? 'Low Stock' : 'Optimal'}
         </div>
       </div>
@@ -506,7 +577,7 @@ const InventoryCard = ({ item, onEdit, onAdjust, onDelete, statusColor }: any) =
 
     <button 
       onClick={onAdjust}
-      className="mt-8 w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-95 shadow-lg shadow-slate-200"
+      className="mt-8 w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-95 shadow-lg shadow-slate-200"
     >
        <Settings2 size={14} className="text-teal-400" />
        Stock Adjustment
@@ -522,10 +593,10 @@ const SupplierCard = ({ supplier, onEdit, onDelete }: { supplier: Supplier, onEd
               <Building2 size={24} />
            </div>
            <div>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{supplier.name}</h3>
+              <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">{supplier.name}</h3>
               <div className="flex items-center gap-2 mt-1">
               <div className={cn("w-2 h-2 rounded-full", (supplier.reliability_score || 0) > 80 ? "bg-teal-500" : "bg-orange-500")} />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{supplier.reliability_score || 100}% Reliability</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{supplier.reliability_score || 100}% Reliability</span>
            </div>
            </div>
         </div>
@@ -546,7 +617,7 @@ const SupplierCard = ({ supplier, onEdit, onDelete }: { supplier: Supplier, onEd
         </div>
      </div>
 
-     <button className="mt-8 w-full py-4 bg-slate-50 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">
+     <button className="mt-8 w-full py-4 bg-slate-50 text-slate-900 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-100 transition-all">
         View Order History
      </button>
   </div>
@@ -568,67 +639,67 @@ const ItemModal = ({ item, suppliers, onClose, onSave, isSaving }: any) => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden overflow-y-auto max-h-[90vh]">
         <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-           <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{item ? 'Edit' : 'Add New'} Stock Item</h2>
+           <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">{item ? 'Edit' : 'Add New'} Stock Item</h2>
            <button onClick={onClose} className="p-3 text-slate-300 hover:text-slate-900 transition-colors"><X size={24} /></button>
         </div>
         <div className="p-8 space-y-6">
            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Item Name</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Item Name</label>
               <input 
                 type="text" 
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
-                className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
                 placeholder="e.g. Tomato Sauce"
               />
            </div>
            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock Unit</label>
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stock Unit</label>
                  <select 
                     value={formData.unit}
                     onChange={e => setFormData({...formData, unit: e.target.value})}
-                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none appearance-none"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none appearance-none"
                  >
                     {['Kg', 'Ltr', 'Pcs', 'Box', 'Bag'].map(u => <option key={u} value={u}>{u}</option>)}
                  </select>
               </div>
               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Initial Stock</label>
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Initial Stock</label>
                  <input 
                     type="number" 
                     value={formData.quantity}
                     onChange={e => setFormData({...formData, quantity: parseFloat(e.target.value)})}
-                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
                  />
               </div>
            </div>
            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Low Stock Alert Level</label>
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Low Stock Alert Level</label>
                  <input 
                     type="number" 
                     value={formData.low_stock_threshold}
                     onChange={e => setFormData({...formData, low_stock_threshold: parseFloat(e.target.value)})}
-                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
                  />
               </div>
               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cost per Unit</label>
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cost per Unit</label>
                  <input 
                     type="number" 
                     value={formData.cost_per_unit}
                     onChange={e => setFormData({...formData, cost_per_unit: parseFloat(e.target.value)})}
-                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
                  />
               </div>
            </div>
            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Preferred Supplier</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preferred Supplier</label>
               <select 
                 value={formData.supplier_id}
                 onChange={e => setFormData({...formData, supplier_id: e.target.value})}
-                className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none appearance-none"
+                className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none appearance-none"
               >
                  <option value="">Select Supplier</option>
                  {suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -636,11 +707,11 @@ const ItemModal = ({ item, suppliers, onClose, onSave, isSaving }: any) => {
            </div>
         </div>
         <div className="p-8 bg-slate-50 flex gap-4">
-           <button onClick={onClose} className="flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Cancel</button>
+           <button onClick={onClose} className="flex-1 py-5 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Cancel</button>
            <button 
             disabled={isSaving}
             onClick={() => onSave(formData)} 
-            className="flex-1 py-5 bg-teal-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-teal-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex-1 py-5 bg-teal-500 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-teal-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
            >
               {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />} 
               {isSaving ? 'Saving...' : 'Save Changes'}
@@ -662,18 +733,18 @@ const AdjustModal = ({ item, onClose, onSave, isSaving }: any) => {
            <div className="w-20 h-20 bg-teal-50 text-teal-600 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-teal-100 shadow-inner">
               <RefreshCw size={32} />
            </div>
-           <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Stock Adjustment</h2>
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{item.name} ({item.quantity} {item.unit})</p>
+           <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Stock Adjustment</h2>
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{item.name} ({item.quantity} {item.unit})</p>
         </div>
 
         <div className="space-y-6">
            <div className="flex items-center justify-center gap-8">
               <button onClick={() => setAdjustment(prev => prev - 1)} className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-100 transition-all"><ArrowDown size={24} /></button>
               <div className="text-center min-w-[80px]">
-                 <p className={cn("text-4xl font-black tabular-nums", adjustment > 0 ? "text-teal-500" : adjustment < 0 ? "text-red-500" : "text-slate-900")}>
+                 <p className={cn("text-4xl font-bold tabular-nums", adjustment > 0 ? "text-teal-500" : adjustment < 0 ? "text-red-500" : "text-slate-900")}>
                     {adjustment > 0 ? `+${adjustment}` : adjustment}
                  </p>
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adjustment Amount</span>
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Adjustment Amount</span>
               </div>
               <button onClick={() => setAdjustment(prev => prev + 1)} className="w-14 h-14 bg-teal-50 text-teal-500 rounded-2xl flex items-center justify-center hover:bg-teal-100 transition-all"><ArrowUp size={24} /></button>
            </div>
@@ -684,7 +755,7 @@ const AdjustModal = ({ item, onClose, onSave, isSaving }: any) => {
                   key={r} 
                   onClick={() => setReason(r)}
                   className={cn(
-                    "py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                    "py-3 rounded-xl text-[9px] font-bold uppercase tracking-widest border transition-all",
                     reason === r ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
                   )}
                  >
@@ -698,12 +769,12 @@ const AdjustModal = ({ item, onClose, onSave, isSaving }: any) => {
            <button 
               disabled={isSaving || adjustment === 0}
               onClick={() => onSave(item.id, adjustment, reason)} 
-              className="w-full py-5 bg-teal-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-teal-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-5 bg-teal-500 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-teal-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
            >
               {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
               {isSaving ? 'Processing...' : 'Update Stock Level'}
            </button>
-           <button onClick={onClose} className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cancel</button>
+           <button onClick={onClose} className="w-full py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cancel</button>
         </div>
       </motion.div>
     </motion.div>
@@ -722,57 +793,57 @@ const SupplierModal = ({ supplier, onClose, onSave, isSaving }: any) => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden">
         <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-           <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{supplier ? 'Edit' : 'Add New'} Supplier</h2>
+           <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">{supplier ? 'Edit' : 'Add New'} Supplier</h2>
            <button onClick={onClose} className="p-3 text-slate-300 hover:text-slate-900 transition-colors"><X size={24} /></button>
         </div>
         <div className="p-8 space-y-6">
            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Supplier Name</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Supplier Name</label>
               <input 
                 type="text" 
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
-                className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
                 placeholder="e.g. City Traders"
               />
            </div>
            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Email</label>
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contact Email</label>
                  <input 
                     type="email" 
                     value={formData.contact_email}
                     onChange={e => setFormData({...formData, contact_email: e.target.value})}
-                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
                  />
               </div>
               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Phone</label>
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contact Phone</label>
                  <input 
                     type="text" 
                     value={formData.contact_phone}
                     onChange={e => setFormData({...formData, contact_phone: e.target.value})}
-                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
                  />
               </div>
            </div>
            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reliability Score (0-100)</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Reliability Score (0-100)</label>
               <input 
                  type="number" 
                  min="0" max="100"
                  value={formData.reliability_score}
                  onChange={e => setFormData({...formData, reliability_score: parseInt(e.target.value) || 0})}
-                 className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-black outline-none"
+                 className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
               />
            </div>
         </div>
         <div className="p-8 bg-slate-50 flex gap-4">
-           <button onClick={onClose} className="flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Cancel</button>
+           <button onClick={onClose} className="flex-1 py-5 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Cancel</button>
            <button 
             disabled={isSaving || !formData.name}
             onClick={() => onSave(formData)} 
-            className="flex-1 py-5 bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex-1 py-5 bg-indigo-500 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
            >
               {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />} 
               {isSaving ? 'Saving...' : 'Save Supplier'}

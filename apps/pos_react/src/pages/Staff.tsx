@@ -134,14 +134,14 @@ export default function Staff() {
             <div className="w-10 h-10 bg-zamzam-teal/10 rounded-xl flex items-center justify-center">
               <Users size={20} />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em]">Internal Operations</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.4em]">Internal Operations</span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Team <span className="text-zamzam-teal">Management</span></h1>
+          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Team <span className="text-zamzam-teal">Management</span></h1>
         </div>
 
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-zamzam-teal hover:bg-teal-700 text-white font-black px-8 py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-teal-900/20 active:scale-95 transition-all flex items-center gap-3"
+          className="bg-zamzam-teal hover:bg-teal-700 text-white font-bold px-8 py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-teal-900/20 active:scale-95 transition-all flex items-center gap-3"
         >
           <UserPlus size={18} />
           Add Team Member
@@ -156,7 +156,7 @@ export default function Staff() {
               key={filter}
               onClick={() => setActiveFilter(filter)}
               className={cn(
-                "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                "px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap",
                 activeFilter === filter 
                   ? "bg-zamzam-teal text-white shadow-lg shadow-teal-900/10" 
                   : "bg-slate-50 text-slate-400 hover:bg-slate-100"
@@ -187,80 +187,70 @@ export default function Staff() {
       ) : (
         <motion.div 
           layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden"
         >
-          <AnimatePresence mode='popLayout'>
-            {filteredUsers.map((user: any) => {
-              const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map((r: any) => r.trim()) : [];
-              const roleName = userRoles[0] || 'Staff';
-              
-              // Case-insensitive config lookup
-              const matchedRoleKey = Object.keys(roleConfigs).find(k => k.toLowerCase() === roleName.toLowerCase());
-              const config = (matchedRoleKey ? roleConfigs[matchedRoleKey] : null) || { color: 'text-slate-600', bg: 'bg-slate-50', icon: UserIcon };
-              
-              return (
-                <motion.div
-                  key={user.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden"
-                >
-                  {/* Role Badge Floating */}
-                  <div className={cn("absolute top-0 right-0 px-6 py-3 rounded-bl-3xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2", config.bg, config.color)}>
-                    <config.icon size={14} />
-                    {roleName}
-                  </div>
-
-                  <div className="space-y-6">
-                    {/* User Profile Info */}
-                    <div className="flex items-center gap-5">
-                      <div className="w-20 h-20 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center justify-center text-slate-300 relative group-hover:border-zamzam-teal/30 transition-colors overflow-hidden">
-                        <UserIcon size={32} />
-                        <div className="absolute inset-0 bg-zamzam-teal/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">
-                          {user.first_name} {user.last_name}
-                        </h3>
-                        <p className="text-xs font-black text-zamzam-teal uppercase tracking-widest opacity-60">
-                          @{user.username}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Contact Details */}
-                    <div className="space-y-3 pt-2">
-                      <div className="flex items-center gap-3 text-slate-400 group-hover:text-slate-600 transition-colors">
-                        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
-                          <Mail size={14} />
+          <table className="w-full text-left">
+            <thead className="bg-slate-50/50 border-b border-slate-100">
+              <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <th className="px-10 py-6">Team Member</th>
+                <th className="px-10 py-6">Role</th>
+                <th className="px-10 py-6">Contact Info</th>
+                <th className="px-10 py-6 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filteredUsers.map((user: any) => {
+                const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map((r: any) => r.trim()) : [];
+                const roleName = userRoles[0] || 'Staff';
+                const matchedRoleKey = Object.keys(roleConfigs).find(k => k.toLowerCase() === roleName.toLowerCase());
+                const config = (matchedRoleKey ? roleConfigs[matchedRoleKey] : null) || { color: 'text-slate-600', bg: 'bg-slate-50', icon: UserIcon };
+                
+                return (
+                  <tr key={user.id} className="hover:bg-slate-50/30 transition-colors group">
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 border border-slate-100 group-hover:border-zamzam-teal/30 transition-colors">
+                          <UserIcon size={20} />
                         </div>
-                        <span className="text-xs font-bold">{user.email || 'No email set'}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-slate-400 group-hover:text-slate-600 transition-colors">
-                        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
-                          <Phone size={14} />
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 leading-tight">{user.first_name} {user.last_name}</p>
+                          <p className="text-[10px] font-bold text-zamzam-teal uppercase tracking-widest opacity-60">@{user.username}</p>
                         </div>
-                        <span className="text-xs font-bold">{user.phone || 'No phone set'}</span>
                       </div>
-                    </div>
-
-                    {/* Footer Actions */}
-                    <div className="flex items-center gap-3 pt-4 border-t border-slate-50">
-                      <button className="flex-1 bg-slate-50 hover:bg-zamzam-teal hover:text-white text-slate-400 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
-                        <UserCheck size={14} />
-                        Update Profile
-                      </button>
-                      <button className="w-12 h-12 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-xl flex items-center justify-center transition-all">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                    </td>
+                    <td className="px-10 py-6">
+                      <span className={cn("px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 w-fit", config.bg, config.color)}>
+                        <config.icon size={12} />
+                        {roleName}
+                      </span>
+                    </td>
+                    <td className="px-10 py-6">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                          <Mail size={12} className="text-slate-300" /> {user.email || 'N/A'}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                          <Phone size={12} className="text-slate-300" /> {user.phone || 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-10 py-6 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-zamzam-teal hover:bg-zamzam-teal/10 rounded-xl transition-all">
+                          <UserCheck size={16} />
+                        </button>
+                        <button className="p-2.5 bg-red-50 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </motion.div>
       )}
 
@@ -284,7 +274,7 @@ export default function Staff() {
               <div className="p-10 space-y-8">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase">New Team Member</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 uppercase">New Team Member</h2>
                     <p className="text-sm font-bold text-slate-400">Add a new professional to your restaurant staff.</p>
                   </div>
                   <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 bg-slate-50 hover:bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center transition-all">
@@ -295,7 +285,7 @@ export default function Staff() {
                 <form onSubmit={handleAddStaff} className="space-y-6">
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">First Name</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">First Name</label>
                       <input 
                         required
                         type="text" 
@@ -306,7 +296,7 @@ export default function Staff() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Last Name</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Last Name</label>
                       <input 
                         required
                         type="text" 
@@ -320,7 +310,7 @@ export default function Staff() {
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Username</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Username</label>
                       <input 
                         required
                         type="text" 
@@ -331,7 +321,7 @@ export default function Staff() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Password</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Password</label>
                       <input 
                         required
                         type="password" 
@@ -344,7 +334,7 @@ export default function Staff() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Email Address</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Email Address</label>
                     <input 
                       type="email" 
                       value={formData.email}
@@ -356,7 +346,7 @@ export default function Staff() {
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Role</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Role</label>
                       <select 
                         required
                         value={formData.role_id}
@@ -369,7 +359,7 @@ export default function Staff() {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Phone Number</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Phone Number</label>
                       <input 
                         type="text" 
                         value={formData.phone}
@@ -384,7 +374,7 @@ export default function Staff() {
                     <button 
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-zamzam-teal hover:bg-teal-700 text-white font-black py-5 rounded-[2rem] text-xs uppercase tracking-[0.2em] shadow-2xl shadow-teal-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                      className="w-full bg-zamzam-teal hover:bg-teal-700 text-white font-bold py-5 rounded-[2rem] text-xs uppercase tracking-[0.2em] shadow-2xl shadow-teal-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                     >
                       {isSubmitting ? (
                         <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />

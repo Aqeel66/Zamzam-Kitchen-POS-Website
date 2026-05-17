@@ -99,11 +99,11 @@ export default function Login() {
                 <ChefHat size={64} className="text-white" />
               )}
             </motion.div>
-            <h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none text-center">
+            <h1 className="text-3xl font-bold text-white tracking-tighter uppercase leading-none text-center">
               {settings?.tenant?.restaurant_name?.split(' ')[0] || 'Zamzam'} 
               <span className="text-zamzam-teal ml-2">{settings?.tenant?.restaurant_name?.split(' ').slice(1).join(' ') || 'Kitchen'}</span>
             </h1>
-            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] mt-3">
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.4em] mt-3">
               {settings?.tenant?.tagline || 'POS Terminal System'}
             </p>
           </div>
@@ -111,7 +111,7 @@ export default function Login() {
           {/* Form Section */}
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-2">Staff Username</label>
+              <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest px-2">Staff Username</label>
               <div className="relative group">
                 <User className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-zamzam-teal transition-colors" size={20} />
                 <input 
@@ -126,7 +126,7 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-2">Security PIN / Password</label>
+              <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest px-2">Security PIN / Password</label>
               <div className="relative group">
                 <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-zamzam-teal transition-colors" size={20} />
                 <input 
@@ -157,7 +157,7 @@ export default function Login() {
             <button 
               disabled={isLoading}
               type="submit"
-              className="w-full bg-zamzam-teal hover:bg-teal-400 disabled:bg-white/5 disabled:text-white/20 text-white font-black py-4 rounded-2xl shadow-2xl shadow-teal-500/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group"
+              className="w-full bg-zamzam-teal hover:bg-teal-400 disabled:bg-white/5 disabled:text-white/20 text-white font-bold py-4 rounded-2xl shadow-2xl shadow-teal-500/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin" size={20} />
@@ -172,7 +172,7 @@ export default function Login() {
 
           {/* Footer Info */}
           <div className="mt-10 pt-8 border-t border-white/5 text-center">
-            <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">© 2026 {settings?.tenant?.restaurant_name || 'Zamzam'} Management System</p>
+            <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">© 2026 {settings?.tenant?.restaurant_name || 'Zamzam'} Management System</p>
           </div>
         </div>
       </motion.div>
