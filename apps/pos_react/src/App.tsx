@@ -275,7 +275,10 @@ export default function App() {
 
   const isLightSidebar = settings?.tenant?.theme_mode === 'Light' || !settings?.tenant?.theme_mode;
 
-  const isEmbedded = new URLSearchParams(location.search).get('embedded') === 'true';
+  const isEmbedded = 
+    new URLSearchParams(location.search).get('embedded') === 'true' ||
+    new URLSearchParams(window.location.search).get('embedded') === 'true' ||
+    (typeof window !== 'undefined' && window.self !== window.top);
 
   return (
     <div className="flex h-screen bg-bg-main overflow-hidden">
@@ -404,6 +407,7 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
+        {!isEmbedded && (
         <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="relative w-56 group">
@@ -573,6 +577,7 @@ export default function App() {
             )}
           </div>
         </header>
+        )}
 
         <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50">
           <ErrorBoundary>
