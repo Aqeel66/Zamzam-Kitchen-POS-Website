@@ -437,14 +437,18 @@ process.on('SIGTERM', () => {
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   
-  // Run Auto-Sync in the background so we don't block the port binding
+  // Run Auto-Sync and start reservation cron in the background
   setImmediate(async () => {
     try {
       console.log('🛠️ Starting Database Auto-Sync...');
       await syncSchema();
       console.log('✅ Database Auto-Sync complete.');
+      
+      // Initialize background worker for reservation auto-no-show grace period check
+      const { startReservationCron } = require('./services/reservationCron');
+      startReservationCron();
     } catch (error) {
-      console.error('🔥 CRITICAL: Database Auto-Sync failed!', error);
+      console.error('🔥 CRITICAL: Background startup task failed!', error);
     }
   });
 });

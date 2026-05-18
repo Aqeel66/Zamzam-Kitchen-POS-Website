@@ -716,6 +716,17 @@ export default function Settings() {
                       onSave={(val: any) => handleUpdateBranch({ kds_timer_minutes: val })}
                     />
 
+                    {/* Enable Inventory Toggle */}
+                    <SettingsToggle 
+                      disabled={isSaving}
+                      label="Enable Inventory & Purchase System"
+                      sublabel={(settings?.branch?.enable_inventory === 1 || settings?.branch?.enable_inventory === true) ? "Standard Mode: Track recipes and raw ingredient stocks" : "Simplified Mode: Track menu item stock levels directly"}
+                      enabled={settings?.branch?.enable_inventory === 1 || settings?.branch?.enable_inventory === true}
+                      onToggle={() => handleUpdateBranch({ 
+                        enable_inventory: (settings?.branch?.enable_inventory === 1 || settings?.branch?.enable_inventory === true) ? 0 : 1 
+                      })}
+                    />
+
                     {/* QR Table Ordering */}
                     <div className="flex items-center justify-between group">
                       <div className="space-y-1">

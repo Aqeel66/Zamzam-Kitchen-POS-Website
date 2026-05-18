@@ -7,9 +7,12 @@ const { notifyReservationConfirmed } = require('../services/notificationService'
 // @route   POST /api/reservations
 // @desc    Create a new reservation
 router.post('/', async (req, res) => {
-  const { name, phone, email, date, time, guests, notes, branchId, tableId, bookingFee, paymentMethod, origin, notification_pref } = req.body;
+  const { name, phone, email, date, time, guests, notes, branchId, tableId, bookingFee, paymentMethod, origin, notification_pref, tables, table_ids } = req.body;
 
+  const connection = await db.getConnection();
   try {
+    await connection.beginTransaction();
+
     let customerId = null;
     try {
       // Auto-register customer (Wrapped in safety to prevent blocking reservation)
@@ -24,7 +27,7 @@ router.post('/', async (req, res) => {
       console.warn('⚠️ Auto-registration skipped or failed:', custErr.message);
       // If it fails with duplicate entry, try one last time to find the ID
       if (custErr.code === 'ER_DUP_ENTRY' || custErr.message.includes('Duplicate entry')) {
-        const [rows] = await db.query('SELECT id FROM customers WHERE phone = ? OR email = ? LIMIT 1', [phone, email]);
+        const [rows] = await connection.execute('SELECT id FROM customers WHERE phone = ? OR email = ? LIMIT 1', [phone, email]);
         if (rows.length > 0) customerId = rows[0].id;
       }
     }
@@ -39,44 +42,76 @@ router.post('/', async (req, res) => {
     const localTodayStr = new Date(today.getTime() - offset).toISOString().split('T')[0];
 
     if (cleanDate < localTodayStr) {
+      await connection.rollback();
       return res.status(400).json({
         success: false,
         message: `Validation Error: Cannot make a reservation for a past date (${cleanDate}). Today is ${localTodayStr}.`
       });
     }
 
+    const tablesPayload = (tables || table_ids || []).map(t => typeof t === 'object' ? t.id : t);
+    const primaryTableId = tablesPayload.length > 0 ? tablesPayload[0] : (tableId || null);
+    const tablesToCheck = tablesPayload.length > 0 ? tablesPayload : (tableId ? [tableId] : []);
+
+    // Pessimistic Locking: lock the table rows to prevent concurrent duplicate bookings
+    if (tablesToCheck.length > 0) {
+      for (const tId of tablesToCheck) {
+        await connection.execute(
+          'SELECT id FROM restaurant_tables WHERE id = ? FOR UPDATE',
+          [tId]
+        );
+      }
+    }
+
     // Strict Backend Validation: Block Duplicate Bookings
     // 1. Check for table conflicts (same table, date, and time)
-    if (tableId) {
-      const [tableConflicts] = await db.query(
-        `SELECT id FROM reservations 
-         WHERE table_id = ? AND reservation_date = ? AND reservation_time = ? 
-         AND status NOT IN ('Cancelled', 'Completed', 'No-Show')`,
-        [tableId, cleanDate, time]
+    if (tablesToCheck.length > 0) {
+      const [tableConflicts] = await connection.query(
+        `SELECT r.id, rt.table_number 
+         FROM reservations r
+         LEFT JOIN restaurant_tables rt ON r.table_id = rt.id
+         WHERE r.table_id IN (?) AND r.reservation_date = ? AND r.reservation_time = ? 
+         AND r.status NOT IN ('Cancelled', 'Completed', 'No-Show', 'Vacated')`,
+        [tablesToCheck, cleanDate, time]
       );
-      if (tableConflicts.length > 0) {
+      
+      const [junctionConflicts] = await connection.query(
+        `SELECT rt.id, rt.table_number 
+         FROM reservation_tables rtb
+         JOIN reservations r ON rtb.reservation_id = r.id
+         JOIN restaurant_tables rt ON rtb.table_id = rt.id
+         WHERE rtb.table_id IN (?) AND r.reservation_date = ? AND r.reservation_time = ?
+         AND r.status NOT IN ('Cancelled', 'Completed', 'No-Show', 'Vacated')`,
+        [tablesToCheck, cleanDate, time]
+      );
+
+      const allConflicts = [...tableConflicts, ...junctionConflicts];
+      if (allConflicts.length > 0) {
+        const conflictingNumbers = [...new Set(allConflicts.map(c => c.table_number))];
+        await connection.rollback();
         return res.status(409).json({
           success: false,
-          message: `Conflict Error: Table ${tableId} is already booked on ${cleanDate} at ${time}.`
+          message: `Conflict Error: Table(s) ${conflictingNumbers.join(', ')} is already booked on ${cleanDate} at ${time}.`
         });
       }
     }
 
     // 2. Check for user double-booking (same phone, date, and time)
-    const [userConflicts] = await db.query(
+    const [userConflicts] = await connection.execute(
       `SELECT id FROM reservations 
        WHERE phone = ? AND reservation_date = ? AND reservation_time = ? 
-       AND status NOT IN ('Cancelled', 'Completed', 'No-Show')`,
+       AND status NOT IN ('Cancelled', 'Completed', 'No-Show', 'Vacated')`,
       [phone, cleanDate, time]
     );
     if (userConflicts.length > 0) {
+      await connection.rollback();
       return res.status(409).json({
         success: false,
         message: `Conflict Error: A booking under this phone number already exists for ${cleanDate} at ${time}.`
       });
     }
 
-    const [result] = await db.execute(
+    const [result] = await connection.execute(
       `INSERT INTO reservations (branch_id, first_name, last_name, phone, email, reservation_date, reservation_time, party_size, notes, table_id, status, booking_fee, payment_status, payment_method, origin, customer_id, notification_pref) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -89,7 +124,7 @@ router.post('/', async (req, res) => {
         time, 
         guests, 
         notes, 
-        tableId || null, 
+        primaryTableId, 
         'Pending', // Force all new to Pending so Manager can Approve
         bookingFee || 0.00,
         paymentMethod === 'card' ? 'Paid' : 'Pending',
@@ -99,24 +134,37 @@ router.post('/', async (req, res) => {
         notification_pref || 'whatsapp'
       ]
     );
+    const reservationId = result.insertId;
 
+    // Insert junction table entries
+    for (const tId of tablesToCheck) {
+      await connection.execute(
+        'INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)',
+        [reservationId, tId]
+      );
+    }
+
+    await connection.commit();
     res.status(201).json({
       success: true,
       message: 'Reservation created successfully!',
-      reservationId: result.insertId
+      reservationId
     });
   } catch (error) {
+    await connection.rollback();
     console.error('Database Error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error, please try again later.',
       error: error.message
     });
+  } finally {
+    connection.release();
   }
 });
 
 // @route   GET /api/reservations/available-tables
-// @desc    Get tables available for a specific date and time
+// @desc    Get tables available for a specific date and time with capacity and seat balance
 router.get('/available-tables', async (req, res) => {
   const { date, time } = req.query;
 
@@ -125,42 +173,71 @@ router.get('/available-tables', async (req, res) => {
   }
 
   try {
-    // Find tables that DO NOT have a reservation at this time (simple overlap check)
-    // We assume a reservation lasts for ~2 hours for simplicity
-    console.log('Fetching available tables for:', { date, time });
+    const cleanDate = date.includes('T') ? date.split('T')[0] : date;
+    const now = new Date();
+    
+    // Format timezone offsets to match local time today
+    const offset = now.getTimezoneOffset() * 60000;
+    const localTodayStr = new Date(now.getTime() - offset).toISOString().split('T')[0];
+    const isToday = cleanDate === localTodayStr;
 
-    const [tables] = await db.execute(`SELECT t.*, 
-        (SELECT COALESCE(SUM(o.party_size), 0) 
-         FROM orders o 
-         WHERE o.table_id = t.id 
-         AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')) as current_occupancy
+    console.log(`[TABLE AVAILABILITY] Fetching tables for ${cleanDate} @ ${time}. IsToday: ${isToday}`);
+
+    // Fetch tables with both live order occupancy and reservation occupancy
+    const [tables] = await db.execute(`
+      SELECT t.*, 
+             COALESCE(
+               (
+                 SELECT SUM(COALESCE(ot.allocated_seats, o.party_size))
+                 FROM orders o
+                 LEFT JOIN order_tables ot ON o.id = ot.order_id
+                 WHERE (ot.table_id = t.id OR (o.table_id = t.id AND ot.table_id IS NULL))
+                   AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')
+               ), 0
+             ) as live_occupancy,
+             COALESCE(
+               (
+                 SELECT SUM(r.party_size)
+                 FROM reservations r
+                 LEFT JOIN reservation_tables rt ON r.id = rt.reservation_id
+                 WHERE (rt.table_id = t.id OR (r.table_id = t.id AND rt.table_id IS NULL))
+                   AND r.reservation_date = ?
+                   AND r.status NOT IN ('Cancelled', 'No-Show', 'Vacated', 'Completed')
+                   AND r.reservation_time < ADDTIME(?, '02:00:00')
+                   AND ADDTIME(r.reservation_time, '01:59:00') > ?
+               ), 0
+             ) as reservation_occupancy
       FROM restaurant_tables t
-      WHERE t.id NOT IN (
-        SELECT table_id FROM reservations 
-        WHERE reservation_date = ? 
-        AND table_id IS NOT NULL
-        AND status NOT IN ('Cancelled', 'No-Show')
-        AND (
-          (reservation_time <= ? AND ADDTIME(reservation_time, '01:59:00') > ?)
-          OR (reservation_time < ADDTIME(?, '01:59:00') AND reservation_time >= ?)
-        )
-      )
-      AND (
-        -- If the reservation is for TODAY and the time is CLOSE to now (within 2 hours), 
-        -- check if the table is already full from live orders
-        NOT (
-          ? = CURDATE() 
-          AND ? >= SUBTIME(CURTIME(), '02:00:00') 
-          AND ? <= ADDTIME(CURTIME(), '02:00:00')
-          AND (SELECT COALESCE(SUM(o.party_size), 0) FROM orders o WHERE o.table_id = t.id AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')) >= t.capacity
-        )
-      )`, [date, time, time, time, time, date, time, time]);
+    `, [cleanDate, time, time]);
 
-    console.log('Found tables:', tables.length);
-    res.json({ success: true, tables });
+    // Process table capacity & availability
+    const processedTables = tables.map(t => {
+      let current_occupancy = parseInt(t.reservation_occupancy) || 0;
+      
+      // If today, consider active dine-in orders as well
+      if (isToday) {
+        const live = parseInt(t.live_occupancy) || 0;
+        current_occupancy = Math.max(current_occupancy, live);
+      }
+      
+      const balance_seats = Math.max(0, t.capacity - current_occupancy);
+      
+      return {
+        ...t,
+        current_occupancy,
+        balance_seats,
+        remaining_seats: balance_seats
+      };
+    });
+
+    // Filter to only display tables that are free (have remaining seats) during this slot
+    const freeTables = processedTables.filter(t => t.balance_seats > 0);
+
+    console.log(`[TABLE AVAILABILITY] Found ${freeTables.length}/${tables.length} free tables.`);
+    res.json({ success: true, tables: freeTables });
   } catch (error) {
     console.error('Available Tables Error:', error);
-    res.status(500).json({ success: false, message: 'Could not fetch available tables' });
+    res.status(500).json({ success: false, message: 'Could not fetch available tables', error: error.message });
   }
 });
 
@@ -190,7 +267,24 @@ router.get('/', async (req, res) => {
     let query = `
       SELECT r.*, 
              DATE_FORMAT(r.reservation_date, '%Y-%m-%d') as reservation_date,
-             t.table_number as assigned_table_number 
+             COALESCE(
+               (
+                 SELECT GROUP_CONCAT(rt.table_number SEPARATOR ', ')
+                 FROM reservation_tables rtb
+                 JOIN restaurant_tables rt ON rtb.table_id = rt.id
+                 WHERE rtb.reservation_id = r.id
+               ),
+               t.table_number
+             ) as assigned_table_number,
+             COALESCE(
+               (
+                 SELECT GROUP_CONCAT(rt.id SEPARATOR ',')
+                 FROM reservation_tables rtb
+                 JOIN restaurant_tables rt ON rtb.table_id = rt.id
+                 WHERE rtb.reservation_id = r.id
+               ),
+               t.id
+             ) as assigned_table_ids 
       FROM reservations r 
       LEFT JOIN restaurant_tables t ON r.table_id = t.id 
       WHERE 1=1
@@ -224,7 +318,7 @@ router.get('/', async (req, res) => {
 // @desc    Update reservation
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
-  const { status, table_id, name, phone, email, date, time, guests, notes, paymentMethod } = req.body;
+  const { status, table_id, name, phone, email, date, time, guests, notes, paymentMethod, tables, table_ids } = req.body;
   
   if (Object.keys(req.body).length === 0) {
     return res.status(400).json({ success: false, message: 'No updates provided' });
@@ -256,39 +350,46 @@ router.patch('/:id', async (req, res) => {
     const currentRes = existingRes[0];
     const checkDate = date ? (date.includes('T') ? date.split('T')[0] : date) : currentRes.reservation_date;
     const checkTime = time || currentRes.reservation_time;
-    const checkTableId = table_id !== undefined ? table_id : currentRes.table_id;
     const checkPhone = phone || currentRes.phone;
 
+    const tablesPayload = tables || table_ids;
+    let tablesToCheck = undefined;
+    if (tablesPayload) {
+      tablesToCheck = tablesPayload.map(t => typeof t === 'object' ? t.id : t);
+    } else if (table_id !== undefined) {
+      tablesToCheck = table_id ? [table_id] : [];
+    }
+
     // Only run conflict checks if date, time, table, or phone actually changed
-    if (date || time || table_id !== undefined || phone) {
-      // 1. Table conflict check
-      if (checkTableId) {
+    if (date || time || tablesToCheck !== undefined || phone) {
+      if (tablesToCheck && tablesToCheck.length > 0) {
         const [tableConflicts] = await db.query(
-          `SELECT id FROM reservations 
-           WHERE table_id = ? AND reservation_date = ? AND reservation_time = ? 
-           AND id != ? AND status NOT IN ('Cancelled', 'Completed', 'No-Show')`,
-          [checkTableId, checkDate, checkTime, id]
+          `SELECT r.id, rt.table_number 
+           FROM reservations r
+           LEFT JOIN restaurant_tables rt ON r.table_id = rt.id
+           WHERE r.table_id IN (?) AND r.reservation_date = ? AND r.reservation_time = ? 
+           AND r.id != ? AND r.status NOT IN ('Cancelled', 'Completed', 'No-Show', 'Vacated')`,
+          [tablesToCheck, checkDate, checkTime, id]
         );
-        if (tableConflicts.length > 0) {
+        
+        const [junctionConflicts] = await db.query(
+          `SELECT rt.id, rt.table_number 
+           FROM reservation_tables rtb
+           JOIN reservations r ON rtb.reservation_id = r.id
+           JOIN restaurant_tables rt ON rtb.table_id = rt.id
+           WHERE rtb.table_id IN (?) AND r.reservation_date = ? AND r.reservation_time = ?
+           AND r.id != ? AND r.status NOT IN ('Cancelled', 'Completed', 'No-Show', 'Vacated')`,
+          [tablesToCheck, checkDate, checkTime, id]
+        );
+
+        const allConflicts = [...tableConflicts, ...junctionConflicts];
+        if (allConflicts.length > 0) {
+          const conflictingNumbers = [...new Set(allConflicts.map(c => c.table_number))];
           return res.status(409).json({
             success: false,
-            message: `Conflict Error: Table ${checkTableId} is already booked on ${checkDate} at ${checkTime}.`
+            message: `Conflict Error: Table(s) ${conflictingNumbers.join(', ')} is already booked on ${checkDate} at ${checkTime}.`
           });
         }
-      }
-
-      // 2. User double-booking check
-      const [userConflicts] = await db.query(
-        `SELECT id FROM reservations 
-         WHERE phone = ? AND reservation_date = ? AND reservation_time = ? 
-         AND id != ? AND status NOT IN ('Cancelled', 'Completed', 'No-Show')`,
-        [checkPhone, checkDate, checkTime, id]
-      );
-      if (userConflicts.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message: `Conflict Error: A booking under this phone number already exists for ${checkDate} at ${checkTime}.`
-        });
       }
     }
 
@@ -296,8 +397,12 @@ router.patch('/:id', async (req, res) => {
      let params = [];
      
      const fields = {
-       status, table_id, phone, email, reservation_time: time, party_size: guests, notes, payment_method: paymentMethod
+       status, phone, email, reservation_time: time, party_size: guests, notes, payment_method: paymentMethod
      };
+     
+     if (tablesToCheck !== undefined) {
+       fields.table_id = tablesToCheck.length > 0 ? tablesToCheck[0] : null;
+     }
      
      if (name) {
        // Split name into first and last
@@ -325,21 +430,35 @@ router.patch('/:id', async (req, res) => {
         return res.status(404).json({ success: false, message: 'Reservation not found' });
      }
 
+     // Update reservation_tables junction records if tables were updated
+     if (tablesToCheck !== undefined) {
+       await db.query('DELETE FROM reservation_tables WHERE reservation_id = ?', [id]);
+       for (const tId of tablesToCheck) {
+         await db.query('INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)', [id, tId]);
+       }
+     }
+
      // --- Table Status Sync ---
      const [resData] = await db.query('SELECT table_id FROM reservations WHERE id = ?', [id]);
      const assignedTableId = resData[0]?.table_id;
+     const [resTables] = await db.query('SELECT table_id FROM reservation_tables WHERE reservation_id = ?', [id]);
+     const assignedTableIds = resTables.length > 0 ? resTables.map(rt => rt.table_id) : (assignedTableId ? [assignedTableId] : []);
 
-     if (assignedTableId) {
+     if (assignedTableIds.length > 0) {
        if (status === 'Seated') {
-         await db.query('UPDATE restaurant_tables SET status = "Occupied" WHERE id = ?', [assignedTableId]);
-       } else if (['Completed', 'Cancelled', 'No-Show'].includes(status)) {
-         // Check if there are ANY active orders on this table before marking as Available
-         const [activeOrders] = await db.query(
-           'SELECT id FROM orders WHERE table_id = ? AND status NOT IN ("Paid", "Cancelled", "Rejected")',
-           [assignedTableId]
-         );
-         if (activeOrders.length === 0) {
-           await db.query('UPDATE restaurant_tables SET status = "Available" WHERE id = ?', [assignedTableId]);
+         for (const tId of assignedTableIds) {
+           await db.query('UPDATE restaurant_tables SET status = "Occupied" WHERE id = ?', [tId]);
+         }
+       } else if (['Completed', 'Cancelled', 'No-Show', 'Vacated'].includes(status)) {
+         for (const tId of assignedTableIds) {
+           // Check if there are ANY active orders on this table before marking as Available
+           const [activeOrders] = await db.query(
+             'SELECT o.id FROM orders o LEFT JOIN order_tables ot ON o.id = ot.order_id WHERE (ot.table_id = ? OR (o.table_id = ? AND ot.table_id IS NULL)) AND o.status NOT IN ("Paid", "Cancelled", "Rejected")',
+             [tId, tId]
+           );
+           if (activeOrders.length === 0) {
+             await db.query('UPDATE restaurant_tables SET status = "Available" WHERE id = ?', [tId]);
+           }
          }
        }
      }
@@ -358,5 +477,64 @@ router.patch('/:id', async (req, res) => {
      res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
+
+// @route   POST /api/reservations/:id/vacate
+// @route   PUT /api/reservations/:id/vacate
+// @desc    Manually vacate a reservation and release the table seats immediately
+const vacateHandler = async (req, res) => {
+  const { id } = req.params;
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1. Get reservation details
+    const [rows] = await connection.execute(
+      'SELECT status, table_id FROM reservations WHERE id = ?',
+      [id]
+    );
+
+    if (rows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: 'Reservation not found' });
+    }
+
+    const { status, table_id } = rows[0];
+
+    // 2. Update reservation status to 'Vacated'
+    await connection.execute(
+      "UPDATE reservations SET status = 'Vacated' WHERE id = ?",
+      [id]
+    );
+
+    // 3. Update table statuses if no other active orders exist on those tables
+    const [resTables] = await connection.execute('SELECT table_id FROM reservation_tables WHERE reservation_id = ?', [id]);
+    const assignedTableIds = resTables.length > 0 ? resTables.map(rt => rt.table_id) : (table_id ? [table_id] : []);
+
+    for (const tId of assignedTableIds) {
+      const [activeOrders] = await connection.execute(
+        'SELECT o.id FROM orders o LEFT JOIN order_tables ot ON o.id = ot.order_id WHERE (ot.table_id = ? OR (o.table_id = ? AND ot.table_id IS NULL)) AND o.status NOT IN ("Paid", "Cancelled", "Rejected")',
+        [tId, tId]
+      );
+      if (activeOrders.length === 0) {
+        await connection.execute(
+          'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
+          [tId]
+        );
+      }
+    }
+
+    await connection.commit();
+    res.json({ success: true, message: 'Reservation manually vacated and seats released successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Manual Vacate Error:', error);
+    res.status(500).json({ success: false, message: 'Server error during vacate action', error: error.message });
+  } finally {
+    connection.release();
+  }
+};
+
+router.post('/:id/vacate', vacateHandler);
+router.put('/:id/vacate', vacateHandler);
 
 module.exports = router;

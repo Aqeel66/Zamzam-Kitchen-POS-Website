@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     closing_time TIME DEFAULT '22:00:00',
     first_order_time TIME DEFAULT '09:30:00',
     last_order_time TIME DEFAULT '21:30:00',
+    enable_inventory BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 
@@ -182,6 +183,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
     prep_station ENUM('Bar', 'Grill', 'Fryer', 'Salad', 'Dessert', 'General') DEFAULT 'General',
     image VARCHAR(255) DEFAULT NULL,
     is_deleted BOOLEAN DEFAULT FALSE,
+    quantity DECIMAL(10,2) DEFAULT 0.00,
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
@@ -308,6 +310,15 @@ CREATE TABLE IF NOT EXISTS reservations (
     FOREIGN KEY (table_id) REFERENCES restaurant_tables(id)
 );
 
+CREATE TABLE IF NOT EXISTS reservation_tables (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    reservation_id INT NOT NULL,
+    table_id INT NOT NULL,
+    allocated_seats INT NOT NULL DEFAULT 1,
+    FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE,
+    FOREIGN KEY (table_id) REFERENCES restaurant_tables(id)
+);
+
 -- ─── ORDERS ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -338,6 +349,16 @@ CREATE TABLE IF NOT EXISTS orders (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (promo_id) REFERENCES promo_codes(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS order_tables (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    table_id INT NOT NULL,
+    allocated_seats INT NOT NULL DEFAULT 1,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (table_id) REFERENCES restaurant_tables(id)
+);
+
 
 CREATE TABLE IF NOT EXISTS order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -470,11 +491,13 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     purchase_order_id INT DEFAULT NULL,
     inventory_item_id INT DEFAULT NULL,
+    menu_item_id INT DEFAULT NULL,
     quantity DECIMAL(10,2) NOT NULL,
     unit_price DECIMAL(10,2) NOT NULL,
     subtotal DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE CASCADE
+    FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE CASCADE,
+    FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
 );
 
 -- ─── INITIAL DATA ───────────────────────────────────────────

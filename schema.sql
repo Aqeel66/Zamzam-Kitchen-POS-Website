@@ -64,6 +64,7 @@ CREATE TABLE branch_settings (
     allow_qr_pay BOOLEAN DEFAULT TRUE,
     flexible_bill_splitting BOOLEAN DEFAULT TRUE,
     gratuity_percentage DECIMAL(5,2) DEFAULT 0.00,
+    enable_inventory BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 
@@ -125,6 +126,7 @@ CREATE TABLE menu_items (
     is_available BOOLEAN DEFAULT TRUE,
     dietary_info VARCHAR(255),
     prep_station ENUM('Bar', 'Grill', 'Fryer', 'Salad', 'Dessert', 'General') DEFAULT 'General',
+    quantity DECIMAL(10,2) DEFAULT 0.00,
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 

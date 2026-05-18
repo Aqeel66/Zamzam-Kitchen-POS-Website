@@ -57,6 +57,7 @@ export default function Reservations() {
     time: '19:00',
     guests: 2,
     table_id: '',
+    table_ids: [],
     email: '',
     notes: '',
     notification_pref: 'whatsapp',
@@ -230,7 +231,8 @@ export default function Reservations() {
           date: formValues.date,
           time: formValues.time,
           guests: parseInt(formValues.guests),
-          tableId: formValues.table_id || null,
+          tableId: formValues.table_ids && formValues.table_ids.length > 0 ? formValues.table_ids[0] : null,
+          table_ids: formValues.table_ids || [],
           notes: formValues.notes,
           notification_pref: formValues.notification_pref,
           bookingFee: 25,
@@ -286,6 +288,7 @@ export default function Reservations() {
                 time: '19:00',
                 guests: 2,
                 table_id: '',
+                table_ids: [],
                 email: '',
                 notes: '',
                 notification_pref: 'whatsapp',
@@ -675,32 +678,75 @@ export default function Reservations() {
                   {/* Table Assignment dropdown — always visible */}
                   <div>
                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Table Assignment</span>
-                    <div className="relative">
-                      <select
-                        value={sidebarTableId !== '' ? sidebarTableId : (selectedReservation.table_id || '')}
-                        onChange={async (e) => {
-                          const newTableId = e.target.value;
-                          setSidebarTableId(newTableId);
-                          try {
-                            await fetch(`${API_BASE_URL}/reservations/${selectedReservation.id}`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ table_id: newTableId || null })
-                            });
-                            fetchData();
-                            setSelectedReservation({ ...selectedReservation, table_id: newTableId });
-                          } catch {}
-                        }}
-                        className="w-full appearance-none bg-white border border-slate-200 rounded-xl py-2.5 pl-3 pr-8 text-xs font-bold text-slate-700 outline-none focus:border-orange-400 transition-all"
-                      >
-                        <option value="">— Unassigned —</option>
-                        {tables.map(t => (
-                          <option key={t.id} value={t.id}>
-                            Table {t.table_number} (Avail: {Math.max(0, t.capacity - 0)} / {t.capacity})
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-500 pointer-events-none" />
+                    <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1 no-scrollbar bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                      {(() => {
+                        const currentIds = selectedReservation.assigned_table_ids 
+                          ? selectedReservation.assigned_table_ids.split(',').map((x: string) => parseInt(x)).filter(Boolean) 
+                          : (selectedReservation.table_id ? [parseInt(selectedReservation.table_id)] : []);
+                        
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await fetch(`${API_BASE_URL}/reservations/${selectedReservation.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ table_ids: [] })
+                                  });
+                                  fetchData();
+                                  setSelectedReservation({ ...selectedReservation, table_id: null, assigned_table_ids: '', assigned_table_number: '' });
+                                } catch {}
+                              }}
+                              className={cn(
+                                "px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all",
+                                currentIds.length === 0 
+                                  ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10" 
+                                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                              )}
+                            >
+                              TBD
+                            </button>
+                            {tables.map(t => {
+                              const isAssigned = currentIds.includes(t.id);
+                              return (
+                                <button
+                                  key={t.id}
+                                  type="button"
+                                  onClick={async () => {
+                                    const newIds = isAssigned
+                                      ? currentIds.filter((id: number) => id !== t.id)
+                                      : [...currentIds, t.id];
+                                    try {
+                                      await fetch(`${API_BASE_URL}/reservations/${selectedReservation.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ table_ids: newIds })
+                                      });
+                                      fetchData();
+                                      setSelectedReservation({ 
+                                        ...selectedReservation, 
+                                        table_id: newIds[0] || null, 
+                                        assigned_table_ids: newIds.join(','),
+                                        assigned_table_number: tables.filter(x => newIds.includes(x.id)).map(x => x.table_number).join(', ')
+                                      });
+                                    } catch {}
+                                  }}
+                                  className={cn(
+                                    "px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all",
+                                    isAssigned 
+                                      ? "bg-orange-50 border-orange-500 text-orange-600 shadow-sm font-extrabold" 
+                                      : "bg-white border-slate-200 text-slate-400 hover:border-orange-200"
+                                  )}
+                                >
+                                  T{t.table_number}
+                                </button>
+                              );
+                            })}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1012,13 +1058,13 @@ export default function Reservations() {
                       <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
                         <button
                           type="button"
-                          onClick={() => setFormValues({...formValues, table_id: ''})}
+                          onClick={() => setFormValues({...formValues, table_ids: []})}
                           className={cn(
                             "p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-2",
-                            formValues.table_id === '' ? "bg-orange-50 border-orange-500" : "bg-white border-slate-100 hover:border-slate-200"
+                            (!formValues.table_ids || formValues.table_ids.length === 0) ? "bg-orange-50 border-orange-500" : "bg-white border-slate-100 hover:border-slate-200"
                           )}
                         >
-                          <Users size={24} className={formValues.table_id === '' ? "text-orange-500" : "text-slate-300"} />
+                          <Users size={24} className={(!formValues.table_ids || formValues.table_ids.length === 0) ? "text-orange-500" : "text-slate-300"} />
                           <span className="text-[10px] font-bold uppercase">TBD</span>
                         </button>
                         {isLoadingAvailableTables ? (
@@ -1026,21 +1072,30 @@ export default function Reservations() {
                         ) : availableTables.length === 0 ? (
                           <div className="col-span-2 py-10 text-center text-red-400 text-xs font-bold uppercase tracking-widest">No Tables Available for this Slot</div>
                         ) : (
-                          availableTables.map(table => (
-                            <button
-                              key={table.id}
-                              type="button"
-                              onClick={() => setFormValues({...formValues, table_id: table.id})}
-                              className={cn(
-                                "p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-2",
-                                formValues.table_id === table.id ? "bg-orange-50 border-orange-500" : "bg-white border-slate-100 hover:border-slate-200"
-                              )}
-                            >
-                              <Utensils size={24} className={formValues.table_id === table.id ? "text-orange-500" : "text-slate-300"} />
-                              <span className="text-[10px] font-bold uppercase">Table {table.table_number}</span>
-                              <span className="text-[8px] font-bold text-slate-400">Cap: {table.capacity}</span>
-                            </button>
-                          ))
+                          availableTables.map(table => {
+                            const isSelected = formValues.table_ids?.includes(table.id);
+                            return (
+                              <button
+                                key={table.id}
+                                type="button"
+                                onClick={() => {
+                                  const currentIds = formValues.table_ids || [];
+                                  const newIds = currentIds.includes(table.id)
+                                    ? currentIds.filter((id: any) => id !== table.id)
+                                    : [...currentIds, table.id];
+                                  setFormValues({...formValues, table_ids: newIds});
+                                }}
+                                className={cn(
+                                  "p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-2",
+                                  isSelected ? "bg-orange-50 border-orange-500 shadow-lg shadow-orange-500/10" : "bg-white border-slate-100 hover:border-orange-200"
+                                )}
+                              >
+                                <Utensils size={24} className={isSelected ? "text-orange-500" : "text-slate-300"} />
+                                <span className="text-[10px] font-bold uppercase">Table {table.table_number}</span>
+                                <span className="text-[8px] font-bold text-slate-400">Cap: {table.capacity}</span>
+                              </button>
+                            );
+                          })
                         )}
                       </div>
                     </motion.div>
@@ -1139,7 +1194,9 @@ export default function Reservations() {
                             <div className="flex items-center gap-2 text-slate-900 mt-1">
                               <Utensils size={14} className="text-orange-500" />
                               <span className="text-sm font-bold">
-                                {formValues.table_id ? `Table ${tables.find(t => t.id === formValues.table_id)?.table_number}` : 'Unassigned'}
+                                {formValues.table_ids && formValues.table_ids.length > 0 
+                                  ? `Table(s) ${formValues.table_ids.map((id: any) => tables.find(t => t.id === id)?.table_number).filter(Boolean).join(', ')}` 
+                                  : 'Unassigned'}
                               </span>
                             </div>
                           </div>

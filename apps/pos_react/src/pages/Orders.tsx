@@ -121,16 +121,29 @@ export default function Orders() {
     }
   };
 
+  const getLocalTodayAndTime = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const localDateStr = new Date(now.getTime() - offset).toISOString().split('T')[0];
+    const localTimeStr = new Date(now.getTime() - offset).toISOString().split('T')[1].substring(0, 8);
+    return { localDate: localDateStr, localTime: localTimeStr };
+  };
+
   const fetchTablesAndWaiters = async () => {
     try {
+      const { localDate, localTime } = getLocalTodayAndTime();
       const [tablesRes, usersRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/tables`),
+        fetch(`${API_BASE_URL}/reservations/available-tables?date=${localDate}&time=${localTime}`),
         fetch(`${API_BASE_URL}/users`)
       ]);
-      const tablesData = await tablesRes.json();
+      const tablesJson = await tablesRes.json();
       const usersData = await usersRes.json();
       
-      setTables(Array.isArray(tablesData) ? tablesData : []);
+      const tablesData = tablesJson?.success && Array.isArray(tablesJson.tables) 
+        ? tablesJson.tables 
+        : (Array.isArray(tablesJson) ? tablesJson : []);
+
+      setTables(tablesData);
       const waiterUsers = (usersData || []).filter((u: any) => {
         const userRoles = typeof u.roles === 'string' ? u.roles.split(',').map((r: any) => r.trim()) : [];
         return userRoles.includes('Waiter');
@@ -170,6 +183,13 @@ export default function Orders() {
       else if (branchInfo.allow_delivery === 1) setOrderType('Delivery');
     }
   }, [branchInfo]);
+
+  // Refetch tables with dynamic seat capacities and availability when switching to Dine-In
+  useEffect(() => {
+    if (orderType === 'Dine-In') {
+      fetchTablesAndWaiters();
+    }
+  }, [orderType]);
 
   // Handle navigation state (e.g. from Reservations or paying an existing order)
   useEffect(() => {
@@ -300,7 +320,7 @@ export default function Orders() {
         discount_amount: Number(checkoutData.discount_amount),
         promo_id: checkoutData.promo_id,
         payment_method: checkoutData.payment_method,
-        guest_count: Number(checkoutData.guest_count || 1),
+        guest_count: Number(guestCount || 1),
         status: checkoutData.payment_method ? 'Paid' : 'Ordered',
         user_id: user?.id || 1,
         branch_id: branchInfo?.branch_id || 1
@@ -442,6 +462,7 @@ export default function Orders() {
           customer_id: selectedCustomer?.id || null,
           customer_name: customerSearch.trim() || 'Guest',
           customer_phone: selectedCustomer?.phone || null,
+          guest_count: Number(guestCount || 1),
         })
       });
 
@@ -693,22 +714,87 @@ export default function Orders() {
           </div>
 
           <div className="grid grid-cols-2 gap-1.5">
-            <div className="relative">
-              <select
-                value={selectedTable?.id || ''}
-                onChange={(e) => {
-                  const table = tables.find(t => t.id === Number(e.target.value));
-                  setSelectedTable(table || null);
-                }}
-                className="w-full appearance-none bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-600 outline-none focus:border-zamzam-teal transition-all shadow-sm cursor-pointer"
-              >
-                <option value="">Table</option>
-                {tables.map(t => (
-                  <option key={t.id} value={t.id}>T {t.table_number}</option>
-                ))}
-              </select>
-              <Utensils size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
+            {selectedTable ? (
+              <div className="group relative w-full h-[28px] flex items-center justify-between bg-zamzam-teal/5 border border-zamzam-teal/20 rounded-lg px-2.5 text-[9px] font-bold text-slate-700 shadow-sm transition-all hover:bg-zamzam-teal/10 cursor-pointer">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Utensils size={9} className="text-zamzam-teal flex-shrink-0 animate-pulse" />
+                  <span className="truncate text-slate-800">
+                    T-{selectedTable.table_number} ({guestCount} {guestCount === 1 ? 'Seat' : 'Seats'})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedTable(null);
+                    setGuestCount(1);
+                  }}
+                  className="text-slate-400 hover:text-rose-500 transition-colors flex-shrink-0 ml-1"
+                  title="Change Table"
+                >
+                  <X size={8} className="stroke-[2.5]" />
+                </button>
+
+                {/* Popover / Hover details card */}
+                <div className="absolute left-0 top-full mt-1.5 w-[200px] hidden group-hover:block z-50 p-2.5 bg-white border border-slate-200 rounded-xl shadow-xl space-y-1.5 pointer-events-auto">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-1">
+                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Table Selection Details</span>
+                    <span className="text-[9px] font-black text-zamzam-teal bg-zamzam-teal/5 px-1.5 py-0.5 rounded-full">
+                      T-{selectedTable.table_number}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-1 text-[8px] font-bold text-slate-700 uppercase tracking-tight">
+                    <div className="bg-slate-50 border border-slate-100 p-1 rounded-md flex flex-col items-center text-center">
+                      <span className="text-slate-400 text-[6px] uppercase tracking-wider mb-0.5">Capacity</span>
+                      <span className="text-slate-900">{selectedTable.capacity} Guests</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 p-1 rounded-md flex flex-col items-center text-center">
+                      <span className="text-slate-400 text-[6px] uppercase tracking-wider mb-0.5">Available</span>
+                      <span className="text-zamzam-teal">{selectedTable.balance_seats !== undefined ? selectedTable.balance_seats : selectedTable.capacity} Seats</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Guests/Seats:</span>
+                    <select
+                      value={guestCount}
+                      onChange={(e) => setGuestCount(Number(e.target.value))}
+                      className="bg-white border border-slate-200 rounded px-1.5 py-0.5 text-[8px] font-bold text-slate-800 outline-none focus:border-zamzam-teal cursor-pointer shadow-sm"
+                    >
+                      {Array.from(
+                        { length: Math.max(1, selectedTable.balance_seats !== undefined ? selectedTable.balance_seats : selectedTable.capacity) }, 
+                        (_, i) => i + 1
+                      ).map(num => (
+                        <option key={num} value={num}>
+                          {num} {num === 1 ? 'Guest' : 'Guests'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <select
+                  value={selectedTable?.id || ''}
+                  onChange={(e) => {
+                    const table = tables.find(t => t.id === Number(e.target.value));
+                    setSelectedTable(table || null);
+                    setGuestCount(1); // Reset guest count selection when table changes
+                  }}
+                  className="w-full appearance-none bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-600 outline-none focus:border-zamzam-teal transition-all shadow-sm cursor-pointer"
+                >
+                  <option value="">Table</option>
+                  {tables.map(t => (
+                    <option key={t.id} value={t.id}>
+                      T {t.table_number} (Cap: {t.capacity} | Free: {t.balance_seats !== undefined ? t.balance_seats : t.capacity})
+                    </option>
+                  ))}
+                </select>
+                <Utensils size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            )}
 
             <div className="relative">
               <select

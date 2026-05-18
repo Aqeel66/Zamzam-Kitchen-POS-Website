@@ -28,9 +28,13 @@ router.get('/', async (req, res) => {
     // Fetch items for each order
     for (let order of orders) {
       const [items] = await db.query(`
-        SELECT poi.*, i.name as item_name, i.unit 
+        SELECT 
+          poi.*, 
+          COALESCE(i.name, mi.name) as item_name,
+          COALESCE(i.unit, 'pcs') as unit
         FROM purchase_order_items poi
-        JOIN inventory_items i ON poi.inventory_item_id = i.id
+        LEFT JOIN inventory_items i ON poi.inventory_item_id = i.id
+        LEFT JOIN menu_items mi ON poi.menu_item_id = mi.id
         WHERE poi.purchase_order_id = ?
       `, [order.id]);
       order.items = items;
@@ -63,16 +67,30 @@ router.post('/', async (req, res) => {
     if (items && items.length > 0) {
       for (const item of items) {
         await connection.query(
-          'INSERT INTO purchase_order_items (purchase_order_id, inventory_item_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)',
-          [purchaseOrderId, item.inventory_item_id, item.quantity, item.unit_price, item.subtotal]
+          'INSERT INTO purchase_order_items (purchase_order_id, inventory_item_id, menu_item_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?, ?)',
+          [
+            purchaseOrderId, 
+            item.inventory_item_id || null, 
+            item.menu_item_id || null, 
+            item.quantity, 
+            item.unit_price, 
+            item.subtotal
+          ]
         );
 
-        // If status is "Received", update inventory immediately
+        // If status is "Received", update inventory/menu item quantity immediately
         if (initialStatus === 'Received') {
-          await connection.query(
-            'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
-            [item.quantity, item.inventory_item_id]
-          );
+          if (item.inventory_item_id) {
+            await connection.query(
+              'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
+              [item.quantity, item.inventory_item_id]
+            );
+          } else if (item.menu_item_id) {
+            await connection.query(
+              'UPDATE menu_items SET quantity = quantity + ? WHERE id = ?',
+              [item.quantity, item.menu_item_id]
+            );
+          }
         }
       }
     }
@@ -103,25 +121,33 @@ router.put('/:id/status', async (req, res) => {
 
     // If marked as 'Received', update inventory
     if (status === 'Received') {
-      const [items] = await connection.query('SELECT inventory_item_id, quantity FROM purchase_order_items WHERE purchase_order_id = ?', [orderId]);
+      const [items] = await connection.query('SELECT inventory_item_id, menu_item_id, quantity FROM purchase_order_items WHERE purchase_order_id = ?', [orderId]);
       
       for (const item of items) {
-        // Get current quantity first for logging
-        const [invRows] = await connection.query('SELECT quantity FROM inventory_items WHERE id = ?', [item.inventory_item_id]);
-        const prevQty = invRows[0]?.quantity || 0;
-        const newQty = prevQty + item.quantity;
+        if (item.inventory_item_id) {
+          // Get current quantity first for logging
+          const [invRows] = await connection.query('SELECT quantity FROM inventory_items WHERE id = ?', [item.inventory_item_id]);
+          const prevQty = invRows[0]?.quantity || 0;
+          const newQty = prevQty + item.quantity;
 
-        // Increment inventory quantity
-        await connection.query(
-          'UPDATE inventory_items SET quantity = ? WHERE id = ?',
-          [newQty, item.inventory_item_id]
-        );
+          // Increment inventory quantity
+          await connection.query(
+            'UPDATE inventory_items SET quantity = ? WHERE id = ?',
+            [newQty, item.inventory_item_id]
+          );
 
-        // Log transaction
-        await connection.query(
-          'INSERT INTO inventory_transactions (inventory_item_id, type, quantity_change, previous_quantity, new_quantity, reason) VALUES (?, "Purchase", ?, ?, ?, ?)',
-          [item.inventory_item_id, item.quantity, prevQty, newQty, `Received PO #${orderId}`]
-        );
+          // Log transaction
+          await connection.query(
+            'INSERT INTO inventory_transactions (inventory_item_id, type, quantity_change, previous_quantity, new_quantity, reason) VALUES (?, "Purchase", ?, ?, ?, ?)',
+            [item.inventory_item_id, item.quantity, prevQty, newQty, `Received PO #${orderId}`]
+          );
+        } else if (item.menu_item_id) {
+          // Increment menu_items stock directly
+          await connection.query(
+            'UPDATE menu_items SET quantity = quantity + ? WHERE id = ?',
+            [item.quantity, item.menu_item_id]
+          );
+        }
       }
     }
 

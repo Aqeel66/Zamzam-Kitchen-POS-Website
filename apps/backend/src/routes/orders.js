@@ -53,6 +53,27 @@ async function handleChildOrderStatusSync(connection, orderId) {
   }
 }
 
+// Auto-vacate active reservations for a table upon checkout
+async function autoVacateReservationOnCheckout(connection, tableId) {
+  if (!tableId) return;
+  try {
+    const [result] = await connection.execute(
+      `UPDATE reservations 
+       SET status = 'Vacated' 
+       WHERE table_id = ? 
+         AND reservation_date = CURDATE() 
+         AND status IN ('Seated', 'Confirmed', 'Pending')`,
+      [tableId]
+    );
+    if (result.affectedRows > 0) {
+      console.log(`⏰ [AUTO-VACATE] Vacated ${result.affectedRows} active reservations for table ${tableId} on checkout.`);
+    }
+  } catch (err) {
+    console.error('Error in autoVacateReservationOnCheckout:', err);
+  }
+}
+
+
 
 // @route   POST api/orders
 // @desc    Create a new order with items and optional payment info
@@ -139,12 +160,15 @@ router.post('/', async (req, res) => {
       }
 
       const orderStatus = status || (payment_method ? 'Paid' : 'Pending');
+      const tablesPayload = req.body.tables || [];
+      const primaryTableId = tablesPayload.length > 0 ? tablesPayload[0].id : (table_id || null);
+
       const [orderResult] = await connection.execute(
         'INSERT INTO orders (order_number, branch_id, table_id, waiter_id, waiter_name, customer_id, customer_name, customer_phone, user_id, order_type, status, total_amount, discount_amount, promo_id, origin, party_size, estimated_release_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           orderNumber, 
           branch_id || 1, 
-          table_id || null, 
+          primaryTableId, 
           req.body.waiter_id || null, 
           req.body.waiter_name || null, 
           finalCustomerId || null, 
@@ -163,13 +187,35 @@ router.post('/', async (req, res) => {
       );
       const orderId = orderResult.insertId;
 
-      // 1.5 Update Table Status if Dine-In
-      if (table_id && normalizedOrderType === 'Dine-In' && orderStatus !== 'Paid') {
+      // 1.3 Insert multi-table assignments into order_tables
+      const finalTables = tablesPayload.length > 0 
+        ? tablesPayload 
+        : (primaryTableId ? [{ id: primaryTableId, seats: req.body.guest_count || req.body.party_size || 1 }] : []);
+      
+      for (const t of finalTables) {
         await connection.execute(
-          'UPDATE restaurant_tables SET status = "Occupied" WHERE id = ?',
-          [table_id]
+          'INSERT INTO order_tables (order_id, table_id, allocated_seats) VALUES (?, ?, ?)',
+          [orderId, t.id, t.seats || 1]
         );
       }
+
+      // 1.5 Update Table Status if Dine-In
+      if (normalizedOrderType === 'Dine-In' && orderStatus !== 'Paid') {
+        const tableIdsToOccupy = finalTables.map(t => t.id);
+        for (const tId of tableIdsToOccupy) {
+          await connection.execute(
+            'UPDATE restaurant_tables SET status = "Occupied" WHERE id = ?',
+            [tId]
+          );
+        }
+      }
+
+    // Fetch branch setting to check if inventory is enabled
+    const [settingsRows] = await connection.query(
+      'SELECT enable_inventory FROM branch_settings WHERE branch_id = ?',
+      [branch_id || 1]
+    );
+    const isInventoryEnabled = settingsRows.length > 0 ? !!settingsRows[0].enable_inventory : true;
 
     // 2. Insert items
     if (items && items.length > 0) {
@@ -195,7 +241,7 @@ router.post('/', async (req, res) => {
           );
 
           // Deduct variant inventory if applicable
-          if (menuItemId) {
+          if (menuItemId && isInventoryEnabled) {
             const [vIng] = await connection.query(
               'SELECT inventory_item_id, quantity_required FROM menu_item_variants WHERE menu_item_id = ? AND name = ?',
               [menuItemId, item.variant.name]
@@ -216,7 +262,7 @@ router.post('/', async (req, res) => {
             );
 
             // Deduct extra inventory if applicable
-            if (menuItemId) {
+            if (menuItemId && isInventoryEnabled) {
               const [eIng] = await connection.query(
                 'SELECT inventory_item_id, quantity_required FROM menu_item_extras WHERE menu_item_id = ? AND name = ?',
                 [menuItemId, extra.name]
@@ -231,17 +277,26 @@ router.post('/', async (req, res) => {
           }
         }
 
-        // Deduct Inventory based on Recipe (Phase 3)
+        // Deduct Stock based on Inventory Toggle Settings
         if (menuItemId) {
-          const [ingredients] = await connection.query(
-            'SELECT inventory_item_id, quantity_required FROM menu_item_ingredients WHERE menu_item_id = ?',
-            [menuItemId]
-          );
-          for (const ing of ingredients) {
-            const totalRequired = parseFloat(ing.quantity_required) * (item.quantity || 1);
+          if (isInventoryEnabled) {
+            // Standard mode: deduct recipe ingredients
+            const [ingredients] = await connection.query(
+              'SELECT inventory_item_id, quantity_required FROM menu_item_ingredients WHERE menu_item_id = ?',
+              [menuItemId]
+            );
+            for (const ing of ingredients) {
+              const totalRequired = parseFloat(ing.quantity_required) * (item.quantity || 1);
+              await connection.execute(
+                'UPDATE inventory_items SET quantity = quantity - ? WHERE id = ?',
+                [totalRequired, ing.inventory_item_id]
+              );
+            }
+          } else {
+            // Simplified mode: deduct quantity directly from menu item
             await connection.execute(
-              'UPDATE inventory_items SET quantity = quantity - ? WHERE id = ?',
-              [totalRequired, ing.inventory_item_id]
+              'UPDATE menu_items SET quantity = quantity - ? WHERE id = ?',
+              [item.quantity || 1, menuItemId]
             );
           }
         }
@@ -665,20 +720,30 @@ router.patch('/:id', async (req, res) => {
             }
           }
           
-          if (shouldReleaseTable && tableId) {
-            await connection.execute(
-              'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
-              [tableId]
-            );
+          if (shouldReleaseTable) {
+            const [orderTables] = await connection.execute('SELECT table_id FROM order_tables WHERE order_id = ?', [id]);
+            const releaseTableIds = orderTables.length > 0 ? orderTables.map(ot => ot.table_id) : (tableId ? [tableId] : []);
+            for (const tId of releaseTableIds) {
+              await connection.execute(
+                'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
+                [tId]
+              );
+              await autoVacateReservationOnCheckout(connection, tId);
+            }
           }
         }
       } else if (status && ['Cancelled', 'Rejected'].includes(status)) {
         const [orderData] = await connection.execute('SELECT table_id FROM orders WHERE id = ?', [id]);
-        if (orderData.length > 0 && orderData[0].table_id) {
-          await connection.execute(
-            'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
-            [orderData[0].table_id]
-          );
+        if (orderData.length > 0) {
+          const tableId = orderData[0].table_id;
+          const [orderTables] = await connection.execute('SELECT table_id FROM order_tables WHERE order_id = ?', [id]);
+          const releaseTableIds = orderTables.length > 0 ? orderTables.map(ot => ot.table_id) : (tableId ? [tableId] : []);
+          for (const tId of releaseTableIds) {
+            await connection.execute(
+              'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
+              [tId]
+            );
+          }
         }
       }
     }
@@ -751,11 +816,16 @@ router.post('/:id/checkout', async (req, res) => {
         }
       }
       
-      if (shouldReleaseTable && tableId) {
-        await connection.execute(
-          'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
-          [tableId]
-        );
+      if (shouldReleaseTable) {
+        const [orderTables] = await connection.execute('SELECT table_id FROM order_tables WHERE order_id = ?', [id]);
+        const releaseTableIds = orderTables.length > 0 ? orderTables.map(ot => ot.table_id) : (tableId ? [tableId] : []);
+        for (const tId of releaseTableIds) {
+          await connection.execute(
+            'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
+            [tId]
+          );
+          await autoVacateReservationOnCheckout(connection, tId);
+        }
       }
     }
 
@@ -787,7 +857,9 @@ router.put('/:id', async (req, res) => {
     customer_id,
     customer_name,
     customer_phone,
-    customer_details
+    customer_details,
+    branch_id,
+    tables
   } = req.body;
 
   const connection = await db.getConnection();
@@ -803,55 +875,115 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    // Fetch branch setting to check if inventory is enabled
+    const [settingsRows] = await connection.query(
+      'SELECT enable_inventory FROM branch_settings WHERE branch_id = ?',
+      [branch_id || 1]
+    );
+    const isInventoryEnabled = settingsRows.length > 0 ? !!settingsRows[0].enable_inventory : true;
+
+    const tablesPayload = tables || [];
+    const primaryTableId = tablesPayload.length > 0 ? tablesPayload[0].id : (table_id || null);
+
     // 1. Update order-level details
     await connection.execute(
       'UPDATE orders SET table_id = ?, user_id = ?, customer_id = ?, customer_name = ?, customer_phone = ?, order_type = ?, status = ?, total_amount = ?, discount_amount = ?, rejection_reason = ?, origin = ?, party_size = ? WHERE id = ?',
-      [table_id || null, user_id || 1, finalCustomerId || null, customer_name || null, customer_phone || null, order_type || 'Dine-In', status || 'Pending', total, discount_amount || 0, req.body.rejection_reason || null, req.body.origin || 'Counter', req.body.party_size || 1, id]
+      [primaryTableId, user_id || 1, finalCustomerId || null, customer_name || null, customer_phone || null, order_type || 'Dine-In', status || 'Pending', total, discount_amount || 0, req.body.rejection_reason || null, req.body.origin || 'Counter', req.body.party_size || req.body.guest_count || 1, id]
     );
+
+    // 1.2 Update order_tables junction records
+    // Retrieve previous tables to release them first
+    const [prevOrderTables] = await connection.execute('SELECT table_id FROM order_tables WHERE order_id = ?', [id]);
+    
+    // Delete existing junction table records for this order
+    await connection.execute('DELETE FROM order_tables WHERE order_id = ?', [id]);
+
+    const finalTables = tablesPayload.length > 0 
+      ? tablesPayload 
+      : (primaryTableId ? [{ id: primaryTableId, seats: req.body.party_size || req.body.guest_count || 1 }] : []);
+
+    for (const t of finalTables) {
+      await connection.execute(
+        'INSERT INTO order_tables (order_id, table_id, allocated_seats) VALUES (?, ?, ?)',
+        [id, t.id, t.seats || 1]
+      );
+    }
+
+    // 1.4 Update Table Statuses: Release old tables if they are no longer allocated, occupy new ones
+    if (order_type === 'Dine-In' && status !== 'Paid') {
+      const oldTableIds = prevOrderTables.map(ot => ot.table_id);
+      const newTableIds = finalTables.map(t => t.id);
+
+      // Release tables that are no longer part of this order
+      for (const oldTId of oldTableIds) {
+        if (!newTableIds.includes(oldTId)) {
+          await connection.execute(
+            'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
+            [oldTId]
+          );
+        }
+      }
+
+      // Occupy new tables
+      for (const newTId of newTableIds) {
+        await connection.execute(
+          'UPDATE restaurant_tables SET status = "Occupied" WHERE id = ?',
+          [newTId]
+        );
+      }
+    }
 
     // 1.5 Restore inventory for existing items before deleting them
     const [existingItems] = await connection.query('SELECT id, menu_item_id, quantity FROM order_items WHERE order_id = ?', [id]);
     for (const exItem of existingItems) {
       if (exItem.menu_item_id) {
-        // Restore main item ingredients
-        const [ingredients] = await connection.query(
-          'SELECT inventory_item_id, quantity_required FROM menu_item_ingredients WHERE menu_item_id = ?',
-          [exItem.menu_item_id]
-        );
-        for (const ing of ingredients) {
-          const totalRequired = parseFloat(ing.quantity_required) * exItem.quantity;
-          await connection.execute(
-            'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
-            [totalRequired, ing.inventory_item_id]
+        if (isInventoryEnabled) {
+          // Restore main item ingredients
+          const [ingredients] = await connection.query(
+            'SELECT inventory_item_id, quantity_required FROM menu_item_ingredients WHERE menu_item_id = ?',
+            [exItem.menu_item_id]
           );
-        }
+          for (const ing of ingredients) {
+            const totalRequired = parseFloat(ing.quantity_required) * exItem.quantity;
+            await connection.execute(
+              'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
+              [totalRequired, ing.inventory_item_id]
+            );
+          }
 
-        // Restore customization ingredients
-        const [exCusts] = await connection.query('SELECT type, customization_name FROM order_item_customizations WHERE order_item_id = ?', [exItem.id]);
-        for (const cust of exCusts) {
-          if (cust.type === 'Variant') {
-            const [vIng] = await connection.query(
-              'SELECT inventory_item_id, quantity_required FROM menu_item_variants WHERE menu_item_id = ? AND name = ?',
-              [exItem.menu_item_id, cust.customization_name]
-            );
-            if (vIng.length > 0 && vIng[0].inventory_item_id) {
-              await connection.execute(
-                'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
-                [parseFloat(vIng[0].quantity_required) * exItem.quantity, vIng[0].inventory_item_id]
+          // Restore customization ingredients
+          const [exCusts] = await connection.query('SELECT type, customization_name FROM order_item_customizations WHERE order_item_id = ?', [exItem.id]);
+          for (const cust of exCusts) {
+            if (cust.type === 'Variant') {
+              const [vIng] = await connection.query(
+                'SELECT inventory_item_id, quantity_required FROM menu_item_variants WHERE menu_item_id = ? AND name = ?',
+                [exItem.menu_item_id, cust.customization_name]
               );
-            }
-          } else if (cust.type === 'Extra') {
-            const [eIng] = await connection.query(
-              'SELECT inventory_item_id, quantity_required FROM menu_item_extras WHERE menu_item_id = ? AND name = ?',
-              [exItem.menu_item_id, cust.customization_name]
-            );
-            if (eIng.length > 0 && eIng[0].inventory_item_id) {
-              await connection.execute(
-                'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
-                [parseFloat(eIng[0].quantity_required) * exItem.quantity, eIng[0].inventory_item_id]
+              if (vIng.length > 0 && vIng[0].inventory_item_id) {
+                await connection.execute(
+                  'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
+                  [parseFloat(vIng[0].quantity_required) * exItem.quantity, vIng[0].inventory_item_id]
+                );
+              }
+            } else if (cust.type === 'Extra') {
+              const [eIng] = await connection.query(
+                'SELECT inventory_item_id, quantity_required FROM menu_item_extras WHERE menu_item_id = ? AND name = ?',
+                [exItem.menu_item_id, cust.customization_name]
               );
+              if (eIng.length > 0 && eIng[0].inventory_item_id) {
+                await connection.execute(
+                  'UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?',
+                  [parseFloat(eIng[0].quantity_required) * exItem.quantity, eIng[0].inventory_item_id]
+                );
+              }
             }
           }
+        } else {
+          // Simplified mode: restore directly to menu item quantity
+          await connection.execute(
+            'UPDATE menu_items SET quantity = quantity + ? WHERE id = ?',
+            [exItem.quantity, exItem.menu_item_id]
+          );
         }
       }
     }
@@ -882,7 +1014,7 @@ router.put('/:id', async (req, res) => {
           );
 
           // Deduct variant inventory if applicable
-          if (menuItemId) {
+          if (menuItemId && isInventoryEnabled) {
             const [vIng] = await connection.query(
               'SELECT inventory_item_id, quantity_required FROM menu_item_variants WHERE menu_item_id = ? AND name = ?',
               [menuItemId, item.variant.name]
@@ -903,7 +1035,7 @@ router.put('/:id', async (req, res) => {
             );
 
             // Deduct extra inventory if applicable
-            if (menuItemId) {
+            if (menuItemId && isInventoryEnabled) {
               const [eIng] = await connection.query(
                 'SELECT inventory_item_id, quantity_required FROM menu_item_extras WHERE menu_item_id = ? AND name = ?',
                 [menuItemId, extra.name]
@@ -918,17 +1050,26 @@ router.put('/:id', async (req, res) => {
           }
         }
 
-        // Deduct Inventory based on Recipe (Phase 3)
+        // Deduct Stock based on Inventory Toggle Settings
         if (menuItemId) {
-          const [ingredients] = await connection.query(
-            'SELECT inventory_item_id, quantity_required FROM menu_item_ingredients WHERE menu_item_id = ?',
-            [menuItemId]
-          );
-          for (const ing of ingredients) {
-            const totalRequired = parseFloat(ing.quantity_required) * (item.quantity || 1);
+          if (isInventoryEnabled) {
+            // Standard mode: deduct recipe ingredients
+            const [ingredients] = await connection.query(
+              'SELECT inventory_item_id, quantity_required FROM menu_item_ingredients WHERE menu_item_id = ?',
+              [menuItemId]
+            );
+            for (const ing of ingredients) {
+              const totalRequired = parseFloat(ing.quantity_required) * (item.quantity || 1);
+              await connection.execute(
+                'UPDATE inventory_items SET quantity = quantity - ? WHERE id = ?',
+                [totalRequired, ing.inventory_item_id]
+              );
+            }
+          } else {
+            // Simplified mode: deduct quantity directly from menu item
             await connection.execute(
-              'UPDATE inventory_items SET quantity = quantity - ? WHERE id = ?',
-              [totalRequired, ing.inventory_item_id]
+              'UPDATE menu_items SET quantity = quantity - ? WHERE id = ?',
+              [item.quantity || 1, menuItemId]
             );
           }
         }
@@ -972,11 +1113,16 @@ router.put('/:id', async (req, res) => {
           }
         }
         
-        if (shouldReleaseTable && tableId) {
-          await connection.execute(
-            'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
-            [tableId]
-          );
+        if (shouldReleaseTable) {
+          const [orderTables] = await connection.execute('SELECT table_id FROM order_tables WHERE order_id = ?', [id]);
+          const releaseTableIds = orderTables.length > 0 ? orderTables.map(ot => ot.table_id) : (tableId ? [tableId] : []);
+          for (const tId of releaseTableIds) {
+            await connection.execute(
+              'UPDATE restaurant_tables SET status = "Available" WHERE id = ?',
+              [tId]
+            );
+            await autoVacateReservationOnCheckout(connection, tId);
+          }
         }
       }
     }

@@ -427,4 +427,20 @@ router.delete('/ingredients/:id', async (req, res) => {
   }
 });
 
+// @route   PUT /api/menu/items/:id/stock
+// @desc    Update stock level of a menu item directly (for simplified inventory mode)
+router.put('/items/:id/stock', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body;
+    
+    await db.query('UPDATE menu_items SET quantity = ? WHERE id = ?', [quantity, id]);
+    
+    res.json({ success: true, message: 'Menu item stock updated successfully' });
+  } catch (error) {
+    console.error('Update Menu Item Stock Error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = router;

@@ -110,7 +110,8 @@ router.patch('/branch', async (req, res) => {
       'opening_time',
       'closing_time',
       'first_order_time',
-      'last_order_time'
+      'last_order_time',
+      'enable_inventory'
     ];
     
     const updates = [];
