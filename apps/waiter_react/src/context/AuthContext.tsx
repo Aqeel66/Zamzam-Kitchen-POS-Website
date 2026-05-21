@@ -17,9 +17,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = authService.getCurrentUser();
-    if (savedUser) {
-      setUser(savedUser);
+    try {
+      // Only restore session on page reload — not on new tab/fresh navigation.
+      // sessionStorage is inherited by tabs opened from existing tabs, so we
+      // must check the navigation type to avoid bypassing login.
+      const navEntries = performance.getEntriesByType('navigation');
+      const navType = navEntries.length > 0
+        ? (navEntries[0] as PerformanceNavigationTiming).type
+        : 'navigate';
+
+      if (navType === 'reload' || navType === 'back_forward') {
+        const savedUser = authService.getCurrentUser();
+        if (savedUser) {
+          setUser(savedUser);
+        }
+      } else {
+        // New navigation (new tab, direct URL, link click) — clear inherited session
+        authService.logout();
+      }
+    } catch (_err) {
+      authService.logout();
     }
     setIsLoading(false);
   }, []);

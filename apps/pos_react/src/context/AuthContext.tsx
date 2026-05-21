@@ -21,8 +21,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     try {
-      const savedUser = sessionStorage.getItem('pos_user');
-      return savedUser ? JSON.parse(savedUser) : null;
+      // sessionStorage is inherited by tabs opened from existing tabs.
+      // Check navigation type to avoid bypassing login on new tabs.
+      const navEntries = performance.getEntriesByType('navigation');
+      const navType = navEntries.length > 0
+        ? (navEntries[0] as PerformanceNavigationTiming).type
+        : 'navigate';
+
+      if (navType === 'reload' || navType === 'back_forward') {
+        const savedUser = sessionStorage.getItem('pos_user');
+        return savedUser ? JSON.parse(savedUser) : null;
+      } else {
+        // New navigation (new tab, direct URL) - clear inherited session
+        sessionStorage.removeItem('pos_user');
+        return null;
+      }
     } catch (err) {
       console.error('Error loading saved user from sessionStorage:', err);
       return null;
