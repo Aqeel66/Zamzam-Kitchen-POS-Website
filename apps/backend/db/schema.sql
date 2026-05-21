@@ -320,6 +320,7 @@ CREATE TABLE IF NOT EXISTS reservation_tables (
     reservation_id INT NOT NULL,
     table_id INT NOT NULL,
     allocated_seats INT NOT NULL DEFAULT 1,
+    selected_seats VARCHAR(255) DEFAULT NULL,
     FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE,
     FOREIGN KEY (table_id) REFERENCES restaurant_tables(id)
 );
@@ -360,6 +361,7 @@ CREATE TABLE IF NOT EXISTS order_tables (
     order_id INT NOT NULL,
     table_id INT NOT NULL,
     allocated_seats INT NOT NULL DEFAULT 1,
+    selected_seats VARCHAR(255) DEFAULT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (table_id) REFERENCES restaurant_tables(id)
 );
