@@ -30,13 +30,20 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
+  const cleanTableNum = (num: string | number) => {
+    if (!num) return '';
+    const clean = num.toString().trim().replace(/^[t\s\-_–—]+/i, '');
+    return 'T-' + clean;
+  };
+
   // Restore table context from sessionStorage (survives page navigation in same tab)
   const [tableId, setTableId] = useState<number | null>(() => {
     const stored = sessionStorage.getItem('qr_table_id');
     return stored ? parseInt(stored) : null;
   });
   const [tableNumber, setTableNumber] = useState<string | null>(() => {
-    return sessionStorage.getItem('qr_table_number');
+    const stored = sessionStorage.getItem('qr_table_number');
+    return stored ? cleanTableNum(stored) : null;
   });
 
   useEffect(() => {
@@ -47,10 +54,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [tableId, tableNumber]);
 
   const setTableContext = (id: number, number: string) => {
+    const cleaned = cleanTableNum(number);
     setTableId(id);
-    setTableNumber(number);
+    setTableNumber(cleaned);
     sessionStorage.setItem('qr_table_id', id.toString());
-    sessionStorage.setItem('qr_table_number', number);
+    sessionStorage.setItem('qr_table_number', cleaned);
   };
 
   const clearTableContext = () => {

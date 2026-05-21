@@ -137,10 +137,14 @@ router.post('/', async (req, res) => {
     const reservationId = result.insertId;
 
     // Insert junction table entries
-    for (const tId of tablesToCheck) {
+    const tablesList = tables || table_ids || [];
+    for (const t of tablesList) {
+      const tId = typeof t === 'object' ? t.id : t;
+      const seats = typeof t === 'object' ? (t.allocated_seats || 1) : 1;
+      const selected_seats = typeof t === 'object' ? t.selected_seats : null;
       await connection.execute(
-        'INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)',
-        [reservationId, tId]
+        'INSERT INTO reservation_tables (reservation_id, table_id, allocated_seats, selected_seats) VALUES (?, ?, ?, ?)',
+        [reservationId, tId, seats, selected_seats || null]
       );
     }
 
@@ -195,9 +199,16 @@ router.get('/available-tables', async (req, res) => {
                    AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')
                ), 0
              ) as live_occupancy,
+             (
+               SELECT GROUP_CONCAT(ot.selected_seats SEPARATOR ',')
+               FROM orders o
+               LEFT JOIN order_tables ot ON o.id = ot.order_id
+               WHERE (ot.table_id = t.id OR (o.table_id = t.id AND ot.table_id IS NULL))
+                 AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')
+             ) as live_seats_str,
              COALESCE(
                (
-                 SELECT SUM(r.party_size)
+                 SELECT SUM(COALESCE(rt.allocated_seats, r.party_size))
                  FROM reservations r
                  LEFT JOIN reservation_tables rt ON r.id = rt.reservation_id
                  WHERE (rt.table_id = t.id OR (r.table_id = t.id AND rt.table_id IS NULL))
@@ -206,9 +217,19 @@ router.get('/available-tables', async (req, res) => {
                    AND r.reservation_time < ADDTIME(?, '02:00:00')
                    AND ADDTIME(r.reservation_time, '01:59:00') > ?
                ), 0
-             ) as reservation_occupancy
+             ) as reservation_occupancy,
+             (
+               SELECT GROUP_CONCAT(rt.selected_seats SEPARATOR ',')
+               FROM reservations r
+               LEFT JOIN reservation_tables rt ON r.id = rt.reservation_id
+               WHERE (rt.table_id = t.id OR (r.table_id = t.id AND rt.table_id IS NULL))
+                 AND r.reservation_date = ?
+                 AND r.status NOT IN ('Cancelled', 'No-Show', 'Vacated', 'Completed')
+                 AND r.reservation_time < ADDTIME(?, '02:00:00')
+                 AND ADDTIME(r.reservation_time, '01:59:00') > ?
+             ) as reservation_seats_str
       FROM restaurant_tables t
-    `, [cleanDate, time, time]);
+    `, [cleanDate, time, time, cleanDate, time, time]);
 
     // Process table capacity & availability
     const processedTables = tables.map(t => {
@@ -222,11 +243,48 @@ router.get('/available-tables', async (req, res) => {
       
       const balance_seats = Math.max(0, t.capacity - current_occupancy);
       
+      // Compute specific occupied seats list
+      const liveSeatsSet = new Set();
+      if (t.live_seats_str) {
+        t.live_seats_str.split(',').forEach(s => {
+          const num = parseInt(s.trim());
+          if (!isNaN(num)) liveSeatsSet.add(num);
+        });
+      }
+      
+      const resSeatsSet = new Set();
+      if (t.reservation_seats_str) {
+        t.reservation_seats_str.split(',').forEach(s => {
+          const num = parseInt(s.trim());
+          if (!isNaN(num)) resSeatsSet.add(num);
+        });
+      }
+      
+      const occupiedSeatsSet = new Set();
+      if (isToday) {
+        liveSeatsSet.forEach(s => occupiedSeatsSet.add(s));
+        resSeatsSet.forEach(s => occupiedSeatsSet.add(s));
+      } else {
+        resSeatsSet.forEach(s => occupiedSeatsSet.add(s));
+      }
+      
+      // Fallback for orders without specific seat numbers
+      const targetCount = current_occupancy;
+      if (occupiedSeatsSet.size < targetCount) {
+        for (let seatNum = 1; seatNum <= t.capacity; seatNum++) {
+          if (occupiedSeatsSet.size >= targetCount) break;
+          occupiedSeatsSet.add(seatNum);
+        }
+      }
+      
+      const occupied_seats = Array.from(occupiedSeatsSet).sort((a, b) => a - b);
+      
       return {
         ...t,
         current_occupancy,
         balance_seats,
-        remaining_seats: balance_seats
+        remaining_seats: balance_seats,
+        occupied_seats
       };
     });
 
@@ -269,7 +327,7 @@ router.get('/', async (req, res) => {
              DATE_FORMAT(r.reservation_date, '%Y-%m-%d') as reservation_date,
              COALESCE(
                (
-                 SELECT GROUP_CONCAT(rt.table_number SEPARATOR ', ')
+                 SELECT GROUP_CONCAT(DISTINCT rt.table_number ORDER BY rt.table_number SEPARATOR ', ')
                  FROM reservation_tables rtb
                  JOIN restaurant_tables rt ON rtb.table_id = rt.id
                  WHERE rtb.reservation_id = r.id
@@ -278,13 +336,32 @@ router.get('/', async (req, res) => {
              ) as assigned_table_number,
              COALESCE(
                (
-                 SELECT GROUP_CONCAT(rt.id SEPARATOR ',')
+                 SELECT GROUP_CONCAT(DISTINCT rt.id ORDER BY rt.id SEPARATOR ',')
                  FROM reservation_tables rtb
                  JOIN restaurant_tables rt ON rtb.table_id = rt.id
                  WHERE rtb.reservation_id = r.id
                ),
                t.id
-             ) as assigned_table_ids 
+             ) as assigned_table_ids,
+             (
+               SELECT CONCAT('[', GROUP_CONCAT(
+                 JSON_OBJECT(
+                   'table_id', grouped.table_id,
+                   'table_number', grouped.table_number,
+                   'selected_seats', grouped.all_seats
+                 )
+               ORDER BY grouped.table_number
+               SEPARATOR ','), ']')
+               FROM (
+                 SELECT rtb.table_id,
+                        rt.table_number,
+                        GROUP_CONCAT(DISTINCT rtb.selected_seats ORDER BY rtb.selected_seats SEPARATOR ',') as all_seats
+                 FROM reservation_tables rtb
+                 JOIN restaurant_tables rt ON rtb.table_id = rt.id
+                 WHERE rtb.reservation_id = r.id
+                 GROUP BY rtb.table_id, rt.table_number
+               ) grouped
+             ) as assigned_tables_json
       FROM reservations r 
       LEFT JOIN restaurant_tables t ON r.table_id = t.id 
       WHERE 1=1
@@ -430,13 +507,17 @@ router.patch('/:id', async (req, res) => {
         return res.status(404).json({ success: false, message: 'Reservation not found' });
      }
 
-     // Update reservation_tables junction records if tables were updated
-     if (tablesToCheck !== undefined) {
-       await db.query('DELETE FROM reservation_tables WHERE reservation_id = ?', [id]);
-       for (const tId of tablesToCheck) {
-         await db.query('INSERT INTO reservation_tables (reservation_id, table_id) VALUES (?, ?)', [id, tId]);
-       }
-     }
+      // Update reservation_tables junction records if tables were updated
+      if (tablesToCheck !== undefined) {
+        await db.query('DELETE FROM reservation_tables WHERE reservation_id = ?', [id]);
+        const tablesList = tables || table_ids || [];
+        for (const t of tablesList) {
+          const tId = typeof t === 'object' ? t.id : t;
+          const seats = typeof t === 'object' ? (t.allocated_seats || 1) : 1;
+          const selected_seats = typeof t === 'object' ? t.selected_seats : null;
+          await db.query('INSERT INTO reservation_tables (reservation_id, table_id, allocated_seats, selected_seats) VALUES (?, ?, ?, ?)', [id, tId, seats, selected_seats || null]);
+        }
+      }
 
      // --- Table Status Sync ---
      const [resData] = await db.query('SELECT table_id FROM reservations WHERE id = ?', [id]);

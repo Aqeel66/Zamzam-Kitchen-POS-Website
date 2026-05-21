@@ -1,9 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useState, useEffect, useMemo } from 'react';
-import { CreditCard, Banknote, Store, Car, Package, Heart, MapPin, User, Phone, Mail, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { CreditCard, Banknote, Store, Car, Package, Heart, MapPin, User, Phone, Mail, ShoppingBag, ShieldCheck, Utensils, X } from 'lucide-react';
 import { API_BASE_URL, resolveImageUrl } from '../config';
 import './Checkout.css';
+
+const formatTableNumber = (num: string | number) => {
+  if (!num) return '';
+  const str = num.toString().trim();
+  const clean = str.replace(/^[t\s\-_–—]+/i, '');
+  return 'T-' + clean;
+};
 
 export default function Checkout() {
   const { totalPrice, items, clearCart, tableId, tableNumber, clearTableContext } = useCart();
@@ -17,6 +24,10 @@ export default function Checkout() {
     isQrOrder ? 'dine-in' : 'delivery'
   );
   const [branchSettings, setBranchSettings] = useState<any>(null);
+  const [webTables, setWebTables] = useState<any[]>([]);
+  const [isSeatingModalOpen, setIsSeatingModalOpen] = useState(false);
+  const [selectedTablesList, setSelectedTablesList] = useState<any[]>([]);
+  const [tempSeatingSelection, setTempSeatingSelection] = useState<any[]>([]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/settings`)
@@ -24,13 +35,33 @@ export default function Checkout() {
       .then(data => {
         setBranchSettings(data.branch);
         if (!isQrOrder) {
-          if (data.branch.allow_delivery === 0 && data.branch.allow_pickup !== 0) {
-            setOrderType('pickup');
-          } else if (data.branch.allow_pickup === 0 && data.branch.allow_delivery !== 0) {
+          if (data.branch.allow_delivery !== 0) {
             setOrderType('delivery');
+          } else if (data.branch.allow_pickup !== 0) {
+            setOrderType('pickup');
+          } else if (data.branch.allow_dinein !== 0) {
+            setOrderType('dine-in');
           }
         }
       });
+  }, [isQrOrder]);
+
+  useEffect(() => {
+    if (!isQrOrder) {
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60000;
+      const localDateStr = new Date(now.getTime() - offset).toISOString().split('T')[0];
+      const localTimeStr = new Date(now.getTime() - offset).toISOString().split('T')[1].substring(0, 5);
+
+      fetch(`${API_BASE_URL}/reservations/available-tables?date=${localDateStr}&time=${localTimeStr}`)
+        .then(res => res.json())
+        .then(data => {
+          // Endpoint may return { tables: [...] } or a plain array
+          const tableList = Array.isArray(data) ? data : (data.tables || []);
+          setWebTables(tableList);
+        })
+        .catch(err => console.error("Error fetching tables:", err));
+    }
   }, [isQrOrder]);
 
   const [promoError, setPromoError] = useState<string | null>(null);
@@ -94,6 +125,43 @@ export default function Checkout() {
     setPromoError(null);
   };
 
+  const handleToggleTable = (table: any) => {
+    setTempSeatingSelection(prev => {
+      const exists = prev.find(t => t.id === table.id);
+      if (exists) {
+        return prev.filter(t => t.id !== table.id);
+      } else {
+        return [...prev, {
+          id: table.id,
+          table_number: table.table_number,
+          capacity: table.capacity,
+          selectedSeats: []
+        }];
+      }
+    });
+  };
+
+  const handleToggleSeat = (tableId: number, seatNum: number) => {
+    setTempSeatingSelection(prev => {
+      return prev.map(t => {
+        if (t.id === tableId) {
+          const isSelected = t.selectedSeats.includes(seatNum);
+          const nextSeats = isSelected
+            ? t.selectedSeats.filter((s: number) => s !== seatNum)
+            : [...t.selectedSeats, seatNum];
+          return { ...t, selectedSeats: nextSeats };
+        }
+        return t;
+      });
+    });
+  };
+
+  const handleSeatingConfirm = (confirmedList: any[]) => {
+    const filtered = confirmedList.filter(t => t.selectedSeats.length > 0);
+    setSelectedTablesList(filtered);
+    setIsSeatingModalOpen(false);
+  };
+
   const deliveryFee = orderType === 'delivery' ? 5.00 : 0.00;
   
   const taxAmount = useMemo(() => {
@@ -154,6 +222,18 @@ export default function Checkout() {
     if (isQrOrder && tableId) {
       orderData.table_id = tableId;
       orderData.table_number = tableNumber;
+    } else if (orderType === 'dine-in') {
+      if (selectedTablesList.length === 0) {
+        alert("Please select at least one table and seats for your Dine-In order.");
+        return;
+      }
+      orderData.table_id = selectedTablesList[0].id;
+      orderData.table_number = selectedTablesList[0].table_number;
+      orderData.tables = selectedTablesList.map(t => ({
+        id: t.id,
+        seats: t.selectedSeats.length,
+        selected_seats: t.selectedSeats.join(',')
+      }));
     }
 
     if (paymentMethod === 'card') {
@@ -267,7 +347,90 @@ export default function Checkout() {
                         <span>Pick-Up</span>
                      </button>
                    )}
+                   {(branchSettings?.allow_dinein !== 0) && (
+                     <button 
+                        type="button" 
+                        onClick={() => { 
+                           setOrderType('dine-in'); 
+                           if(paymentMethod === 'counter') setPaymentMethod('card');
+                           setTempSeatingSelection([...selectedTablesList]);
+                        }}
+                        className={`payment-method-btn ${orderType === 'dine-in' ? 'active' : ''}`}
+                        style={{ flex: 1, height: 'auto', padding: '1.5rem' }}
+                     >
+                        <Utensils size={24}/>
+                        <span>Dine-In</span>
+                     </button>
+                   )}
                 </div>
+              )}
+
+              {/* Seating Layout launcher for non-QR Dine-In */}
+              {!isQrOrder && orderType === 'dine-in' && (
+                 <div className="checkout-card" style={{ border: '2px dashed var(--primary-orange)', background: 'rgba(255, 107, 53, 0.02)' }}>
+                    <h3 className="checkout-section-title" style={{ color: 'var(--primary-orange)' }}>
+                       <Utensils size={20} /> Assigned Seating Selection
+                    </h3>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem', fontWeight: 500 }}>
+                       Choose the table(s) and specific seat(s) you would like to book for your dine-in experience.
+                    </p>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempSeatingSelection([...selectedTablesList]);
+                        setIsSeatingModalOpen(true);
+                      }}
+                      className="seating-launcher-btn"
+                      style={{
+                        width: '100%',
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        border: '2px dashed #0d9488',
+                        background: 'transparent',
+                        color: '#0d9488',
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = '#f0fdfa';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <Utensils size={18} />
+                      {selectedTablesList.length > 0 ? 'Modify Seating Selection' : 'Select Table & Seats'}
+                    </button>
+
+                    {selectedTablesList.length > 0 ? (
+                      <div className="seating-summary-card" style={{ marginTop: '1.25rem', padding: '1rem', background: '#f0fdfa', border: '1px solid #ccfbf1', borderRadius: '12px' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#0f766e', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Confirmed Assigned Seating</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          {selectedTablesList.map(t => (
+                            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: '#115e59', fontWeight: 600 }}>
+                              <span>Table {formatTableNumber(t.table_number)}</span>
+                              <span>Seat{t.selectedSeats.length > 1 ? 's' : ''}: {t.selectedSeats.join(', ')}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #b2f5ea', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#0f766e', fontWeight: 700 }}>
+                          <span>Total Seating Booked</span>
+                          <span>{selectedTablesList.reduce((acc, t) => acc + t.selectedSeats.length, 0)} Seat(s)</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: '1.25rem', padding: '1rem', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b45309', fontSize: '0.85rem', fontWeight: 600 }}>
+                        <span>⚠️ No tables or seats have been selected yet. Seating is required to place a Dine-In order.</span>
+                      </div>
+                    )}
+                 </div>
               )}
 
              <div className="checkout-card">
@@ -338,25 +501,33 @@ export default function Checkout() {
                 <h3 className="checkout-section-title"><CreditCard size={20} /> Payment Details</h3>
                 
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                   <button type="button" onClick={() => setPaymentMethod('card')} className={`payment-method-btn ${paymentMethod === 'card' ? 'active' : ''}`}>
-                      <CreditCard size={20}/> <span>Online Card</span>
-                   </button>
+                   {branchSettings?.allow_card_website !== 0 && (
+                     <button type="button" onClick={() => setPaymentMethod('card')} className={`payment-method-btn ${paymentMethod === 'card' ? 'active' : ''}`}>
+                        <CreditCard size={20}/> <span>Online Card</span>
+                     </button>
+                   )}
                    
-                   {isQrOrder && (
+                   {isQrOrder && branchSettings?.allow_cash_website !== 0 && (
                      <button type="button" onClick={() => setPaymentMethod('cash')} className={`payment-method-btn ${paymentMethod === 'cash' ? 'active' : ''}`}>
                         <Banknote size={20}/> <span>Cash at Table</span>
                      </button>
                    )}
 
-                   {!isQrOrder && orderType === 'delivery' && (
+                   {!isQrOrder && orderType === 'delivery' && branchSettings?.allow_cash_website !== 0 && (
                       <button type="button" onClick={() => setPaymentMethod('cash')} className={`payment-method-btn ${paymentMethod === 'cash' ? 'active' : ''}`}>
                          <Banknote size={20}/> <span>Cash on Delivery</span>
                       </button>
                    )}
 
-                   {!isQrOrder && orderType === 'pickup' && (
+                   {!isQrOrder && orderType === 'pickup' && branchSettings?.allow_cash_website !== 0 && (
                       <button type="button" onClick={() => setPaymentMethod('counter')} className={`payment-method-btn ${paymentMethod === 'counter' ? 'active' : ''}`}>
                          <Store size={20}/> <span>Pay at Counter</span>
+                      </button>
+                   )}
+
+                   {!isQrOrder && orderType === 'dine-in' && branchSettings?.allow_cash_website !== 0 && (
+                      <button type="button" onClick={() => setPaymentMethod('cash')} className={`payment-method-btn ${paymentMethod === 'cash' ? 'active' : ''}`}>
+                         <Banknote size={20}/> <span>Cash at Table</span>
                       </button>
                    )}
                 </div>
@@ -547,6 +718,137 @@ export default function Checkout() {
              <p>Please do not refresh the page or close your browser.</p>
              <div className="encryption-badge">
                <ShieldCheck size={14} /> 256-bit SSL Encryption
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* Multiple Table & Seat Selection Modal */}
+       {isSeatingModalOpen && (
+         <div className="seating-modal-overlay">
+           <div
+             style={{ position: 'absolute', inset: 0, zIndex: -1 }}
+             onClick={() => setIsSeatingModalOpen(false)}
+           />
+           <div className="seating-modal-container">
+             {/* Modal Header */}
+             <div className="seating-modal-header">
+               <div>
+                 <h2 className="seating-header-title">
+                   <Utensils size={16} />
+                   <span style={{ marginLeft: '0.5rem' }}>Multiple Table &amp; Seat Selection Layout</span>
+                 </h2>
+                 <p className="seating-header-subtitle">
+                   Check a table on the left, then select its seats on the right
+                 </p>
+               </div>
+               <button
+                 type="button"
+                 className="seating-close-btn"
+                 onClick={() => setIsSeatingModalOpen(false)}
+               >
+                 <X size={16} />
+               </button>
+             </div>
+
+             {/* Modal Body */}
+             <div className="seating-modal-body">
+               {webTables.map(table => {
+                 const tempTable = tempSeatingSelection.find(t => t.id === table.id);
+                 const isChecked = !!tempTable;
+                 const selectedCount = tempTable ? tempTable.selectedSeats.length : 0;
+                 const isTableFullyOccupied = table.balance_seats !== undefined && table.balance_seats <= 0;
+
+                 return (
+                   <div key={table.id} className="seating-table-row">
+                     {/* 1. Checkbox */}
+                     <button
+                       type="button"
+                       disabled={isTableFullyOccupied}
+                       onClick={() => handleToggleTable(table)}
+                       className={`seating-checkbox-btn ${isTableFullyOccupied ? 'occupied' : ''} ${isChecked ? 'active' : ''}`}
+                     >
+                       {isTableFullyOccupied ? '✕' : (isChecked ? '✓' : '')}
+                     </button>
+
+                     {/* 2. Table Box */}
+                     <div className={`seating-table-box ${isTableFullyOccupied ? 'occupied' : ''} ${isChecked ? 'active' : ''}`}>
+                       <span className="seating-table-number">{formatTableNumber(table.table_number)}</span>
+                       <span className="seating-table-capacity">
+                         {isTableFullyOccupied ? 'Fully Occupied' : `${selectedCount}/${table.capacity} Seats`}
+                       </span>
+                     </div>
+
+                     {/* 3. Arrow */}
+                     <div className={`seating-arrow ${isChecked ? 'active' : ''}`}>
+                       {isChecked ? (
+                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} style={{ width: '24px', height: '24px' }}>
+                           <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                         </svg>
+                       ) : (
+                         <div style={{ width: '24px', height: '2px', background: '#e2e8f0' }} />
+                       )}
+                     </div>
+
+                     {/* 4. Seats */}
+                     <div className="seating-seats-container">
+                       {isChecked ? (
+                         Array.from({ length: table.capacity }, (_, idx) => idx + 1).map(seatNum => {
+                           const isOccupied = table.occupied_seats
+                             ? table.occupied_seats.includes(seatNum)
+                             : seatNum <= (table.capacity - (table.balance_seats !== undefined ? table.balance_seats : table.capacity));
+                           const isSeatChecked = tempTable.selectedSeats.includes(seatNum);
+                           return (
+                             <button
+                               key={seatNum}
+                               type="button"
+                               disabled={isOccupied}
+                               onClick={() => handleToggleSeat(table.id, seatNum)}
+                               className={`seating-seat-btn ${isOccupied ? 'occupied' : ''} ${isSeatChecked ? 'active' : ''}`}
+                             >
+                               <div className="seating-seat-indicator">
+                                 {isOccupied ? '✕' : (isSeatChecked ? '✓' : '')}
+                               </div>
+                               <div className="seating-seat-details">
+                                 <span className="seating-seat-name">Seat {seatNum}</span>
+                                 {isOccupied && <span className="seating-seat-status">Occupied</span>}
+                               </div>
+                             </button>
+                           );
+                         })
+                       ) : (
+                         <span className="seating-unselected-text">Table Unselected</span>
+                       )}
+                     </div>
+                   </div>
+                 );
+               })}
+             </div>
+
+             {/* Modal Footer */}
+             <div className="seating-modal-footer">
+               <div>
+                 <span className="seating-footer-summary-label">Total Assigned Seating</span>
+                 <p className="seating-footer-summary-value" style={{ margin: '0.2rem 0 0 0' }}>
+                   {tempSeatingSelection.length} Table{tempSeatingSelection.length !== 1 ? 's' : ''} | {tempSeatingSelection.reduce((acc, t) => acc + t.selectedSeats.length, 0)} Seat{tempSeatingSelection.reduce((acc, t) => acc + t.selectedSeats.length, 0) !== 1 ? 's' : ''} Selected
+                 </p>
+               </div>
+               <div className="seating-footer-actions">
+                 <button
+                   type="button"
+                   onClick={() => setIsSeatingModalOpen(false)}
+                   className="seating-btn-cancel"
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => handleSeatingConfirm(tempSeatingSelection)}
+                   className="seating-btn-confirm"
+                 >
+                   Confirm Layout Seating
+                 </button>
+               </div>
              </div>
            </div>
          </div>

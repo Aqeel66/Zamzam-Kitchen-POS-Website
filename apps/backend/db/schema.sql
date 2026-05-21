@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     booking_fee_amount DECIMAL(10,2) DEFAULT 10.00,
     is_booking_fee_enabled BOOLEAN DEFAULT TRUE,
     order_sort_direction VARCHAR(20) DEFAULT 'Descending',
+    allow_dinein TINYINT(1) DEFAULT 1,
     allow_delivery TINYINT(1) DEFAULT 1,
     allow_pickup TINYINT(1) DEFAULT 1,
     is_tax_enabled TINYINT(1) DEFAULT 1,
@@ -129,6 +130,10 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     first_order_time TIME DEFAULT '09:30:00',
     last_order_time TIME DEFAULT '21:30:00',
     enable_inventory BOOLEAN DEFAULT TRUE,
+    allow_cash_website TINYINT(1) DEFAULT 1,
+    allow_card_website TINYINT(1) DEFAULT 1,
+    allow_cash_pos TINYINT(1) DEFAULT 1,
+    allow_card_pos TINYINT(1) DEFAULT 1,
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 

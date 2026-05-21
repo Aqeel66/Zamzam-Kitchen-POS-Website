@@ -23,6 +23,13 @@ import PrintSuccessModal from '../components/PrintSuccessModal';
 
 const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(Boolean).join(' ');
 
+const formatTableNumber = (num: string | number) => {
+  if (!num) return '';
+  const str = num.toString().trim();
+  const clean = str.replace(/^[t\s\-_–—]+/i, '');
+  return 'T-' + clean;
+};
+
 export default function Reservations() {
   const [reservations, setReservations] = useState<any[]>([]);
   const [tables, setTables] = useState<any[]>([]);
@@ -44,6 +51,51 @@ export default function Reservations() {
   const [isLoadingAvailableTables, setIsLoadingAvailableTables] = useState(false);
   const [reservationGap, setReservationGap] = useState(30);
 
+  // Card details state
+  const [cardHolder, setCardHolder] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardError, setCardError] = useState('');
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    let formattedValue = '';
+    for (let i = 0; i < value.length && i < 16; i++) {
+      if (i > 0 && i % 4 === 0) {
+        formattedValue += ' ';
+      }
+      formattedValue += value[i];
+    }
+    setCardNumber(formattedValue);
+    setCardError('');
+  };
+
+  const handleCardExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    let formattedValue = '';
+    if (value.length > 0) {
+      formattedValue += value.substring(0, 2);
+      if (value.length > 2) {
+        formattedValue += '/' + value.substring(2, 4);
+      }
+    }
+    setCardExpiry(formattedValue);
+    setCardError('');
+  };
+
+  const handleCardCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (value.length <= 4) {
+      setCardCvv(value);
+      setCardError('');
+    }
+  };
+
+  // Custom Calendar state
+  const [calendarMonth, setCalendarMonth] = useState<number>(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
+
   const getTodayStr = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -54,16 +106,134 @@ export default function Reservations() {
     last_name: '',
     phone: '',
     date: getTodayStr(),
-    time: '19:00',
+    time: '',
     guests: 2,
     table_id: '',
     table_ids: [],
+    seatingSelection: [],
     email: '',
     notes: '',
     notification_pref: 'whatsapp',
     payment_method: 'Cash',
     stay_duration: 60
   });
+
+  useEffect(() => {
+    if (formValues.date) {
+      const parts = formValues.date.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        if (!isNaN(year) && !isNaN(month)) {
+          setCalendarYear(year);
+          setCalendarMonth(month);
+        }
+      }
+    }
+  }, [formValues.date]);
+
+  const getMonthOptions = () => {
+    const options = [];
+    const currentDate = new Date();
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      options.push({
+        value: `${d.getFullYear()}-${d.getMonth()}`,
+        label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      });
+    }
+    return options;
+  };
+
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const getTimeSlots = () => {
+    let startHour = 11;
+    let startMin = 30;
+    let endHour = 22;
+    let endMin = 30;
+
+    if (branchInfo?.first_order_time) {
+      const parts = branchInfo.first_order_time.split(':');
+      if (parts.length >= 2) {
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (!isNaN(h)) {
+          startHour = h;
+          startMin = isNaN(m) ? 0 : m;
+        }
+      }
+    }
+
+    if (branchInfo?.last_order_time) {
+      const parts = branchInfo.last_order_time.split(':');
+      if (parts.length >= 2) {
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (!isNaN(h)) {
+          endHour = h;
+          endMin = isNaN(m) ? 0 : m;
+        }
+      }
+    }
+
+    const slots = [];
+    const current = new Date(2000, 0, 1, startHour, startMin, 0);
+    const end = new Date(2000, 0, 1, endHour, endMin, 0);
+
+    if (end < current) {
+      end.setDate(end.getDate() + 1);
+    }
+
+    while (current <= end) {
+      const hStr = String(current.getHours()).padStart(2, '0');
+      const mStr = String(current.getMinutes()).padStart(2, '0');
+      slots.push(`${hStr}:${mStr}`);
+      current.setMinutes(current.getMinutes() + 30);
+    }
+    return slots;
+  };
+
+  const handleToggleTable = (table: any) => {
+    const seatingSelection = formValues.seatingSelection || [];
+    const exists = seatingSelection.find((t: any) => t.id === table.id);
+    let newSelection;
+    if (exists) {
+      newSelection = seatingSelection.filter((t: any) => t.id !== table.id);
+    } else {
+      newSelection = [...seatingSelection, { id: table.id, selectedSeats: [] }];
+    }
+    setFormValues({
+      ...formValues,
+      seatingSelection: newSelection,
+      table_ids: newSelection.map((x: any) => x.id)
+    });
+  };
+
+  const handleToggleSeat = (tableId: number, seatNum: number) => {
+    const seatingSelection = formValues.seatingSelection || [];
+    const newSelection = seatingSelection.map((t: any) => {
+      if (t.id === tableId) {
+        const selectedSeats = t.selectedSeats.includes(seatNum)
+          ? t.selectedSeats.filter((s: number) => s !== seatNum)
+          : [...t.selectedSeats, seatNum];
+        return { ...t, selectedSeats };
+      }
+      return t;
+    }).filter((t: any) => t.selectedSeats.length > 0);
+    
+    setFormValues({
+      ...formValues,
+      seatingSelection: newSelection,
+      table_ids: newSelection.map((x: any) => x.id)
+    });
+  };
 
   const fetchAvailableTables = async () => {
     setIsLoadingAvailableTables(true);
@@ -83,7 +253,7 @@ export default function Reservations() {
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
 
   useEffect(() => {
-    if (formStep === 4 && formValues.date && formValues.time) {
+    if (formStep === 3 && formValues.date && formValues.time) {
       fetchAvailableTables();
     }
   }, [formStep, formValues.date, formValues.time]);
@@ -211,7 +381,7 @@ export default function Reservations() {
     // Date Validation
     if (formValues.date < getTodayStr()) {
       alert(`Invalid Date: You cannot make a reservation for a past date (${formValues.date}). Please select today or a future date.`);
-      setFormStep(2); // Jump back to date selection
+      setFormStep(1); // Jump back to date selection
       return;
     }
 
@@ -230,9 +400,16 @@ export default function Reservations() {
           email: formValues.email,
           date: formValues.date,
           time: formValues.time,
-          guests: parseInt(formValues.guests),
+          guests: (formValues.seatingSelection && formValues.seatingSelection.length > 0)
+            ? (formValues.seatingSelection.reduce((acc: number, t: any) => acc + (t.selectedSeats || []).length, 0))
+            : parseInt(formValues.guests || 1),
           tableId: formValues.table_ids && formValues.table_ids.length > 0 ? formValues.table_ids[0] : null,
           table_ids: formValues.table_ids || [],
+          tables: (formValues.seatingSelection || []).map((t: any) => ({
+            id: t.id,
+            allocated_seats: t.selectedSeats.length,
+            selected_seats: t.selectedSeats.join(',')
+          })),
           notes: formValues.notes,
           notification_pref: formValues.notification_pref,
           bookingFee: 25,
@@ -285,7 +462,7 @@ export default function Reservations() {
                 last_name: '',
                 phone: '',
                 date: getTodayStr(),
-                time: '19:00',
+                time: '',
                 guests: 2,
                 table_id: '',
                 table_ids: [],
@@ -294,6 +471,11 @@ export default function Reservations() {
                 notification_pref: 'whatsapp',
                 stay_duration: 60
               });
+              setCardHolder('');
+              setCardNumber('');
+              setCardExpiry('');
+              setCardCvv('');
+              setCardError('');
               setFormStep(1);
               setIsModalOpen(true);
             }}
@@ -675,79 +857,122 @@ export default function Reservations() {
                     </>
                   )}
 
-                  {/* Table Assignment dropdown — always visible */}
+                  {/* Table Assignment Section */}
                   <div>
                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Table Assignment</span>
-                    <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1 no-scrollbar bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
-                      {(() => {
-                        const currentIds = selectedReservation.assigned_table_ids 
-                          ? selectedReservation.assigned_table_ids.split(',').map((x: string) => parseInt(x)).filter(Boolean) 
-                          : (selectedReservation.table_id ? [parseInt(selectedReservation.table_id)] : []);
-                        
-                        return (
-                          <>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  await fetch(`${API_BASE_URL}/reservations/${selectedReservation.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ table_ids: [] })
-                                  });
-                                  fetchData();
-                                  setSelectedReservation({ ...selectedReservation, table_id: null, assigned_table_ids: '', assigned_table_number: '' });
-                                } catch {}
-                              }}
-                              className={cn(
-                                "px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all",
-                                currentIds.length === 0 
-                                  ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10" 
-                                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                              )}
-                            >
-                              TBD
-                            </button>
-                            {tables.map(t => {
-                              const isAssigned = currentIds.includes(t.id);
+                    {(() => {
+                      const currentIds: number[] = Array.from(new Set(
+                        selectedReservation.assigned_table_ids
+                          ? selectedReservation.assigned_table_ids.split(',').map((x: string) => parseInt(x)).filter(Boolean)
+                          : (selectedReservation.table_id ? [parseInt(selectedReservation.table_id)] : [])
+                      ));
+
+                      // Parse per-table seat data from API
+                      let tablesWithSeats: {table_id: number; table_number: string; selected_seats: string}[] = [];
+                      if (selectedReservation.assigned_tables_json) {
+                        try { tablesWithSeats = JSON.parse(selectedReservation.assigned_tables_json); } catch {}
+                      }
+
+                      return (
+                        <>
+                          {/* Structured per-table display */}
+                          <div className="space-y-1.5 mb-2.5">
+                            {currentIds.length === 0 ? (
+                              <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unassigned (TBD)</span>
+                              </div>
+                            ) : currentIds.map((tid: number) => {
+                              const matchWithSeats = tablesWithSeats.find(x => Number(x.table_id) === tid);
+                              const matchTable = tables.find((x: any) => x.id === tid);
+                              const tableNum = matchWithSeats?.table_number || matchTable?.table_number || String(tid);
+                              const seatsStr = matchWithSeats?.selected_seats || '';
+                              const seats = seatsStr
+                                ? [...new Set(seatsStr.split(',').map((s: string) => s.trim()).filter(Boolean))].sort((a, b) => Number(a) - Number(b))
+                                : [];
                               return (
-                                <button
-                                  key={t.id}
-                                  type="button"
-                                  onClick={async () => {
-                                    const newIds = isAssigned
-                                      ? currentIds.filter((id: number) => id !== t.id)
-                                      : [...currentIds, t.id];
-                                    try {
-                                      await fetch(`${API_BASE_URL}/reservations/${selectedReservation.id}`, {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ table_ids: newIds })
-                                      });
-                                      fetchData();
-                                      setSelectedReservation({ 
-                                        ...selectedReservation, 
-                                        table_id: newIds[0] || null, 
-                                        assigned_table_ids: newIds.join(','),
-                                        assigned_table_number: tables.filter(x => newIds.includes(x.id)).map(x => x.table_number).join(', ')
-                                      });
-                                    } catch {}
-                                  }}
-                                  className={cn(
-                                    "px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all",
-                                    isAssigned 
-                                      ? "bg-orange-50 border-orange-500 text-orange-600 shadow-sm font-extrabold" 
-                                      : "bg-white border-slate-200 text-slate-400 hover:border-orange-200"
-                                  )}
-                                >
-                                  T{t.table_number}
-                                </button>
+                                <div key={tid} className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+                                  <span className="text-[11px] font-extrabold text-orange-700 uppercase tracking-wider whitespace-nowrap">
+                                    {formatTableNumber(tableNum)}
+                                  </span>
+                                  <span className="text-[10px] font-semibold text-slate-500">
+                                    {seats.length > 0 ? `Seats ${seats.join(', ')}` : 'No specific seats'}
+                                  </span>
+                                </div>
                               );
                             })}
-                          </>
-                        );
-                      })()}
-                    </div>
+                          </div>
+
+                          {/* Collapsible reassignment picker */}
+                          <details className="group">
+                            <summary className="cursor-pointer select-none list-none text-[8px] font-bold text-orange-500 uppercase tracking-widest hover:text-orange-600 transition-colors flex items-center gap-1 mb-2">
+                              <span className="group-open:hidden">▶ Change Tables</span>
+                              <span className="hidden group-open:inline">▼ Hide</span>
+                            </summary>
+                            <div className="flex flex-wrap gap-1.5 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await fetch(`${API_BASE_URL}/reservations/${selectedReservation.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ table_ids: [] })
+                                    });
+                                    fetchData();
+                                    setSelectedReservation({ ...selectedReservation, table_id: null, assigned_table_ids: '', assigned_table_number: '', assigned_tables_json: null });
+                                  } catch {}
+                                }}
+                                className={cn(
+                                  "px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all",
+                                  currentIds.length === 0
+                                    ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10"
+                                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                                )}
+                              >
+                                TBD
+                              </button>
+                              {tables.map((t: any) => {
+                                const isAssigned = currentIds.includes(t.id);
+                                return (
+                                  <button
+                                    key={t.id}
+                                    type="button"
+                                    onClick={async () => {
+                                      const newIds = isAssigned
+                                        ? currentIds.filter((id: number) => id !== t.id)
+                                        : [...currentIds, t.id];
+                                      try {
+                                        await fetch(`${API_BASE_URL}/reservations/${selectedReservation.id}`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ table_ids: newIds })
+                                        });
+                                        fetchData();
+                                        setSelectedReservation({
+                                          ...selectedReservation,
+                                          table_id: newIds[0] || null,
+                                          assigned_table_ids: newIds.join(','),
+                                          assigned_table_number: tables.filter((x: any) => newIds.includes(x.id)).map((x: any) => x.table_number).join(', '),
+                                          assigned_tables_json: null
+                                        });
+                                      } catch {}
+                                    }}
+                                    className={cn(
+                                      "px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all",
+                                      isAssigned
+                                        ? "bg-orange-50 border-orange-500 text-orange-600 shadow-sm font-extrabold"
+                                        : "bg-white border-slate-200 text-slate-400 hover:border-orange-200"
+                                    )}
+                                  >
+                                    {formatTableNumber(t.table_number)}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </details>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -846,38 +1071,40 @@ export default function Reservations() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-              className="relative bg-white rounded-[3rem] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col"
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col"
             >
               {/* Modal Header */}
-              <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-white">
-                <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 bg-orange-500 rounded-3xl flex items-center justify-center shadow-lg shadow-orange-500/30">
-                    {formStep === 1 ? <Clock3 size={32} className="text-white" /> : 
-                     formStep === 2 ? <Users size={32} className="text-white" /> :
-                     formStep === 3 ? <Utensils size={32} className="text-white" /> :
-                     <ClipboardList size={32} className="text-white" />}
+              <div className="py-3 px-5 border-b border-slate-50 flex items-center justify-between bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/25">
+                    {formStep === 1 ? <Clock3 size={18} className="text-white" /> : 
+                     formStep === 2 ? <Users size={18} className="text-white" /> :
+                     formStep === 3 ? <Utensils size={18} className="text-white" /> :
+                     <ClipboardList size={18} className="text-white" />}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                      {formStep === 1 ? 'Select Slot' : 
+                    <h2 className="text-base font-black text-slate-900 tracking-tight leading-none">
+                      {formStep === 1 ? '1. Pick Slot' : 
                        formStep === 2 ? 'Customer Info' :
                        formStep === 3 ? 'Assign Table' : 
                        formStep === 4 ? 'Payment Method' :
                        'Review Booking'}
                     </h2>
-                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Step {formStep} of 5</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 leading-none">
+                      {formStep === 1 ? 'STEP 1 OF 5' : `STEP ${formStep} OF 5`}
+                    </p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="p-3 hover:bg-slate-50 rounded-2xl transition-colors text-slate-400"
+                  className="p-1.5 hover:bg-slate-50 rounded-lg transition-colors text-slate-400"
                 >
-                  <X size={28} />
+                  <X size={18} />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="p-10">
+              <div className="py-4 px-5">
                 <AnimatePresence mode="wait">
                   {formStep === 1 && (
                     <motion.div 
@@ -885,61 +1112,129 @@ export default function Reservations() {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="space-y-8"
+                      className="space-y-4"
                     >
-                      <h3 className="text-lg font-bold text-slate-800">When would you like to visit?</h3>
-                      
-                      <div className="space-y-4">
-                        {/* Date Input */}
-                        <div className="group">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Date</label>
-                          <div className="relative">
-                            <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500" size={20} />
-                            <input 
-                              type="date" 
-                              value={formValues.date} 
-                              min={getTodayStr()}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val < getTodayStr()) {
-                                  alert(`Immediate Stop: You cannot select a past date (${val}). Resetting to today.`);
-                                  setFormValues({...formValues, date: getTodayStr()});
-                                } else {
-                                  setFormValues({...formValues, date: val});
-                                }
-                              }}
-                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-bold text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
-                            />
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                        {/* Select Date Column */}
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest block">Select Date</label>
+                          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-3 space-y-3">
+                            {/* Month Select Dropdown */}
+                            <div className="relative inline-block">
+                              <select
+                                value={`${calendarYear}-${calendarMonth}`}
+                                onChange={(e) => {
+                                  const [year, month] = e.target.value.split('-').map(Number);
+                                  setCalendarYear(year);
+                                  setCalendarMonth(month);
+                                }}
+                                className="appearance-none bg-white border border-slate-200 rounded-lg py-1 px-2.5 pr-8 text-[11px] font-black text-slate-700 focus:outline-none focus:border-orange-500 shadow-sm"
+                              >
+                                {getMonthOptions().map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                                <ChevronDown size={12} />
+                              </div>
+                            </div>
+
+                            {/* Calendar Days Header */}
+                            <div className="grid grid-cols-7 gap-0.5 text-center font-black">
+                              {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+                                <div key={day} className="text-[8px] font-black text-slate-400 uppercase tracking-widest py-0.5">{day}</div>
+                              ))}
+                            </div>
+
+                            {/* Calendar Days Grid */}
+                            <div className="grid grid-cols-7 gap-0.5 text-center">
+                              {(() => {
+                                const todayStr = getTodayStr();
+                                const firstDayIndex = getFirstDayOfMonth(calendarYear, calendarMonth);
+                                const totalDays = getDaysInMonth(calendarYear, calendarMonth);
+                                const blanks = Array(firstDayIndex).fill(null);
+                                const daysArray = Array.from({ length: totalDays }, (_, i) => i + 1);
+                                const allDays = [...blanks, ...daysArray];
+
+                                return allDays.map((d, index) => {
+                                  if (d === null) {
+                                    return <div key={`blank-${index}`} className="w-7 h-7" />;
+                                  }
+                                  const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                                  const isPast = dateStr < todayStr;
+                                  const isSelected = formValues.date === dateStr;
+
+                                  return (
+                                    <button
+                                      key={d}
+                                      type="button"
+                                      disabled={isPast}
+                                      onClick={() => {
+                                        setFormValues({ ...formValues, date: dateStr });
+                                      }}
+                                      className={cn(
+                                        "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all mx-auto select-none",
+                                        isPast
+                                          ? "text-slate-200 cursor-not-allowed"
+                                          : isSelected
+                                            ? "bg-[#f25c05] text-white shadow-md shadow-orange-500/20 font-black"
+                                            : "text-slate-700 hover:bg-orange-50 hover:text-orange-500"
+                                      )}
+                                    >
+                                      {d}
+                                    </button>
+                                  );
+                                });
+                              })()}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Time Input */}
-                        <div className="group">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Time</label>
-                          <div className="relative">
-                            <Clock3 className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500" size={20} />
-                            <input 
-                              type="time" 
-                              value={formValues.time} 
-                              onChange={(e) => setFormValues({...formValues, time: e.target.value})}
-                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-bold text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
-                            />
+                        {/* Select Time Column */}
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest block">Select Time</label>
+                          <div className="grid grid-cols-4 gap-2 max-h-[190px] overflow-y-auto pr-1 no-scrollbar">
+                            {getTimeSlots().map(slot => {
+                              const isSelected = formValues.time === slot;
+                              return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  onClick={() => setFormValues({ ...formValues, time: slot })}
+                                  className={cn(
+                                    "py-2 rounded-lg border text-[10px] font-bold text-center transition-all select-none",
+                                    isSelected
+                                      ? "bg-[#f25c05] text-white shadow-md shadow-orange-500/20 border-transparent font-black"
+                                      : "bg-white border-slate-200 text-slate-700 hover:border-orange-500"
+                                  )}
+                                >
+                                  {slot}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
+                      </div>
 
-                        {/* Guests Input */}
-                        <div className="group">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Guests</label>
-                          <div className="relative">
-                            <Users className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500" size={20} />
-                            <input 
-                              type="number" 
-                              min="1"
-                              value={formValues.guests} 
-                              onChange={(e) => setFormValues({...formValues, guests: e.target.value})}
-                              className="w-full bg-slate-50 border-2 border-slate-50 rounded-[2rem] py-5 pl-16 pr-8 text-base font-bold text-slate-900 outline-none focus:border-orange-500/20 focus:bg-white transition-all shadow-sm"
-                            />
-                          </div>
+                      {/* Stay Duration */}
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block px-1">Estimated Stay Duration</label>
+                        <div className="grid grid-cols-8 gap-2">
+                          {[30, 45, 60, 90, 120, 150, 180, 240].map(mins => (
+                            <button
+                              key={mins}
+                              type="button"
+                              onClick={() => setFormValues({...formValues, stay_duration: mins})}
+                              className={cn(
+                                "py-2.5 rounded-xl text-[10px] font-bold border transition-all flex flex-col items-center justify-center leading-none select-none",
+                                formValues.stay_duration === mins 
+                                  ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/20 font-black" 
+                                  : "bg-white border-slate-200 text-slate-500 hover:border-orange-200"
+                              )}
+                            >
+                              <span>{mins}m</span>
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </motion.div>
@@ -948,74 +1243,6 @@ export default function Reservations() {
                   {formStep === 2 && (
                     <motion.div 
                       key="step2"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="space-y-6"
-                    >
-                      <h3 className="text-lg font-bold text-slate-800">Date & Time</h3>
-                      <div className="grid grid-cols-1 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Select Date</label>
-                          <input 
-                            required 
-                            type="date" 
-                            min={getTodayStr()}
-                            value={formValues.date} 
-                            onChange={(e) => {
-                              const selectedDate = e.target.value;
-                              if (selectedDate < getTodayStr()) {
-                                alert(`Immediate Stop: You cannot select a past date (${selectedDate}). The date has been reset to today.`);
-                                setFormValues({...formValues, date: getTodayStr()});
-                              } else {
-                                setFormValues({...formValues, date: selectedDate});
-                              }
-                            }} 
-                            className="w-full bg-white border-2 border-slate-100 rounded-3xl py-5 px-8 text-lg font-bold outline-none focus:border-orange-500 transition-all shadow-sm" 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Select Time (Clock)</label>
-                          <div className="relative group">
-                            <Clock3 className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={24} />
-                            <input 
-                              required 
-                              type="time" 
-                              value={formValues.time} 
-                              onChange={(e) => setFormValues({...formValues, time: e.target.value})} 
-                              className="w-full bg-white border-2 border-slate-100 rounded-[2.5rem] py-8 px-20 text-4xl font-bold outline-none focus:border-orange-500 transition-all text-slate-900 shadow-lg shadow-orange-500/5" 
-                            />
-                          </div>
-                        </div>
-
-                        <div className="pt-4 space-y-4">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Estimated Stay Duration</label>
-                          <div className="grid grid-cols-4 gap-3">
-                            {[30, 45, 60, 90, 120, 150, 180, 240].map(mins => (
-                              <button
-                                key={mins}
-                                type="button"
-                                onClick={() => setFormValues({...formValues, stay_duration: mins})}
-                                className={cn(
-                                  "py-4 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center justify-center gap-1",
-                                  formValues.stay_duration === mins 
-                                    ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/20" 
-                                    : "bg-white border-slate-100 text-slate-400 hover:border-orange-200"
-                                )}
-                              >
-                                <span>{mins}</span>
-                                <span className="text-[8px] opacity-60">MINS</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {formStep === 3 && (
-                    <motion.div 
-                      key="step3"
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
@@ -1043,57 +1270,119 @@ export default function Reservations() {
                     </motion.div>
                   )}
 
-                  {formStep === 4 && (
+                  {formStep === 3 && (
                     <motion.div 
-                      key="step4"
+                      key="step3"
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-6"
                     >
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-slate-800">Assign a Table</h3>
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-800">Assign Tables & Seats</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Check a table, then customize seat assignments. Inactive seats are already reserved or occupied.</p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
-                        <button
-                          type="button"
-                          onClick={() => setFormValues({...formValues, table_ids: []})}
-                          className={cn(
-                            "p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-2",
-                            (!formValues.table_ids || formValues.table_ids.length === 0) ? "bg-orange-50 border-orange-500" : "bg-white border-slate-100 hover:border-slate-200"
-                          )}
-                        >
-                          <Users size={24} className={(!formValues.table_ids || formValues.table_ids.length === 0) ? "text-orange-500" : "text-slate-300"} />
-                          <span className="text-[10px] font-bold uppercase">TBD</span>
-                        </button>
+                      <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 no-scrollbar">
                         {isLoadingAvailableTables ? (
-                          <div className="col-span-2 py-10 text-center text-slate-400 text-xs font-bold animate-pulse uppercase tracking-widest">Scanning Available Tables...</div>
+                          <div className="py-12 text-center text-slate-400 text-xs font-bold animate-pulse uppercase tracking-widest">Scanning Table Map...</div>
                         ) : availableTables.length === 0 ? (
-                          <div className="col-span-2 py-10 text-center text-red-400 text-xs font-bold uppercase tracking-widest">No Tables Available for this Slot</div>
+                          <div className="py-12 text-center text-red-400 text-xs font-bold uppercase tracking-widest">No Tables Available for this Slot</div>
                         ) : (
                           availableTables.map(table => {
-                            const isSelected = formValues.table_ids?.includes(table.id);
+                            const seatingSelection = formValues.seatingSelection || [];
+                            const tempTable = seatingSelection.find((t: any) => t.id === table.id);
+                            const isChecked = !!tempTable;
+                            const selectedCount = tempTable ? tempTable.selectedSeats.length : 0;
+                            const isTableFullyOccupied = table.balance_seats !== undefined && table.balance_seats <= 0;
+                            
                             return (
-                              <button
-                                key={table.id}
-                                type="button"
-                                onClick={() => {
-                                  const currentIds = formValues.table_ids || [];
-                                  const newIds = currentIds.includes(table.id)
-                                    ? currentIds.filter((id: any) => id !== table.id)
-                                    : [...currentIds, table.id];
-                                  setFormValues({...formValues, table_ids: newIds});
-                                }}
-                                className={cn(
-                                  "p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-2",
-                                  isSelected ? "bg-orange-50 border-orange-500 shadow-lg shadow-orange-500/10" : "bg-white border-slate-100 hover:border-orange-200"
-                                )}
-                              >
-                                <Utensils size={24} className={isSelected ? "text-orange-500" : "text-slate-300"} />
-                                <span className="text-[10px] font-bold uppercase">Table {table.table_number}</span>
-                                <span className="text-[8px] font-bold text-slate-400">Cap: {table.capacity}</span>
-                              </button>
+                              <div key={table.id} className="flex items-center gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100/60 shadow-sm transition-all hover:shadow-md select-none">
+                                {/* 1. Checkbox */}
+                                <button
+                                  type="button"
+                                  disabled={isTableFullyOccupied}
+                                  onClick={() => handleToggleTable(table)}
+                                  className={cn(
+                                    "w-6 h-6 rounded-md border flex items-center justify-center font-bold text-xs transition-all shrink-0",
+                                    isTableFullyOccupied
+                                      ? "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
+                                      : isChecked
+                                        ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/20"
+                                        : "border-slate-300 bg-white hover:border-orange-500 text-transparent"
+                                  )}
+                                >
+                                  {isTableFullyOccupied ? "✕" : "✓"}
+                                </button>
+
+                                {/* 2. Table Box */}
+                                <div
+                                  className={cn(
+                                    "w-28 py-3 px-4 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 shrink-0",
+                                    isTableFullyOccupied
+                                      ? "bg-rose-50 border-rose-100 opacity-75 cursor-not-allowed"
+                                      : isChecked
+                                        ? "bg-orange-500/5 border-orange-500 shadow-inner"
+                                        : "bg-white border-slate-200"
+                                  )}
+                                >
+                                  <span className={cn(
+                                    "text-xs font-bold uppercase tracking-wider",
+                                    isTableFullyOccupied ? "text-rose-600" : "text-slate-800"
+                                  )}>{formatTableNumber(table.table_number)}</span>
+                                  <span className="text-[9px] font-bold text-slate-400">
+                                    {isTableFullyOccupied ? "Fully Occupied" : `${selectedCount}/${table.capacity} Seats`}
+                                  </span>
+                                </div>
+
+                                {/* 3. Seats List */}
+                                <div className="flex-1 flex flex-wrap items-center gap-2">
+                                  {isChecked ? (
+                                    Array.from({ length: table.capacity }, (_, idx) => idx + 1).map(seatNum => {
+                                      const isOccupied = table.occupied_seats ? table.occupied_seats.includes(seatNum) : (seatNum <= (table.capacity - (table.balance_seats !== undefined ? table.balance_seats : table.capacity)));
+                                      const isSeatChecked = tempTable.selectedSeats.includes(seatNum);
+                                      
+                                      return (
+                                        <button
+                                          key={seatNum}
+                                          type="button"
+                                          disabled={isOccupied}
+                                          onClick={() => handleToggleSeat(table.id, seatNum)}
+                                          className={cn(
+                                            "py-1.5 px-3 rounded-lg border flex items-center gap-2 shadow-sm transition-all select-none",
+                                            isOccupied
+                                              ? "bg-rose-50/50 border-rose-100 text-rose-400 cursor-not-allowed opacity-75"
+                                              : isSeatChecked
+                                                ? "border-orange-500 text-orange-500 bg-orange-500/5 hover:scale-[1.03]"
+                                                : "bg-white border-slate-200 hover:border-slate-300 text-slate-600 hover:scale-[1.03]"
+                                          )}
+                                        >
+                                          <div
+                                            className={cn(
+                                              "w-3.5 h-3.5 rounded border flex items-center justify-center font-bold text-[8px] transition-all",
+                                              isOccupied
+                                                ? "bg-rose-200 border-rose-300 text-rose-600"
+                                                : isSeatChecked
+                                                  ? "bg-orange-500 border-orange-500 text-white"
+                                                  : "border-slate-300"
+                                            )}
+                                          >
+                                            {isOccupied ? "✕" : isSeatChecked && "✓"}
+                                          </div>
+                                          <div className="flex flex-col items-start leading-none py-0.5">
+                                            <span className="text-[10px] font-bold">Seat {seatNum}</span>
+                                            {isOccupied && (
+                                              <span className="text-[8px] font-bold text-rose-500 mt-0.5 uppercase tracking-wider">Occupied</span>
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })
+                                  ) : (
+                                    <span className="text-[10px] font-bold text-slate-300 italic tracking-widest uppercase">Table Unselected</span>
+                                  )}
+                                </div>
+                              </div>
                             );
                           })
                         )}
@@ -1101,24 +1390,23 @@ export default function Reservations() {
                     </motion.div>
                   )}
 
-                  {formStep === 5 && (
+                  {formStep === 4 && (
                     <motion.div 
-                      key="step5"
+                      key="step4"
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="space-y-8"
+                      className="space-y-4"
                     >
-                      <div className="text-center space-y-2">
-                        <h3 className="text-lg font-bold text-slate-800">Booking Advance Fee</h3>
-                        <div className="inline-flex items-center gap-2 bg-orange-50 text-orange-600 px-4 py-2 rounded-2xl border border-orange-100">
-                          <span className="text-2xl font-bold">25.00</span>
-                          <span className="text-[10px] font-bold uppercase tracking-widest mt-1">AED</span>
+                      <div className="text-center space-y-1">
+                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Booking Advance Fee</h3>
+                        <div className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-600 px-3 py-1 rounded-xl border border-orange-100">
+                          <span className="text-lg font-black">25.00</span>
+                          <span className="text-[9px] font-bold uppercase tracking-widest">{branchInfo.currency || 'AED'}</span>
                         </div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select payment method to proceed</p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3">
                         {[
                           { id: 'Cash', label: 'Cash Payment', icon: Banknote, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
                           { id: 'Card', label: 'Card Payment', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' }
@@ -1128,32 +1416,108 @@ export default function Reservations() {
                             type="button"
                             onClick={() => setFormValues({...formValues, payment_method: method.id})}
                             className={cn(
-                              "p-8 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 text-center group",
+                              "py-2 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-3 text-left group",
                               formValues.payment_method === method.id 
-                                ? "bg-orange-50 border-orange-500 shadow-xl shadow-orange-500/10" 
+                                ? "bg-orange-50 border-orange-500 shadow-lg shadow-orange-500/5" 
                                 : "bg-white border-slate-100 hover:border-slate-200"
                             )}
                           >
                             <div className={cn(
-                              "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
+                              "w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0",
                               formValues.payment_method === method.id ? "bg-orange-500 text-white" : `${method.bg} ${method.color}`
                             )}>
-                              <method.icon size={28} strokeWidth={2.5} />
+                              <method.icon size={16} strokeWidth={2.5} />
                             </div>
-                            <div>
+                            <div className="leading-tight">
                               <span className={cn(
-                                "text-xs font-bold uppercase tracking-widest block mb-1",
+                                "text-[10px] font-bold uppercase tracking-wider block",
                                 formValues.payment_method === method.id ? "text-orange-600" : "text-slate-900"
                               )}>{method.id}</span>
-                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{method.label}</span>
+                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter block">{method.label}</span>
                             </div>
                           </button>
                         ))}
                       </div>
+
+                      {formValues.payment_method === 'Card' && (
+                        <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100 space-y-2 shadow-inner">
+                          <div className="flex justify-between items-center mb-0.5">
+                            <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Card Details</span>
+                            <div className="flex gap-1.5 items-center">
+                              <img 
+                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" 
+                                alt="Visa" 
+                                className="h-3 opacity-60 object-contain" 
+                              />
+                              <img 
+                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" 
+                                alt="MasterCard" 
+                                className="h-3 opacity-60 object-contain" 
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block px-1">Cardholder Name</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="John Doe"
+                              value={cardHolder}
+                              onChange={(e) => {
+                                setCardHolder(e.target.value);
+                                setCardError('');
+                              }}
+                              className="w-full bg-white border border-slate-100 rounded-lg py-1.5 px-3 text-[11px] font-bold focus:border-orange-500 outline-none transition-all"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block px-1">Card Number</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="0000 0000 0000 0000"
+                              value={cardNumber}
+                              onChange={handleCardNumberChange}
+                              className="w-full bg-white border border-slate-100 rounded-lg py-1.5 px-3 text-[11px] font-bold focus:border-orange-500 outline-none transition-all"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block px-1">Expiry Date</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="MM/YY"
+                                value={cardExpiry}
+                                onChange={handleCardExpiryChange}
+                                className="w-full bg-white border border-slate-100 rounded-lg py-1.5 px-3 text-[11px] font-bold focus:border-orange-500 outline-none transition-all"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block px-1">CVV</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="123"
+                                value={cardCvv}
+                                onChange={handleCardCvvChange}
+                                className="w-full bg-white border border-slate-100 rounded-lg py-1.5 px-3 text-[11px] font-bold focus:border-orange-500 outline-none transition-all"
+                              />
+                            </div>
+                          </div>
+
+                          {cardError && (
+                            <p className="text-[9px] font-bold text-red-500 uppercase tracking-widest px-1 mt-1">{cardError}</p>
+                          )}
+                        </div>
+                      )}
                     </motion.div>
                   )}
 
-                  {formStep === 6 && (
+                  {formStep === 5 && (
                     <motion.div 
                       key="step5"
                       initial={{ opacity: 0, x: 20 }}
@@ -1189,16 +1553,25 @@ export default function Reservations() {
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Party Details</p>
                             <div className="flex items-center gap-2 text-slate-900">
                               <Users size={14} className="text-orange-500" />
-                              <span className="text-sm font-bold">{formValues.guests} Guests</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-slate-900 mt-1">
-                              <Utensils size={14} className="text-orange-500" />
                               <span className="text-sm font-bold">
-                                {formValues.table_ids && formValues.table_ids.length > 0 
-                                  ? `Table(s) ${formValues.table_ids.map((id: any) => tables.find(t => t.id === id)?.table_number).filter(Boolean).join(', ')}` 
-                                  : 'Unassigned'}
+                                {(() => {
+                                  const calculatedGuests = (formValues.seatingSelection || []).reduce((acc: number, t: any) => acc + (t.selectedSeats || []).length, 0);
+                                  const count = calculatedGuests || 1;
+                                  return `${count} ${count === 1 ? 'Guest' : 'Guests'}`;
+                                })()}
                               </span>
                             </div>
+                            <div className="flex items-center gap-2 text-slate-900 mt-1">
+                               <Utensils size={14} className="text-orange-500" />
+                               <span className="text-sm font-bold">
+                                 {formValues.seatingSelection && formValues.seatingSelection.length > 0 
+                                   ? formValues.seatingSelection.map((t: any) => {
+                                       const tableNum = tables.find(x => x.id === t.id)?.table_number || t.id;
+                                       return `${formatTableNumber(tableNum)} (Seat ${t.selectedSeats.join(', ')})`;
+                                     }).join(', ')
+                                   : 'Unassigned'}
+                               </span>
+                             </div>
                           </div>
                         </div>
 
@@ -1208,8 +1581,8 @@ export default function Reservations() {
                             <span className="text-sm font-bold text-orange-600 uppercase">{formValues.payment_method}</span>
                           </div>
                           <div className="text-right">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount Due</p>
-                            <span className="text-xl font-bold text-slate-900">25.00 AED</span>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</p>
+                            <span className="text-xl font-bold text-slate-900">25.00 {branchInfo.currency || 'AED'}</span>
                           </div>
                         </div>
                       </div>
@@ -1218,25 +1591,111 @@ export default function Reservations() {
                 </AnimatePresence>
 
                 {/* Navigation Buttons */}
-                <div className="mt-10 flex gap-4">
+                <div className="mt-4 flex gap-4">
                   {formStep > 1 && (
                     <button 
                       type="button" 
                       onClick={() => setFormStep(formStep - 1)}
-                      className="px-8 py-5 border-2 border-slate-100 text-slate-400 rounded-[1.5rem] font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+                      className="px-6 py-3 border border-slate-200 text-slate-500 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
                     >
                       Back
                     </button>
                   )}
                   <button 
                     onClick={() => {
-                      if (formStep < 6) setFormStep(formStep + 1);
+                      if (formStep === 1) {
+                        if (!formValues.date) {
+                          alert("Please select a date on the calendar.");
+                          return;
+                        }
+                        if (!formValues.time) {
+                          alert("Please select a time slot.");
+                          return;
+                        }
+                        if (!formValues.stay_duration) {
+                          alert("Please select an estimated stay duration.");
+                          return;
+                        }
+                      }
+                      if (formStep === 2) {
+                        if (!formValues.first_name?.trim()) {
+                          alert("Please enter the customer's first name.");
+                          return;
+                        }
+                        if (!formValues.last_name?.trim()) {
+                          alert("Please enter the customer's last name.");
+                          return;
+                        }
+                        if (!formValues.phone?.trim()) {
+                          alert("Please enter the customer's phone number.");
+                          return;
+                        }
+                        if (!formValues.email?.trim()) {
+                          alert("Please enter the customer's email address.");
+                          return;
+                        }
+                        // Validate email format
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(formValues.email.trim())) {
+                          alert("Please enter a valid email address.");
+                          return;
+                        }
+                      }
+                      if (formStep === 3) {
+                        const selections = formValues.seatingSelection || [];
+                        if (selections.length === 0) {
+                          alert("Please select at least one table to proceed.");
+                          return;
+                        }
+                        const hasEmptyTable = selections.some((t: any) => t.selectedSeats.length === 0);
+                        if (hasEmptyTable) {
+                          alert("Please select at least one seat for each of your selected tables.");
+                          return;
+                        }
+                      }
+                      if (formStep === 4) {
+                        if (!formValues.payment_method) {
+                          alert("Please select a payment method.");
+                          return;
+                        }
+                        if (formValues.payment_method === 'Card') {
+                          if (!cardHolder.trim()) {
+                            setCardError('Cardholder name is required');
+                            alert('Cardholder name is required');
+                            return;
+                          }
+                          const digitsOnly = cardNumber.replace(/\s+/g, '');
+                          if (digitsOnly.length < 15 || digitsOnly.length > 16) {
+                            setCardError('Please enter a valid card number');
+                            alert('Please enter a valid card number');
+                            return;
+                          }
+                          if (cardExpiry.length < 5) {
+                            setCardError('Please enter a valid expiry date (MM/YY)');
+                            alert('Please enter a valid expiry date (MM/YY)');
+                            return;
+                          }
+                          const [mm, yy] = cardExpiry.split('/');
+                          const month = parseInt(mm, 10);
+                          if (isNaN(month) || month < 1 || month > 12) {
+                            setCardError('Please enter a valid month (01-12)');
+                            alert('Please enter a valid month (01-12)');
+                            return;
+                          }
+                          if (cardCvv.length < 3) {
+                            setCardError('Please enter a valid CVV');
+                            alert('Please enter a valid CVV');
+                            return;
+                          }
+                        }
+                      }
+                      if (formStep < 5) setFormStep(formStep + 1);
                       else handleSubmit({ preventDefault: () => {} });
                     }}
-                    className="flex-1 py-5 bg-orange-500 text-white rounded-[1.5rem] font-bold text-sm uppercase tracking-[0.2em] shadow-xl shadow-orange-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                    className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-lg shadow-orange-500/20 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    {formStep === 6 ? (isSubmitting ? 'Processing...' : 'Confirm Booking') : 'Next'}
-                    {formStep < 6 && <ChevronRight size={20} strokeWidth={3} />}
+                    {formStep === 5 ? (isSubmitting ? 'Processing...' : 'Confirm Booking') : formStep === 1 ? 'Next Step' : 'Next'}
+                    {formStep < 5 && <ChevronRight size={16} strokeWidth={3} />}
                   </button>
                 </div>
               </div>

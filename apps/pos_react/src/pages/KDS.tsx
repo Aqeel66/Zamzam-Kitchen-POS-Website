@@ -26,6 +26,13 @@ import { API_BASE_URL } from '../config';
 
 const cn = (...inputs: any[]) => inputs.filter(Boolean).join(' ');
 
+const formatTableNumber = (num: string | number) => {
+  if (!num) return '';
+  const str = num.toString().trim();
+  const clean = str.replace(/^[t\s\-_–—]+/i, '');
+  return 'T-' + clean;
+};
+
 type TabType = 'PENDING' | 'PREPARING' | 'READY' | 'REJECTED';
 
 export default function KDS() {
@@ -351,7 +358,7 @@ export default function KDS() {
                     {order.order_type === 'Dine-In' && (
                       <div className="flex items-center gap-1">
                         <Users size={10} className="text-zamzam-teal" />
-                        <span className="text-[10px] font-bold text-zamzam-teal uppercase">Table {order.table_number || '??'}</span>
+                        <span className="text-[10px] font-bold text-zamzam-teal uppercase">Table {formatTableNumber(order.table_number || '??')}</span>
                       </div>
                     )}
                   </div>
@@ -406,6 +413,11 @@ export default function KDS() {
                       {activeTab === 'REJECTED' && (
                         <div className="text-center py-2">
                           <span className="text-[8px] font-bold text-red-500 uppercase tracking-widest">Rejected</span>
+                          {order.rejection_reason && (
+                            <p className="text-[8px] text-red-400 mt-1 uppercase tracking-wider bg-red-50 px-2 py-1 rounded-md mx-auto max-w-[90%] truncate" title={order.rejection_reason}>
+                              Reason: {order.rejection_reason}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -508,14 +520,34 @@ export default function KDS() {
                   <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
                     <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Service</span>
                     <p className="text-[10px] font-bold text-slate-900 uppercase tracking-tight">{selectedOrder.order_type}</p>
-                    {selectedOrder.table_number && <p className="text-[8px] font-bold text-zamzam-teal">T-{selectedOrder.table_number}</p>}
+                    {selectedOrder.table_number && <p className="text-[8px] font-bold text-zamzam-teal">{formatTableNumber(selectedOrder.table_number)}</p>}
                   </div>
                   <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
                     <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Guest</span>
                     <p className="text-[10px] font-bold text-slate-900 uppercase tracking-tight truncate">{selectedOrder.customer_name || 'Guest'}</p>
                     <p className="text-[8px] font-bold text-slate-500 mt-0.5 truncate">{selectedOrder.customer_phone || '---'}</p>
                   </div>
+                  <div className="space-y-1">
+                    <span className="text-[7px] font-bold text-slate-400 uppercase tracking-[0.2em] block">Time</span>
+                    <p className="text-[10px] font-bold text-slate-900 uppercase">
+                      {new Date(selectedOrder.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tight">Elapsed: {getElapsedTime(selectedOrder.order_time)} min</p>
+                  </div>
                 </div>
+
+                {/* Rejection Reason in Detail View */}
+                {selectedOrder.status === 'Rejected' && selectedOrder.rejection_reason && (
+                  <div className="mx-6 mt-4 p-4 rounded-2xl bg-red-50 border border-red-100 flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2 text-red-800 font-bold text-[9px] uppercase tracking-wider">
+                      <X size={14} className="text-red-600" />
+                      <span>Rejection Reason</span>
+                    </div>
+                    <p className="text-[10px] text-red-700 leading-normal font-medium">
+                      {selectedOrder.rejection_reason}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Modal Footer */}

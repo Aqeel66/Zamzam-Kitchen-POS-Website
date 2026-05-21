@@ -49,6 +49,48 @@ export default function CheckoutModal({
   const [tipAmount, setTipAmount] = useState(initialTip);
   const [tipType, setTipType] = useState<'percentage' | 'fixed'>('fixed');
   const [customTip, setCustomTip] = useState('');
+  const [settings, setSettings] = useState<any>(null);
+
+  // Card input states
+  const [cardHolder, setCardHolder] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardError, setCardError] = useState('');
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    let formattedValue = '';
+    for (let i = 0; i < value.length && i < 16; i++) {
+      if (i > 0 && i % 4 === 0) {
+        formattedValue += ' ';
+      }
+      formattedValue += value[i];
+    }
+    setCardNumber(formattedValue);
+    setCardError('');
+  };
+
+  const handleCardExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    let formattedValue = '';
+    if (value.length > 0) {
+      formattedValue += value.substring(0, 2);
+      if (value.length > 2) {
+        formattedValue += '/' + value.substring(2, 4);
+      }
+    }
+    setCardExpiry(formattedValue);
+    setCardError('');
+  };
+
+  const handleCardCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (value.length <= 4) {
+      setCardCvv(value);
+      setCardError('');
+    }
+  };
 
   // Update states if props change (e.g. when opening a new order)
   const prevIsOpen = useRef(isOpen);
@@ -56,17 +98,33 @@ export default function CheckoutModal({
     if (isOpen && !prevIsOpen.current) {
       setManualDiscount(initialDiscount);
       setTipAmount(initialTip);
-      setPaymentMethod('Cash');
+      
+      // Determine initial payment method based on settings
+      const isCashAllowed = settings?.branch?.allow_cash_pos !== 0;
+      const isCardAllowed = settings?.branch?.allow_card_pos !== 0;
+      if (!isCashAllowed && isCardAllowed) {
+        setPaymentMethod('Card');
+      } else if (isCashAllowed) {
+        setPaymentMethod('Cash');
+      } else {
+        setPaymentMethod('');
+      }
+      
       setPromoCode('');
       setPromoError('');
       setAppliedPromo(null);
       setCustomTip('');
       setTipType('fixed');
+
+      // Clear card details on reopen
+      setCardHolder('');
+      setCardNumber('');
+      setCardExpiry('');
+      setCardCvv('');
+      setCardError('');
     }
     prevIsOpen.current = isOpen;
-  }, [isOpen, initialDiscount, initialTip]);
-
-  const [settings, setSettings] = useState<any>(null);
+  }, [isOpen, initialDiscount, initialTip, settings]);
 
   const fetchSettings = async () => {
     try {
@@ -78,6 +136,20 @@ export default function CheckoutModal({
       console.error('Error fetching settings:', err);
     }
   };
+
+  useEffect(() => {
+    if (settings?.branch) {
+      const isCashAllowed = settings.branch.allow_cash_pos !== 0;
+      const isCardAllowed = settings.branch.allow_card_pos !== 0;
+      if (!isCashAllowed && paymentMethod === 'Cash' && isCardAllowed) {
+        setPaymentMethod('Card');
+      } else if (!isCardAllowed && paymentMethod === 'Card' && isCashAllowed) {
+        setPaymentMethod('Cash');
+      } else if (!isCashAllowed && !isCardAllowed && paymentMethod !== '') {
+        setPaymentMethod('');
+      }
+    }
+  }, [settings, paymentMethod]);
 
   useEffect(() => {
     if (isOpen) {
@@ -134,6 +206,32 @@ export default function CheckoutModal({
   const finalTotal = Math.max(0, discountedSubtotal + newTaxAmount + tipValue);
 
   const handleConfirm = () => {
+    if (paymentMethod === 'Card') {
+      if (!cardHolder.trim()) {
+        setCardError('Cardholder name is required');
+        return;
+      }
+      const digitsOnly = cardNumber.replace(/\s+/g, '');
+      if (digitsOnly.length < 15 || digitsOnly.length > 16) {
+        setCardError('Please enter a valid card number');
+        return;
+      }
+      if (cardExpiry.length < 5) {
+        setCardError('Please enter a valid expiry date (MM/YY)');
+        return;
+      }
+      const [mm, yy] = cardExpiry.split('/');
+      const month = parseInt(mm, 10);
+      if (isNaN(month) || month < 1 || month > 12) {
+        setCardError('Please enter a valid month (01-12)');
+        return;
+      }
+      if (cardCvv.length < 3) {
+        setCardError('Please enter a valid CVV');
+        return;
+      }
+    }
+
     onConfirm({
       payment_method: paymentMethod,
       promo_id: appliedPromo?.id || null,
@@ -356,10 +454,15 @@ export default function CheckoutModal({
               </div>
               Payment Method
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className={cn(
+              "grid gap-4",
+              (settings?.branch?.allow_cash_pos !== 0 && settings?.branch?.allow_card_pos !== 0) 
+                ? "grid-cols-2" 
+                : "grid-cols-1"
+            )}>
               {[
-                { id: 'Cash', icon: Banknote },
-                { id: 'Card', icon: CreditCard },
+                ...(settings?.branch?.allow_cash_pos !== 0 ? [{ id: 'Cash', icon: Banknote }] : []),
+                ...(settings?.branch?.allow_card_pos !== 0 ? [{ id: 'Card', icon: CreditCard }] : []),
               ].map((method) => (
                 <button
                   key={method.id}
@@ -381,7 +484,88 @@ export default function CheckoutModal({
                   {paymentMethod === method.id && <CheckCircle2 className="ml-auto" size={20} />}
                 </button>
               ))}
+              {settings?.branch?.allow_cash_pos === 0 && settings?.branch?.allow_card_pos === 0 && (
+                <div className="flex items-center gap-2 text-red-500 font-bold text-[10px] uppercase tracking-widest p-3 bg-red-50 rounded-lg border border-red-100 w-full">
+                  <AlertCircle size={14} className="flex-shrink-0" />
+                  <span>No payment methods enabled for POS. Please enable them in Settings.</span>
+                </div>
+              )}
             </div>
+            {paymentMethod === 'Card' && (
+              <div className="mt-3 p-3 bg-white rounded-xl border border-slate-100 space-y-2.5 shadow-inner">
+                <div className="flex justify-between items-center mb-0.5">
+                  <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Card Details</span>
+                  <div className="flex gap-1.5 items-center">
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" 
+                      alt="Visa" 
+                      className="h-3 opacity-60 object-contain" 
+                    />
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" 
+                      alt="MasterCard" 
+                      className="h-3 opacity-60 object-contain" 
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">Cardholder Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="John Doe"
+                    value={cardHolder}
+                    onChange={(e) => {
+                      setCardHolder(e.target.value);
+                      setCardError('');
+                    }}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1.5 px-3 text-[11px] font-bold focus:ring-4 focus:ring-zamzam-teal/10 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">Card Number</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="0000 0000 0000 0000"
+                    value={cardNumber}
+                    onChange={handleCardNumberChange}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1.5 px-3 text-[11px] font-bold focus:ring-4 focus:ring-zamzam-teal/10 outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">Expiry Date</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="MM/YY"
+                      value={cardExpiry}
+                      onChange={handleCardExpiryChange}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1.5 px-3 text-[11px] font-bold focus:ring-4 focus:ring-zamzam-teal/10 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">CVV</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="123"
+                      value={cardCvv}
+                      onChange={handleCardCvvChange}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1.5 px-3 text-[11px] font-bold focus:ring-4 focus:ring-zamzam-teal/10 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {cardError && (
+                  <p className="text-[9px] font-bold text-red-500 uppercase tracking-widest mt-1.5">{cardError}</p>
+                )}
+              </div>
+            )}
           </section>
         </div>
 
@@ -422,7 +606,7 @@ export default function CheckoutModal({
             </div>
           </div>
           <button 
-            disabled={isSubmitting}
+            disabled={isSubmitting || (settings?.branch?.allow_cash_pos === 0 && settings?.branch?.allow_card_pos === 0)}
             onClick={handleConfirm}
             className="bg-zamzam-teal hover:bg-teal-700 disabled:bg-slate-300 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-teal-900/20 flex items-center gap-2 transition-all active:scale-95"
           >

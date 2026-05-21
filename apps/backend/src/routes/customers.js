@@ -9,6 +9,7 @@ const upsertCustomer = async (data) => {
   const email = (data.email || '').trim().toLowerCase();
   const phone = (data.phone || '').trim();
   const dietary_profile = (data.dietary_profile || '').trim();
+  const address = (data.address || '').trim();
   const origin = (data.origin || 'Counter').trim();
   
   // Try to find existing by phone or email
@@ -23,15 +24,15 @@ const upsertCustomer = async (data) => {
   if (existing.length > 0) {
     const id = existing[0].id;
     await db.query(
-      'UPDATE customers SET first_name = ?, last_name = ?, email = ?, phone = COALESCE(?, phone), dietary_profile = ? WHERE id = ?',
-      [first_name, last_name, email || null, phone || null, dietary_profile || '', id]
+      'UPDATE customers SET first_name = ?, last_name = ?, email = ?, phone = COALESCE(?, phone), dietary_profile = ?, address = COALESCE(?, address) WHERE id = ?',
+      [first_name, last_name, email || null, phone || null, dietary_profile || '', address || null, id]
     );
     return id;
   } else {
     // Attempt Insert Ignore to prevent crash
     await db.query(
-      'INSERT IGNORE INTO customers (first_name, last_name, email, phone, dietary_profile, origin) VALUES (?, ?, ?, ?, ?, ?)',
-      [first_name, last_name || '', email || null, phone || '', dietary_profile || '', origin]
+      'INSERT IGNORE INTO customers (first_name, last_name, email, phone, dietary_profile, address, origin) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [first_name, last_name || '', email || null, phone || '', dietary_profile || '', address || null, origin]
     );
     
     // Final retrieval - one of these MUST work now
@@ -69,12 +70,12 @@ router.post('/', async (req, res) => {
 
 // Update customer
 router.put('/:id', async (req, res) => {
-  const { first_name, last_name, email, phone, dietary_profile, origin } = req.body;
+  const { first_name, last_name, email, phone, dietary_profile, address, origin } = req.body;
   const { id } = req.params;
   try {
     await db.query(
-      'UPDATE customers SET first_name = ?, last_name = ?, email = ?, phone = ?, dietary_profile = ?, origin = ? WHERE id = ?',
-      [first_name, last_name, email, phone, dietary_profile, origin || 'Counter', id]
+      'UPDATE customers SET first_name = ?, last_name = ?, email = ?, phone = ?, dietary_profile = ?, address = ?, origin = ? WHERE id = ?',
+      [first_name, last_name, email, phone, dietary_profile, address, origin || 'Counter', id]
     );
     res.json({ message: 'Customer updated successfully' });
   } catch (err) {

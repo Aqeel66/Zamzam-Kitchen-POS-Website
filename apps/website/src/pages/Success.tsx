@@ -4,6 +4,13 @@ import { useState, useEffect } from 'react';
 import { API_BASE_URL, resolveImageUrl } from '../config';
 import './Success.css';
 
+const formatTableNumber = (num: string | number) => {
+  if (!num) return '';
+  const str = num.toString().trim();
+  const clean = str.replace(/^[t\s\-_–—]+/i, '');
+  return 'T-' + clean;
+};
+
 export default function Success() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -218,7 +225,7 @@ export default function Success() {
             <h3 className="section-title">BILL TO:</h3>
             <p className="customer-name">{orderData.customer_name || 'Valued Customer'}</p>
             <p className="order-type">Order Type: {orderData.order_type || (type === 'reservation' ? 'Reservation' : 'Takeaway')}</p>
-            {orderData.table_number && <p className="order-type">Table: {orderData.table_number}</p>}
+            {orderData.table_number && <p className="order-type">Table: {formatTableNumber(orderData.table_number)}</p>}
           </section>
 
           <table className="invoice-table">

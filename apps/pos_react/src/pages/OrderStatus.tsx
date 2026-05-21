@@ -649,6 +649,14 @@ export default function OrderStatus() {
                     <span className={cn("px-2 py-0.5 rounded-md text-[7px] font-bold uppercase border", isPaid(selectedOrder) ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100")}>
                       {isPaid(selectedOrder) ? 'Paid' : 'Unpaid'}
                     </span>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-md text-[7px] font-bold uppercase border",
+                      selectedOrder.status === 'Rejected' || selectedOrder.status === 'Cancelled' ? "bg-red-50 text-red-600 border-red-100" :
+                      selectedOrder.status === 'Served' || selectedOrder.status === 'Completed' ? "bg-green-50 text-green-600 border-green-100" :
+                      "bg-blue-50 text-blue-600 border-blue-100"
+                    )}>
+                      {selectedOrder.status || 'Pending'}
+                    </span>
                   </div>
                 </div>
                 <button onClick={() => setSelectedOrder(null)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 border border-slate-100 transition-all"><X size={18} /></button>
@@ -673,6 +681,19 @@ export default function OrderStatus() {
                     <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tight">Staff Member</p>
                   </div>
                 </div>
+
+                {/* Rejection Reason in Detail View */}
+                {selectedOrder.status === 'Rejected' && selectedOrder.rejection_reason && (
+                  <div className="mx-6 mt-4 p-4 rounded-2xl bg-red-50 border border-red-100 flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2 text-red-800 font-bold text-[9px] uppercase tracking-wider">
+                      <X size={14} className="text-red-600" />
+                      <span>Rejection Reason</span>
+                    </div>
+                    <p className="text-[10px] text-red-700 leading-normal font-medium">
+                      {selectedOrder.rejection_reason}
+                    </p>
+                  </div>
+                )}
 
                 {/* Customer Section */}
                 <div className="p-6 pb-2 border-b border-slate-50 bg-white">

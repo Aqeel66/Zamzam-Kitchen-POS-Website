@@ -194,8 +194,8 @@ router.post('/', async (req, res) => {
       
       for (const t of finalTables) {
         await connection.execute(
-          'INSERT INTO order_tables (order_id, table_id, allocated_seats) VALUES (?, ?, ?)',
-          [orderId, t.id, t.seats || 1]
+          'INSERT INTO order_tables (order_id, table_id, allocated_seats, selected_seats) VALUES (?, ?, ?, ?)',
+          [orderId, t.id, t.seats || 1, t.selected_seats || null]
         );
       }
 
@@ -904,8 +904,8 @@ router.put('/:id', async (req, res) => {
 
     for (const t of finalTables) {
       await connection.execute(
-        'INSERT INTO order_tables (order_id, table_id, allocated_seats) VALUES (?, ?, ?)',
-        [id, t.id, t.seats || 1]
+        'INSERT INTO order_tables (order_id, table_id, allocated_seats, selected_seats) VALUES (?, ?, ?, ?)',
+        [id, t.id, t.seats || 1, t.selected_seats || null]
       );
     }
 

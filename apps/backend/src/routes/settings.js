@@ -100,6 +100,7 @@ router.patch('/branch', async (req, res) => {
       'is_booking_fee_enabled',
       'allow_delivery',
       'allow_pickup',
+      'allow_dinein',
       'is_tax_enabled',
       'tax_rate',
       'payment_policy',
@@ -111,7 +112,11 @@ router.patch('/branch', async (req, res) => {
       'closing_time',
       'first_order_time',
       'last_order_time',
-      'enable_inventory'
+      'enable_inventory',
+      'allow_cash_website',
+      'allow_card_website',
+      'allow_cash_pos',
+      'allow_card_pos'
     ];
     
     const updates = [];

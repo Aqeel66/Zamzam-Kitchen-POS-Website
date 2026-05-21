@@ -15,7 +15,9 @@ import {
   ChevronDown,
   ChefHat,
   ShoppingBag,
-  Users
+  Users,
+  Pencil,
+  UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
@@ -25,6 +27,13 @@ import CheckoutModal from '../components/CheckoutModal';
 import PrintSuccessModal from '../components/PrintSuccessModal';
 
 const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(Boolean).join(' ');
+
+const formatTableNumber = (num: string | number) => {
+  if (!num) return '';
+  const str = num.toString().trim();
+  const clean = str.replace(/^[t\s\-_–—]+/i, '');
+  return 'T-' + clean;
+};
 
 // categoryColors removed to satisfy build constraints
 
@@ -54,6 +63,89 @@ export default function Orders() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [showCustomerResults, setShowCustomerResults] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [customerForm, setCustomerForm] = useState({
+    id: null as number | null,
+    first_name: '',
+    last_name: '',
+    phone: '',
+    email: '',
+    address: ''
+  });
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+
+  const [selectedTablesList, setSelectedTablesList] = useState<any[]>([]);
+  const [isSeatingModalOpen, setIsSeatingModalOpen] = useState(false);
+  const [tempSeatingSelection, setTempSeatingSelection] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isSeatingModalOpen) {
+      fetchTablesAndWaiters();
+      setTempSeatingSelection([...selectedTablesList]);
+    }
+  }, [isSeatingModalOpen]);
+
+  useEffect(() => {
+    if (!selectedTable) {
+      setSelectedTablesList([]);
+    }
+  }, [selectedTable]);
+
+  useEffect(() => {
+    if (selectedTable && selectedTablesList.length === 0) {
+      setSelectedTablesList([{
+        id: selectedTable.id,
+        table_number: selectedTable.table_number,
+        capacity: selectedTable.capacity,
+        selectedSeats: []
+      }]);
+    }
+  }, [selectedTable, tables]);
+
+  const handleToggleTable = (table: any) => {
+    const existing = tempSeatingSelection.find(t => t.id === table.id);
+    if (existing) {
+      setTempSeatingSelection(tempSeatingSelection.filter(t => t.id !== table.id));
+    } else {
+      setTempSeatingSelection([...tempSeatingSelection, {
+        id: table.id,
+        table_number: table.table_number,
+        capacity: table.capacity,
+        selectedSeats: []
+      }]);
+    }
+  };
+
+  const handleToggleSeat = (tableId: number, seatNum: number) => {
+    setTempSeatingSelection(prev => {
+      return prev.map(t => {
+        if (t.id === tableId) {
+          const isSelected = t.selectedSeats.includes(seatNum);
+          const newSeats = isSelected
+            ? t.selectedSeats.filter((s: number) => s !== seatNum)
+            : [...t.selectedSeats, seatNum];
+          return { ...t, selectedSeats: newSeats };
+        }
+        return t;
+      }).filter(t => t.selectedSeats.length > 0);
+    });
+  };
+
+  const handleSeatingConfirm = (newSelectionList: any[]) => {
+    setSelectedTablesList(newSelectionList);
+    if (newSelectionList.length > 0) {
+      const firstTable = tables.find(t => t.id === newSelectionList[0].id);
+      setSelectedTable(firstTable || null);
+      
+      const totalSeatsCount = newSelectionList.reduce((acc, t) => acc + t.selectedSeats.length, 0);
+      setGuestCount(totalSeatsCount);
+    } else {
+      setSelectedTable(null);
+      setGuestCount(1);
+    }
+    setIsSeatingModalOpen(false);
+  };
+
 
   // Item Selection Modal State
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
@@ -84,6 +176,77 @@ export default function Orders() {
       if (exists) return prev.filter(e => e.id !== extra.id);
       return [...prev, extra];
     });
+  };
+
+  const handleReset = () => {
+    setSelectedWaiter(null);
+    setSelectedCustomer(null);
+    setCustomerSearch('');
+    setIsCheckoutOpen(false);
+    setIsPrintModalOpen(false);
+    setLastPlacedOrder(null);
+    setCustomerForm({ id: null, first_name: '', last_name: '', phone: '', email: '', address: '' });
+  };
+
+  const handleSaveCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingCustomer(true);
+    try {
+      if (orderType === 'Takeaway' && (!customerForm.first_name || !customerForm.phone)) {
+        alert('Takeaway requires First Name and Phone.');
+        setIsSavingCustomer(false);
+        return;
+      }
+      if (orderType === 'Delivery' && (!customerForm.first_name || !customerForm.phone || !customerForm.email || !customerForm.address)) {
+        alert('Delivery requires First Name, Phone, Email, and Address.');
+        setIsSavingCustomer(false);
+        return;
+      }
+
+      const method = customerForm.id ? 'PUT' : 'POST';
+      const url = customerForm.id ? `${API_BASE_URL}/customers/${customerForm.id}` : `${API_BASE_URL}/customers`;
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...customerForm, origin: 'Counter' })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to save customer');
+      
+      const savedCustomer = {
+        ...customerForm,
+        id: customerForm.id || data.id
+      };
+      
+      setSelectedCustomer(savedCustomer);
+      setCustomerSearch(`${savedCustomer.first_name} ${savedCustomer.last_name || ''}`.trim());
+      setIsCustomerModalOpen(false);
+      fetchCustomers();
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'Customer profile saved', type: 'success' } }));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSavingCustomer(false);
+    }
+  };
+
+  const openAddCustomer = () => {
+    setCustomerForm({ id: null, first_name: '', last_name: '', phone: '', email: '', address: '' });
+    setIsCustomerModalOpen(true);
+  };
+
+  const openEditCustomer = (customer: any) => {
+    setCustomerForm({
+      id: customer.id,
+      first_name: customer.first_name || '',
+      last_name: customer.last_name || '',
+      phone: customer.phone || '',
+      email: customer.email || '',
+      address: customer.address || ''
+    });
+    setIsCustomerModalOpen(true);
   };
 
   // --- DATA SYNC ---
@@ -178,7 +341,7 @@ export default function Orders() {
   // Update default order type based on settings
   useEffect(() => {
     if (branchInfo) {
-      if (branchInfo.allow_dinein !== 0) setOrderType('Dine-In');
+      if (branchInfo.allow_dinein === 1) setOrderType('Dine-In');
       else if (branchInfo.allow_pickup === 1) setOrderType('Takeaway');
       else if (branchInfo.allow_delivery === 1) setOrderType('Delivery');
     }
@@ -292,12 +455,35 @@ export default function Orders() {
         alert('Table Selection Required: Please select a table for Dine-In.');
         return false;
       }
+      const totalSeatsSelected = selectedTablesList.reduce((acc, t) => acc + t.selectedSeats.length, 0);
+      if (totalSeatsSelected === 0) {
+        alert('Seat Selection Required: Please select at least one seat for the table using the Seating Plan button.');
+        return false;
+      }
       if (!selectedWaiter) {
         alert('Waiter Assignment Required: Please assign a waiter for this Dine-In order.');
         return false;
       }
       if (!customerSearch.trim()) {
         alert('Customer Detail Required: Please search for a customer or select "Guest".');
+        return false;
+      }
+    } else if (orderType === 'Takeaway') {
+      if (!selectedCustomer) {
+        alert('Takeaway orders require a registered customer with a name and phone number.');
+        return false;
+      }
+      if (!selectedCustomer.first_name || !selectedCustomer.phone) {
+        alert('Customer profile incomplete: Takeaway orders require a Name and Phone Number.');
+        return false;
+      }
+    } else if (orderType === 'Delivery') {
+      if (!selectedCustomer) {
+        alert('Delivery orders require a registered customer.');
+        return false;
+      }
+      if (!selectedCustomer.first_name || !selectedCustomer.phone || !selectedCustomer.email || !selectedCustomer.address) {
+        alert('Customer profile incomplete: Delivery orders require Name, Phone, Email, and Address. Click Edit to update their profile.');
         return false;
       }
     }
@@ -328,7 +514,7 @@ export default function Orders() {
 
       if (activePaymentOrder) {
         // REQUIREMENT: Quick Pay for existing order
-        orderPayload.order_type = activePaymentOrder.order_type;
+        orderPayload.order_type = activePaymentOrder.order_type || orderType;
         orderPayload.items = activePaymentOrder.items;
         orderPayload.table_id = selectedTable?.id || activePaymentOrder.table_id;
         orderPayload.waiter_id = selectedWaiter?.id || activePaymentOrder.waiter_id;
@@ -351,6 +537,11 @@ export default function Orders() {
         }));
         orderPayload.order_type = orderType;
         orderPayload.table_id = selectedTable?.id || null;
+        orderPayload.tables = selectedTablesList.map(t => ({
+          id: t.id,
+          seats: t.selectedSeats.length,
+          selected_seats: t.selectedSeats.join(',')
+        }));
         orderPayload.waiter_id = selectedWaiter?.id || null;
         orderPayload.waiter_name = selectedWaiter ? `${selectedWaiter.first_name} ${selectedWaiter.last_name}` : null;
         orderPayload.customer_id = selectedCustomer?.id || null;
@@ -407,6 +598,8 @@ export default function Orders() {
         setSelectedTable(null);
         setSelectedWaiter(null);
         setGuestCount(1);
+        setSelectedTablesList([]);
+        fetchTablesAndWaiters();
         
         if (!activePaymentOrder) {
           setIsPrintModalOpen(true);
@@ -457,6 +650,11 @@ export default function Orders() {
           user_id: user?.id || 1,
           branch_id: branchInfo?.branch_id || 1,
           table_id: selectedTable?.id || editingOrder?.table_id || null,
+          tables: selectedTablesList.map(t => ({
+            id: t.id,
+            seats: t.selectedSeats.length,
+            selected_seats: t.selectedSeats.join(',')
+          })),
           waiter_id: selectedWaiter?.id || editingOrder?.waiter_id || null,
           waiter_name: selectedWaiter ? `${selectedWaiter.first_name} ${selectedWaiter.last_name}` : (editingOrder?.waiter_name || null),
           customer_id: selectedCustomer?.id || null,
@@ -477,6 +675,11 @@ export default function Orders() {
           order_type: editingOrder?.order_type || 'Takeaway'
         });
         clearCart();
+        setSelectedTable(null);
+        setSelectedWaiter(null);
+        setGuestCount(1);
+        setSelectedTablesList([]);
+        fetchTablesAndWaiters();
         setIsPrintModalOpen(true);
         // Dispatch event to refresh KDS count in layout
         window.dispatchEvent(new CustomEvent('settings-updated'));
@@ -667,24 +870,31 @@ export default function Orders() {
           {/* Order Type Toggle */}
           <div className={cn(
             "grid gap-2",
-            [1, branchInfo?.allow_pickup, branchInfo?.allow_delivery].filter(x => x === 1).length > 2 ? "grid-cols-3" : "grid-cols-2"
+            [branchInfo?.allow_dinein === 1 ? 1 : 0, branchInfo?.allow_pickup, branchInfo?.allow_delivery].filter(x => x === 1).length > 2 ? "grid-cols-3" : "grid-cols-2"
           )}>
-            <button
-              onClick={() => setOrderType('Dine-In')}
-              className={cn(
-                "flex items-center justify-center gap-1.5 py-3 rounded-xl border-2 transition-all",
-                orderType === 'Dine-In'
-                  ? "bg-zamzam-teal border-zamzam-teal text-white shadow-md shadow-teal-500/20"
-                  : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
-              )}
-            >
-              <Utensils size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Dine-In</span>
-            </button>
+            {branchInfo?.allow_dinein === 1 && (
+              <button
+                onClick={() => setOrderType('Dine-In')}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 py-3 rounded-xl border-2 transition-all",
+                  orderType === 'Dine-In'
+                    ? "bg-zamzam-teal border-zamzam-teal text-white shadow-md shadow-teal-500/20"
+                    : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                )}
+              >
+                <Utensils size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Dine-In</span>
+              </button>
+            )}
             
             {branchInfo?.allow_pickup === 1 && (
               <button
-                onClick={() => setOrderType('Takeaway')}
+                onClick={() => {
+                  setOrderType('Takeaway');
+                  setSelectedTable(null);
+                  setSelectedTablesList([]);
+                  setTempSeatingSelection([]);
+                }}
                 className={cn(
                   "flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all",
                   orderType === 'Takeaway'
@@ -692,14 +902,19 @@ export default function Orders() {
                     : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
                 )}
               >
-                <ShoppingBag size={14} className={cn(orderType === 'Takeaway' && "animate-bounce")} />
+              <ShoppingBag size={14} className={cn(orderType === 'Takeaway' && "animate-bounce")} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">Takeaway</span>
               </button>
             )}
 
             {branchInfo?.allow_delivery === 1 && (
               <button
-                onClick={() => setOrderType('Delivery')}
+                onClick={() => {
+                  setOrderType('Delivery');
+                  setSelectedTable(null);
+                  setSelectedTablesList([]);
+                  setTempSeatingSelection([]);
+                }}
                 className={cn(
                   "flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all",
                   orderType === 'Delivery'
@@ -713,86 +928,38 @@ export default function Orders() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5">
-            {selectedTable ? (
-              <div className="group relative w-full h-[28px] flex items-center justify-between bg-zamzam-teal/5 border border-zamzam-teal/20 rounded-lg px-2.5 text-[9px] font-bold text-slate-700 shadow-sm transition-all hover:bg-zamzam-teal/10 cursor-pointer">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Utensils size={9} className="text-zamzam-teal flex-shrink-0 animate-pulse" />
-                  <span className="truncate text-slate-800">
-                    T-{selectedTable.table_number} ({guestCount} {guestCount === 1 ? 'Seat' : 'Seats'})
-                  </span>
-                </div>
+          <div className={cn("grid gap-1.5", orderType === 'Dine-In' ? "grid-cols-2" : "grid-cols-1")}>
+            {/* Table Selection – only shown for Dine-In */}
+            {orderType === 'Dine-In' && (
+              <div className="relative">
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedTable(null);
-                    setGuestCount(1);
-                  }}
-                  className="text-slate-400 hover:text-rose-500 transition-colors flex-shrink-0 ml-1"
-                  title="Change Table"
+                  onClick={() => setIsSeatingModalOpen(true)}
+                  className={cn(
+                    "w-full h-[28px] px-2.5 rounded-lg border text-left flex items-center justify-between gap-1 shadow-sm transition-all text-[9px] font-bold uppercase tracking-widest min-w-0 select-none",
+                    selectedTablesList.length > 0
+                      ? "bg-zamzam-teal/5 border-zamzam-teal/30 text-zamzam-teal hover:bg-zamzam-teal/10"
+                      : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                  )}
                 >
-                  <X size={8} className="stroke-[2.5]" />
-                </button>
-
-                {/* Popover / Hover details card */}
-                <div className="absolute left-0 top-full mt-1.5 w-[200px] hidden group-hover:block z-50 p-2.5 bg-white border border-slate-200 rounded-xl shadow-xl space-y-1.5 pointer-events-auto">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Table Selection Details</span>
-                    <span className="text-[9px] font-black text-zamzam-teal bg-zamzam-teal/5 px-1.5 py-0.5 rounded-full">
-                      T-{selectedTable.table_number}
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <Utensils size={10} className={selectedTablesList.length > 0 ? "text-zamzam-teal animate-pulse flex-shrink-0" : "text-slate-400 flex-shrink-0"} />
+                    <span className="truncate text-slate-700">
+                      {selectedTablesList.length > 0
+                        ? selectedTablesList.map(t => formatTableNumber(t.table_number)).join(', ')
+                        : "Tables"}
                     </span>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-1 text-[8px] font-bold text-slate-700 uppercase tracking-tight">
-                    <div className="bg-slate-50 border border-slate-100 p-1 rounded-md flex flex-col items-center text-center">
-                      <span className="text-slate-400 text-[6px] uppercase tracking-wider mb-0.5">Capacity</span>
-                      <span className="text-slate-900">{selectedTable.capacity} Guests</span>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-100 p-1 rounded-md flex flex-col items-center text-center">
-                      <span className="text-slate-400 text-[6px] uppercase tracking-wider mb-0.5">Available</span>
-                      <span className="text-zamzam-teal">{selectedTable.balance_seats !== undefined ? selectedTable.balance_seats : selectedTable.capacity} Seats</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
-                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Guests/Seats:</span>
-                    <select
-                      value={guestCount}
-                      onChange={(e) => setGuestCount(Number(e.target.value))}
-                      className="bg-white border border-slate-200 rounded px-1.5 py-0.5 text-[8px] font-bold text-slate-800 outline-none focus:border-zamzam-teal cursor-pointer shadow-sm"
-                    >
-                      {Array.from(
-                        { length: Math.max(1, selectedTable.balance_seats !== undefined ? selectedTable.balance_seats : selectedTable.capacity) }, 
-                        (_, i) => i + 1
-                      ).map(num => (
-                        <option key={num} value={num}>
-                          {num} {num === 1 ? 'Guest' : 'Guests'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="relative">
-                <select
-                  value={selectedTable?.id || ''}
-                  onChange={(e) => {
-                    const table = tables.find(t => t.id === Number(e.target.value));
-                    setSelectedTable(table || null);
-                    setGuestCount(1); // Reset guest count selection when table changes
-                  }}
-                  className="w-full appearance-none bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-600 outline-none focus:border-zamzam-teal transition-all shadow-sm cursor-pointer"
-                >
-                  <option value="">Table</option>
-                  {tables.map(t => (
-                    <option key={t.id} value={t.id}>
-                      T {t.table_number} (Cap: {t.capacity} | Free: {t.balance_seats !== undefined ? t.balance_seats : t.capacity})
-                    </option>
-                  ))}
-                </select>
-                <Utensils size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  {selectedTablesList.length > 0 ? (
+                    <span className="text-[7px] bg-zamzam-teal text-white px-1.5 py-0.5 rounded-full font-black flex-shrink-0">
+                      {selectedTablesList.reduce((acc, t) => acc + t.selectedSeats.length, 0)} Seats
+                    </span>
+                  ) : (
+                    <span className="text-[7px] bg-slate-100 text-slate-400 px-1 py-0.5 rounded font-medium flex-shrink-0">
+                      Plan
+                    </span>
+                  )}
+                </button>
               </div>
             )}
 
@@ -803,7 +970,7 @@ export default function Orders() {
                   const waiter = waiters.find(w => w.id === Number(e.target.value));
                   setSelectedWaiter(waiter || null);
                 }}
-                className="w-full appearance-none bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-600 outline-none focus:border-zamzam-teal transition-all shadow-sm cursor-pointer"
+                className="w-full appearance-none bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-600 outline-none focus:border-zamzam-teal transition-all shadow-sm cursor-pointer h-[28px]"
               >
                 <option value="">Waiter</option>
                 {waiters.map(w => (
@@ -818,16 +985,26 @@ export default function Orders() {
           <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-sm relative">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">Select Customer (Loyalty)</span>
-              <button 
-                onClick={() => {
-                  setCustomerSearch('Walk-in Guest');
-                  setSelectedCustomer(null);
-                  setShowCustomerResults(false);
-                }}
-                className="text-[8px] font-bold text-zamzam-teal uppercase tracking-wider hover:underline"
-              >
-                Select Guest
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={openAddCustomer}
+                  className="text-[8px] font-bold text-zamzam-teal uppercase tracking-wider hover:underline flex items-center gap-1"
+                >
+                  <Plus size={10} /> Add New
+                </button>
+                {orderType === 'Dine-In' && (
+                  <button 
+                    onClick={() => {
+                      setCustomerSearch('Walk-in Guest');
+                      setSelectedCustomer(null);
+                      setShowCustomerResults(false);
+                    }}
+                    className="text-[8px] font-bold text-slate-400 uppercase tracking-wider hover:underline"
+                  >
+                    Select Guest
+                  </button>
+                )}
+              </div>
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300" size={12} />
@@ -892,15 +1069,23 @@ export default function Orders() {
                     <span className="text-[7px] text-slate-400 font-medium">{selectedCustomer.phone || 'No phone'}</span>
                   </div>
                 </div>
-                <button 
-                  onClick={() => {
-                    setSelectedCustomer(null);
-                    setCustomerSearch('');
-                  }}
-                  className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                >
-                  <X size={12} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => openEditCustomer(selectedCustomer)}
+                    className="p-1 text-slate-400 hover:text-zamzam-teal transition-colors"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setSelectedCustomer(null);
+                      setCustomerSearch('');
+                    }}
+                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1242,6 +1427,320 @@ export default function Orders() {
                   Add to Cart
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Multiple Table & Seat Selection Modal */}
+      <AnimatePresence>
+        {isSeatingModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => setIsSeatingModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                    <Utensils className="text-zamzam-teal" size={16} />
+                    <span>Multiple Table & Seat Selection Layout</span>
+                  </h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Check a table on the left, then select its seats on the right</p>
+                </div>
+                <button
+                  onClick={() => setIsSeatingModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-all"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
+                <div className="space-y-3">
+                  {tables.map(table => {
+                    const tempTable = tempSeatingSelection.find(t => t.id === table.id);
+                    const isChecked = !!tempTable;
+                    const selectedCount = tempTable ? tempTable.selectedSeats.length : 0;
+                    const isTableFullyOccupied = table.balance_seats !== undefined && table.balance_seats <= 0;
+                    
+                    return (
+                      <div key={table.id} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-md select-none">
+                        {/* 1. Left Checkbox */}
+                        <button
+                          type="button"
+                          disabled={isTableFullyOccupied}
+                          onClick={() => handleToggleTable(table)}
+                          className={cn(
+                            "w-6 h-6 rounded-md border flex items-center justify-center font-bold text-xs transition-all shrink-0",
+                            isTableFullyOccupied
+                              ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed"
+                              : isChecked
+                                ? "bg-zamzam-teal border-zamzam-teal text-white shadow-md shadow-zamzam-teal/20"
+                                : "border-slate-300 hover:border-zamzam-teal text-transparent"
+                          )}
+                        >
+                          {isTableFullyOccupied ? "✕" : "✓"}
+                        </button>
+
+                        {/* 2. Table Box */}
+                        <div
+                          className={cn(
+                            "w-28 py-3 px-4 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 shrink-0",
+                            isTableFullyOccupied
+                              ? "bg-rose-50 border-rose-100 opacity-75 cursor-not-allowed"
+                              : isChecked
+                                ? "bg-zamzam-teal/5 border-zamzam-teal shadow-inner shadow-zamzam-teal/5"
+                                : "bg-slate-50 border-slate-100"
+                          )}
+                        >
+                          <span className={cn(
+                            "text-xs font-bold uppercase tracking-wider",
+                            isTableFullyOccupied ? "text-rose-600" : "text-slate-800"
+                          )}>{formatTableNumber(table.table_number)}</span>
+                          <span className="text-[9px] font-bold text-slate-400">
+                            {isTableFullyOccupied ? "Fully Occupied" : `${selectedCount}/${table.capacity} Seats`}
+                          </span>
+                        </div>
+
+                        {/* 3. Arrow pointing to seats */}
+                        <div className="w-12 flex items-center justify-center shrink-0">
+                          {isChecked ? (
+                            <svg className="w-6 h-6 text-zamzam-teal animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                            </svg>
+                          ) : (
+                            <div className="w-6 h-[2px] bg-slate-100" />
+                          )}
+                        </div>
+
+                        {/* 4. Seats List (Horizontal Scroll or Flex Row) */}
+                        <div className="flex-1 flex flex-wrap items-center gap-2">
+                          {isChecked ? (
+                            Array.from({ length: table.capacity }, (_, idx) => idx + 1).map(seatNum => {
+                              const isOccupied = table.occupied_seats ? table.occupied_seats.includes(seatNum) : (seatNum <= (table.capacity - (table.balance_seats !== undefined ? table.balance_seats : table.capacity)));
+                              const isSeatChecked = tempTable.selectedSeats.includes(seatNum);
+                              
+                              return (
+                                <button
+                                  key={seatNum}
+                                  type="button"
+                                  disabled={isOccupied}
+                                  onClick={() => handleToggleSeat(table.id, seatNum)}
+                                  className={cn(
+                                    "py-1.5 px-3 rounded-lg border flex items-center gap-2 shadow-sm transition-all select-none",
+                                    isOccupied
+                                      ? "bg-rose-50/50 border-rose-100 text-rose-400 cursor-not-allowed opacity-75"
+                                      : isSeatChecked
+                                        ? "border-zamzam-teal text-zamzam-teal bg-zamzam-teal/5 hover:scale-[1.03]"
+                                        : "bg-white border-slate-100 hover:border-slate-200 text-slate-600 hover:scale-[1.03]"
+                                  )}
+                                >
+                                  <div
+                                    className={cn(
+                                      "w-3.5 h-3.5 rounded border flex items-center justify-center font-bold text-[8px] transition-all",
+                                      isOccupied
+                                        ? "bg-rose-200 border-rose-300 text-rose-600"
+                                        : isSeatChecked
+                                          ? "bg-zamzam-teal border-zamzam-teal text-white"
+                                          : "border-slate-300"
+                                    )}
+                                  >
+                                    {isOccupied ? "✕" : isSeatChecked && "✓"}
+                                  </div>
+                                  <div className="flex flex-col items-start leading-none py-0.5">
+                                    <span className="text-[10px] font-bold">Seat {seatNum}</span>
+                                    {isOccupied && (
+                                      <span className="text-[8px] font-bold text-rose-500 mt-0.5 uppercase tracking-wider">Occupied</span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-300 italic tracking-widest uppercase">Table Unselected</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Total Assigned Seating</span>
+                  <p className="text-sm font-black text-slate-800 uppercase tracking-tight mt-0.5">
+                    {tempSeatingSelection.length} Tables | {tempSeatingSelection.reduce((acc, t) => acc + t.selectedSeats.length, 0)} Seats Selected
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsSeatingModalOpen(false)}
+                    className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleSeatingConfirm(tempSeatingSelection)}
+                    className="px-6 py-2.5 bg-zamzam-teal text-white rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-teal-400 shadow-lg shadow-teal-500/20 transition-all"
+                  >
+                    Confirm Layout Seating
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add / Edit Customer Modal */}
+      <AnimatePresence>
+        {isCustomerModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCustomerModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl border border-slate-100 flex flex-col overflow-hidden max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-zamzam-teal rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20 text-white">
+                    <UserPlus size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">
+                      {customerForm.id ? 'Edit Customer' : 'Add New Customer'}
+                    </h2>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                      {orderType === 'Delivery' ? 'Delivery details required' : 'Basic contact info required'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsCustomerModalOpen(false)}
+                  className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 shadow-sm border border-slate-200 transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleSaveCustomer} className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customerForm.first_name}
+                      onChange={e => setCustomerForm(f => ({ ...f, first_name: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-800 focus:border-zamzam-teal focus:ring-1 focus:ring-zamzam-teal/20 outline-none transition-all"
+                      placeholder="e.g. John"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={customerForm.last_name}
+                      onChange={e => setCustomerForm(f => ({ ...f, last_name: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-800 focus:border-zamzam-teal focus:ring-1 focus:ring-zamzam-teal/20 outline-none transition-all"
+                      placeholder="e.g. Doe"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1">
+                      Phone Number {(orderType === 'Takeaway' || orderType === 'Delivery') && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="tel"
+                      required={orderType === 'Takeaway' || orderType === 'Delivery'}
+                      value={customerForm.phone}
+                      onChange={e => setCustomerForm(f => ({ ...f, phone: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-800 focus:border-zamzam-teal focus:ring-1 focus:ring-zamzam-teal/20 outline-none transition-all"
+                      placeholder="e.g. +1 234 567 8900"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1">
+                      Email Address {orderType === 'Delivery' && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="email"
+                      required={orderType === 'Delivery'}
+                      value={customerForm.email}
+                      onChange={e => setCustomerForm(f => ({ ...f, email: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-800 focus:border-zamzam-teal focus:ring-1 focus:ring-zamzam-teal/20 outline-none transition-all"
+                      placeholder="e.g. john@example.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1">
+                    Delivery Address {orderType === 'Delivery' && <span className="text-red-500">*</span>}
+                  </label>
+                  <textarea
+                    required={orderType === 'Delivery'}
+                    value={customerForm.address}
+                    onChange={e => setCustomerForm(f => ({ ...f, address: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-800 focus:border-zamzam-teal focus:ring-1 focus:ring-zamzam-teal/20 outline-none transition-all min-h-[80px]"
+                    placeholder="Full street address, apt/suite, city, zip code"
+                  />
+                  {orderType === 'Delivery' && (
+                    <p className="text-[9px] text-zamzam-teal font-bold tracking-widest uppercase">
+                      Required for Delivery Orders
+                    </p>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomerModalOpen(false)}
+                    className="px-6 py-3 border border-slate-200 text-slate-500 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingCustomer}
+                    className="px-8 py-3 bg-zamzam-teal text-white rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-teal-600 shadow-lg shadow-teal-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSavingCustomer ? 'Saving...' : 'Save Profile'}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

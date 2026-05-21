@@ -202,6 +202,29 @@ class _MyOrdersViewState extends State<MyOrdersView> {
           const SizedBox(height: 16),
           // Date Line
           Text('$dateStr | $timeStr', style: TextStyle(color: theme.hintColor, fontSize: 12)),
+          
+          if (status.toUpperCase() == 'REJECTED' && order['rejection_reason'] != null && order['rejection_reason'].toString().isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Reason: ${order['rejection_reason']}',
+                      style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 16),
           // Items List (Preview)
           Expanded(

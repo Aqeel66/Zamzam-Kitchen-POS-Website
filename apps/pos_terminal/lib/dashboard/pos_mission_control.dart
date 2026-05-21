@@ -10208,6 +10208,37 @@ class _POSMissionControlState extends State<POSMissionControl>
                   ),
                 ),
                 const Divider(height: 40),
+                if (order['status'] == 'Rejected' &&
+                    order['rejection_reason'] != null &&
+                    order['rejection_reason'].toString().isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.08),
+                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded,
+                            color: Colors.red, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'REJECTION REASON: ${order['rejection_reason']}',
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

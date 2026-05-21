@@ -789,6 +789,15 @@ export default function Settings() {
                     <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em]">Order Channels</h3>
                   </div>
                   <div className="p-10 space-y-8">
+                    {/* Dine-In */}
+                    <SettingsToggle 
+                      disabled={isSaving}
+                      label="Dine-In"
+                      sublabel="Enable dine-in options in POS"
+                      enabled={settings?.branch?.allow_dinein === 1}
+                      onToggle={() => handleUpdateBranch({ allow_dinein: settings?.branch?.allow_dinein === 1 ? 0 : 1 })}
+                    />
+
                     {/* Home Delivery */}
                     <SettingsToggle 
                       disabled={isSaving}
@@ -806,6 +815,54 @@ export default function Settings() {
                       enabled={settings?.branch?.allow_pickup === 1}
                       onToggle={() => handleUpdateBranch({ allow_pickup: settings?.branch?.allow_pickup ? 0 : 1 })}
                     />
+                  </div>
+                </div>
+
+                {/* Payment Methods Section */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/50">
+                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em]">Payment Methods</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Control which payment methods appear on Website and POS</p>
+                  </div>
+                  <div className="p-10">
+                    {/* Website */}
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Website Checkout</p>
+                    <div className="space-y-8 mb-10">
+                      <SettingsToggle
+                        disabled={isSaving}
+                        label="Cash Payment (Website)"
+                        sublabel="Allow customers to pay cash on delivery / at table on website orders"
+                        enabled={settings?.branch?.allow_cash_website !== 0}
+                        onToggle={() => handleUpdateBranch({ allow_cash_website: settings?.branch?.allow_cash_website === 0 ? 1 : 0 })}
+                      />
+                      <SettingsToggle
+                        disabled={isSaving}
+                        label="Card Payment (Website)"
+                        sublabel="Allow customers to pay by card on the website checkout"
+                        enabled={settings?.branch?.allow_card_website !== 0}
+                        onToggle={() => handleUpdateBranch({ allow_card_website: settings?.branch?.allow_card_website === 0 ? 1 : 0 })}
+                      />
+                    </div>
+                    {/* POS */}
+                    <div className="border-t border-slate-100 pt-8">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">POS Checkout</p>
+                      <div className="space-y-8">
+                        <SettingsToggle
+                          disabled={isSaving}
+                          label="Cash Payment (POS)"
+                          sublabel="Allow cash as a payment option in the POS checkout modal"
+                          enabled={settings?.branch?.allow_cash_pos !== 0}
+                          onToggle={() => handleUpdateBranch({ allow_cash_pos: settings?.branch?.allow_cash_pos === 0 ? 1 : 0 })}
+                        />
+                        <SettingsToggle
+                          disabled={isSaving}
+                          label="Card Payment (POS)"
+                          sublabel="Allow card as a payment option in the POS checkout modal"
+                          enabled={settings?.branch?.allow_card_pos !== 0}
+                          onToggle={() => handleUpdateBranch({ allow_card_pos: settings?.branch?.allow_card_pos === 0 ? 1 : 0 })}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
