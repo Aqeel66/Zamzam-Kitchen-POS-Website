@@ -21,15 +21,23 @@ export const authService = {
   },
   
   logout: () => {
-    localStorage.removeItem('waiter_user');
+    sessionStorage.removeItem('waiter_user');
   },
   
   getCurrentUser: (): User | null => {
-    const user = localStorage.getItem('waiter_user');
-    return user ? JSON.parse(user) : null;
+    try {
+      const user = sessionStorage.getItem('waiter_user');
+      return user ? JSON.parse(user) : null;
+    } catch (e) {
+      return null;
+    }
   },
   
   saveUser: (user: User) => {
-    localStorage.setItem('waiter_user', JSON.stringify(user));
+    try {
+      sessionStorage.setItem('waiter_user', JSON.stringify(user));
+    } catch (e) {
+      console.error('Error saving user to sessionStorage:', e);
+    }
   }
 };

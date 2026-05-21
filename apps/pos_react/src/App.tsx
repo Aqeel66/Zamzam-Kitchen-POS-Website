@@ -392,7 +392,7 @@ export default function App() {
           <div className="pt-6 pb-4">
             <button 
               onClick={() => {
-                localStorage.removeItem('pos_user');
+                logout();
                 window.location.href = '/pos/';
               }}
               className="w-full px-4 py-2.5 bg-white/5 hover:bg-red-500/10 rounded-xl text-[8px] font-bold text-white/20 hover:text-red-400 uppercase tracking-[0.3em] transition-all border border-transparent hover:border-red-500/20"

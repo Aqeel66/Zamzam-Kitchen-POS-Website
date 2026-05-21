@@ -19,7 +19,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const savedUser = sessionStorage.getItem('pos_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (err) {
+      console.error('Error loading saved user from sessionStorage:', err);
+      return null;
+    }
+  });
 
   useEffect(() => {
     try {
@@ -30,30 +38,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userParam) {
         const decodedUser = JSON.parse(decodeURIComponent(userParam));
         setUser(decodedUser);
-        localStorage.setItem('pos_user', JSON.stringify(decodedUser));
+        sessionStorage.setItem('pos_user', JSON.stringify(decodedUser));
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        return;
-      }
-
-      const savedUser = localStorage.getItem('pos_user');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
       }
     } catch (err) {
       console.error('Error parsing user data:', err);
-      localStorage.removeItem('pos_user');
     }
   }, []);
 
   const login = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('pos_user', JSON.stringify(userData));
+    sessionStorage.setItem('pos_user', JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('pos_user');
+    sessionStorage.removeItem('pos_user');
   };
 
   return (
