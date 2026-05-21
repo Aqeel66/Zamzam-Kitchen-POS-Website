@@ -1,178 +1,198 @@
-import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { UtensilsCrossed, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  User, 
+  Lock, 
+  ChevronRight, 
+  AlertCircle, 
+  Loader2,
+  ChefHat,
+  Eye,
+  EyeOff
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import api, { resolveImageUrl } from '../services/api';
 
-const Login = () => {
+export default function Login() {
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [error, setError] = useState('');
+  const [settings, setSettings] = useState<any>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Fetch settings for dynamic branding on the login screen
+  useEffect(() => {
+    api.get(`/settings?t=${Date.now()}`)
+      .then(res => {
+        const data = res.data;
+        setSettings(data);
+      })
+      .catch(err => console.error('Error fetching login settings:', err));
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
+    setError('');
 
     try {
       await login(username, password);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to login. Please check your credentials.');
+      setError(err.response?.data?.message || err.message || 'Failed to login. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const bgUrl = settings?.tenant?.login_background_url 
+    ? resolveImageUrl(settings.tenant.login_background_url)
+    : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1974&q=80';
+
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-6 overflow-hidden">
-      {/* Premium Background with Overlay */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat scale-105"
-        style={{ 
-          backgroundImage: `url('./assets/login_bg.png')`,
-          filter: 'brightness(0.4) blur(4px)'
-        }}
-      />
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-teal-950/80 via-transparent to-black/60" />
+    <div className="fixed inset-0 h-screen w-full flex items-center justify-center overflow-hidden bg-slate-950">
+      {/* Dynamic Background Assets */}
+      <div className="absolute inset-0 z-0">
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-100 scale-110 blur-[2px] transition-all duration-1000"
+          style={{ backgroundImage: `url(${bgUrl})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/40 via-slate-900/20 to-transparent" />
+      </div>
 
-      {/* Decorative Elements */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-teal-500/50 to-transparent" />
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
-
+      {/* Glassmorphic Container */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-[440px]"
+        className="relative z-10 w-full max-w-md p-8"
       >
-        {/* Logo Section */}
-        <div className="text-center mb-8">
-          <motion.div 
-            initial={{ scale: 0.8, rotate: -10 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-            className="inline-flex items-center justify-center p-5 bg-teal-900/40 backdrop-blur-xl rounded-[2rem] mb-6 border border-teal-500/30 shadow-2xl shadow-teal-900/40"
-          >
-            <UtensilsCrossed className="text-yellow-400 w-10 h-10" />
-          </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-4xl font-bold text-white tracking-tighter uppercase mb-1"
-          >
-            Zamzam <span className="text-yellow-500">Kitchen</span>
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-teal-200/60 font-bold text-xs uppercase tracking-[0.3em] ml-1"
-          >
-            Waiter Service Portal
-          </motion.p>
-        </div>
+        <div className="bg-transparent border border-white/10 rounded-[2rem] p-8 shadow-2xl shadow-black/50">
+          
+          {/* Logo Section */}
+          <div className="flex flex-col items-center mb-10">
+            <motion.div 
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              className="flex items-center justify-center gap-6 mb-6"
+            >
+              <div className="w-32 h-32 flex items-center justify-center overflow-hidden">
+                {settings?.tenant?.logo_url ? (
+                  <img src={resolveImageUrl(settings.tenant.logo_url) || ''} className="w-full h-full object-contain filter drop-shadow-2xl" />
+                ) : (
+                  <ChefHat size={64} className="text-white" />
+                )}
+              </div>
+              
+              {/* Halal Certification Logo */}
+              <div className="w-20 h-20 flex items-center justify-center">
+                {settings?.tenant?.secondary_logo_url ? (
+                  <img 
+                    src={resolveImageUrl(settings.tenant.secondary_logo_url)} 
+                    alt="Halal Certification"
+                    className="w-full h-full object-contain drop-shadow-sm transition-transform hover:scale-105 duration-300"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full border-[3px] border-green-500/80 flex flex-col items-center justify-center bg-white/10 backdrop-blur-md text-green-400 p-2 shadow-lg transition-transform hover:scale-105 duration-300">
+                    <span className="text-[20px] font-bold leading-none mb-1 mt-1 text-white">حلال</span>
+                    <div className="h-[2px] w-12 bg-green-500/80 mb-1" />
+                    <span className="text-[10px] font-bold uppercase tracking-tighter leading-none text-green-400">HALAL</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+            <h1 className="text-3xl font-bold text-white tracking-tighter uppercase leading-none text-center drop-shadow-xl">
+              {settings?.tenant?.restaurant_name?.split(' ')[0] || 'Zamzam'} 
+              <span className="text-sky-400 ml-2 drop-shadow-xl">{settings?.tenant?.restaurant_name?.split(' ').slice(1).join(' ') || 'Kitchen'}</span>
+            </h1>
+            <p className="text-[10px] font-bold text-white uppercase tracking-[0.4em] mt-3 drop-shadow-md">
+              {settings?.tenant?.tagline || 'Authentic Halal Flavours'}
+            </p>
+            <div className="mt-5 bg-black/40 backdrop-blur-md border border-white/20 px-6 py-2 rounded-full shadow-lg">
+              <span className="text-sm font-bold text-white drop-shadow-md uppercase tracking-[0.2em]">Waiters Portal</span>
+            </div>
+          </div>
 
-        {/* Login Card */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="bg-white/10 backdrop-blur-2xl rounded-[2.5rem] p-10 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
-        >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <AnimatePresence mode="wait">
+          {/* Form Section */}
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-white drop-shadow-md uppercase tracking-widest px-2">Staff Username</label>
+              <div className="relative group">
+                <User className="absolute left-5 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-teal-400 transition-colors" size={20} />
+                <input 
+                  type="text" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-2xl py-4 pl-14 pr-6 text-white text-sm font-bold placeholder:text-slate-400 focus:ring-4 focus:ring-teal-500/20 focus:border-teal-500/50 outline-none transition-all"
+                  placeholder="Enter username"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-white drop-shadow-md uppercase tracking-widest px-2">Security PIN / Password</label>
+              <div className="relative group">
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-teal-400 transition-colors" size={20} />
+                <input 
+                  type={showPassword ? 'text' : 'password'} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-2xl py-4 pl-14 pr-12 text-white text-sm font-bold placeholder:text-slate-400 focus:ring-4 focus:ring-teal-500/20 focus:border-teal-500/50 outline-none transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 p-1.5 rounded-lg transition-colors z-10"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <AnimatePresence>
               {error && (
                 <motion.div 
-                  initial={{ opacity: 0, height: 0, x: -10 }}
-                  animate={{ opacity: 1, height: 'auto', x: 0 }}
-                  exit={{ opacity: 0, height: 0, x: 10 }}
-                  className="bg-red-500/10 border border-red-500/20 text-red-200 px-4 py-4 rounded-2xl flex items-center gap-3 overflow-hidden"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-400 text-xs font-bold overflow-hidden"
                 >
-                  <AlertCircle size={20} className="shrink-0 text-red-400" />
-                  <p className="text-sm font-semibold">{error}</p>
+                  <AlertCircle size={16} />
+                  {error}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-teal-300/50 uppercase tracking-widest ml-1">Username</label>
-              <div className="relative group">
-                <div className="absolute inset-0 bg-teal-500/5 rounded-2xl group-focus-within:bg-teal-500/10 transition-all duration-300" />
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500/50 w-5 h-5 group-focus-within:text-teal-400 transition-colors" />
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Employee ID or Name"
-                  className="relative w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-white/20 text-sm font-bold focus:outline-none focus:border-teal-500/30 transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-teal-300/50 uppercase tracking-widest ml-1">Password</label>
-              <div className="relative group">
-                <div className="absolute inset-0 bg-teal-500/5 rounded-2xl group-focus-within:bg-teal-500/10 transition-all duration-300" />
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500/50 w-5 h-5 group-focus-within:text-teal-400 transition-colors" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="relative w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-white/20 text-sm font-bold focus:outline-none focus:border-teal-500/30 transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            <motion.button
-              type="submit"
+            <button 
               disabled={isLoading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="group relative w-full overflow-hidden bg-yellow-500 hover:bg-yellow-400 text-teal-950 font-bold py-4 rounded-2xl shadow-[0_10px_30px_rgba(234,179,8,0.2)] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+              type="submit"
+              className="w-full bg-teal-500 hover:bg-teal-400 disabled:bg-white/5 disabled:text-white/20 text-white font-bold py-4 rounded-2xl shadow-2xl shadow-teal-500/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] group"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-teal-950/30 border-t-teal-950 rounded-full animate-spin" />
+                <Loader2 className="animate-spin" size={20} />
               ) : (
                 <>
-                  <span className="tracking-tight">ACCESS PORTAL</span>
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  <span className="uppercase tracking-widest text-sm">Login</span>
+                  <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </>
               )}
-            </motion.button>
-
-            <div className="text-center pt-2">
-              <button 
-                type="button"
-                className="text-white/30 hover:text-white/60 text-[10px] font-bold tracking-widest uppercase transition-colors"
-                onClick={() => alert('Please contact your manager to reset your password.')}
-              >
-                Forgot Password?
-              </button>
-            </div>
+            </button>
           </form>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="flex items-center justify-center gap-3 mt-10"
-        >
-          <div className="h-px w-8 bg-white/10" />
-          <p className="text-white/20 text-[9px] font-bold uppercase tracking-[0.4em]">
-            Zamzam Kitchen RMS
-          </p>
-          <div className="h-px w-8 bg-white/10" />
-        </motion.div>
+
+          {/* Footer Info */}
+          <div className="mt-10 pt-8 border-t border-white/20 text-center">
+            <p className="text-[9px] font-bold text-white drop-shadow-md uppercase tracking-[0.2em]">© 2026 {settings?.tenant?.restaurant_name || 'Zamzam'} Management System</p>
+          </div>
+        </div>
       </motion.div>
+
+      {/* Decorative Orbs */}
+      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-teal-500/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-yellow-500/10 rounded-full blur-[120px] pointer-events-none" />
     </div>
   );
-};
-
-export default Login;
+}
