@@ -34,6 +34,13 @@ const getNowTimeStr = () => {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
+const formatTableNumber = (num: string | number) => {
+  if (!num) return '';
+  const str = num.toString().trim();
+  const clean = str.replace(/^[t\s\-_–—]+/i, '');
+  return 'T-' + clean;
+};
+
 export default function Tables() {
   const [tables, setTables] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -391,7 +398,7 @@ export default function Tables() {
                               "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold transition-all border shadow-inner shrink-0",
                               activeConfig.bg, activeConfig.color, activeConfig.border
                             )}>
-                              <span className="text-sm tracking-tighter leading-none">{table.table_number}</span>
+                              <span className="text-sm tracking-tighter leading-none">{formatTableNumber(table.table_number)}</span>
                               <span className="text-[7px] uppercase tracking-widest mt-0.5 opacity-50">Table</span>
                             </div>
                             <div>
@@ -667,7 +674,7 @@ function TableDetailModal({ data, filterDate, filterTime, isToday, onClose }: an
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <div className="px-3 py-1 bg-zamzam-teal/10 text-zamzam-teal rounded-xl text-sm font-black tracking-tight">
-                  {table.table_number}
+                  {formatTableNumber(table.table_number)}
                 </div>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                   {table.capacity} Seats Total
@@ -707,7 +714,7 @@ function TableDetailModal({ data, filterDate, filterTime, isToday, onClose }: an
                 <CheckCircle2 size={24} className="text-green-500" />
               </div>
               <p className="text-sm font-bold text-slate-700">No Bookings on This Date</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Table {table.table_number} is free all day</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-1">Table {formatTableNumber(table.table_number)} is free all day</p>
             </div>
           ) : (
             <>
