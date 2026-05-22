@@ -346,21 +346,15 @@ router.get('/', async (req, res) => {
              (
                SELECT CONCAT('[', GROUP_CONCAT(
                  JSON_OBJECT(
-                   'table_id', grouped.table_id,
-                   'table_number', grouped.table_number,
-                   'selected_seats', grouped.all_seats
+                   'table_id', rtb.table_id,
+                   'table_number', rt.table_number,
+                   'selected_seats', rtb.selected_seats
                  )
-               ORDER BY grouped.table_number
+               ORDER BY rt.table_number
                SEPARATOR ','), ']')
-               FROM (
-                 SELECT rtb.table_id,
-                        rt.table_number,
-                        GROUP_CONCAT(DISTINCT rtb.selected_seats ORDER BY rtb.selected_seats SEPARATOR ',') as all_seats
-                 FROM reservation_tables rtb
-                 JOIN restaurant_tables rt ON rtb.table_id = rt.id
-                 WHERE rtb.reservation_id = r.id
-                 GROUP BY rtb.table_id, rt.table_number
-               ) grouped
+               FROM reservation_tables rtb
+               JOIN restaurant_tables rt ON rtb.table_id = rt.id
+               WHERE rtb.reservation_id = r.id
              ) as assigned_tables_json
       FROM reservations r 
       LEFT JOIN restaurant_tables t ON r.table_id = t.id 
