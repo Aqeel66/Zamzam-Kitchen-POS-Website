@@ -355,7 +355,22 @@ export default function Tables() {
 
                     // Active reservations at the selected time window
                     const activeReservations = tableReservations.filter(isReservationActiveAtTime);
-                    const reservedGuests = activeReservations.reduce((sum, r) => sum + (Number(r.party_size) || 1), 0);
+                    const reservedGuests = activeReservations.reduce((sum, r) => {
+                      let seatsForThisTable = Number(r.party_size) || 1;
+                      try {
+                        if (r.assigned_tables_json) {
+                          const parsed = JSON.parse(r.assigned_tables_json);
+                          const thisTable = parsed.find((t: any) => String(t.table_id) === String(table.id));
+                          if (thisTable?.selected_seats) {
+                            seatsForThisTable = thisTable.selected_seats.split(',').filter(Boolean).length;
+                          } else if (parsed.length > 1) {
+                            // If multiple tables are assigned but no explicit seats, distribute or cap it
+                            seatsForThisTable = Math.min(table.capacity, Math.ceil((Number(r.party_size) || 1) / parsed.length));
+                          }
+                        }
+                      } catch(e) {}
+                      return sum + seatsForThisTable;
+                    }, 0);
 
                     // Upcoming (future slots on selected date)
                     const upcomingReservations = tableReservations.filter(r => {
