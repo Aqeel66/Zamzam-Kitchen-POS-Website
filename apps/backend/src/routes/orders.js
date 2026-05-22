@@ -521,7 +521,18 @@ router.get('/', async (req, res) => {
       SELECT o.*, rt.table_number, 
              c.first_name as customer_first_name, 
              c.last_name as customer_last_name, 
-             c.phone as customer_db_phone
+             c.phone as customer_db_phone,
+             (
+               SELECT CONCAT('[', GROUP_CONCAT(
+                 JSON_OBJECT(
+                   'table_id', ot.table_id,
+                   'allocated_seats', ot.allocated_seats,
+                   'selected_seats', ot.selected_seats
+                 )
+               ), ']')
+               FROM order_tables ot
+               WHERE ot.order_id = o.id
+             ) as assigned_tables_json
       FROM orders o 
       LEFT JOIN restaurant_tables rt ON o.table_id = rt.id 
       LEFT JOIN customers c ON o.customer_id = c.id

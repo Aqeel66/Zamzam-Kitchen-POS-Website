@@ -338,11 +338,33 @@ export default function Tables() {
                   {filteredTables.map((table) => {
                     // --- Live order guests (only relevant for today) ---
                     const tableOrders = isToday ? activeOrders.filter(o => {
+                      if (o.assigned_tables_json) {
+                        try {
+                          const parsed = JSON.parse(o.assigned_tables_json);
+                          if (parsed.some((t: any) => String(t.table_id) === String(table.id))) {
+                            return true;
+                          }
+                        } catch(e) {}
+                      }
                       const orderTableId = o.table_id ? String(o.table_id) : null;
                       const targetTableId = table.id ? String(table.id) : null;
                       return orderTableId && orderTableId === targetTableId;
                     }) : [];
-                    const orderGuests = tableOrders.reduce((sum, o) => sum + (Number(o.party_size) || Number(o.guest_count) || 1), 0);
+                    const orderGuests = tableOrders.reduce((sum, o) => {
+                      let seatsForThisTable = Number(o.party_size) || Number(o.guest_count) || 1;
+                      try {
+                        if (o.assigned_tables_json) {
+                          const parsed = JSON.parse(o.assigned_tables_json);
+                          const thisTable = parsed.find((t: any) => String(t.table_id) === String(table.id));
+                          if (thisTable?.selected_seats) {
+                            seatsForThisTable = thisTable.selected_seats.split(',').filter(Boolean).length;
+                          } else if (parsed.length > 1) {
+                            seatsForThisTable = Math.min(table.capacity, Math.ceil((Number(o.party_size) || Number(o.guest_count) || 1) / parsed.length));
+                          }
+                        }
+                      } catch(e) {}
+                      return sum + seatsForThisTable;
+                    }, 0);
 
                     // --- Reservations for this table at selected date+time ---
                     const tableReservations = filteredReservations.filter(r => {
