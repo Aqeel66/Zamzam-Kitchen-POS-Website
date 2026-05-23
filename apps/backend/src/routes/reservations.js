@@ -36,10 +36,9 @@ router.post('/', async (req, res) => {
     const cleanDate = date.includes('T') ? date.split('T')[0] : date;
 
     // Strict Backend Validation: Block Past Dates
-    const today = new Date();
-    // Adjust for local timezone offset to get accurate 'today'
-    const offset = today.getTimezoneOffset() * 60000;
-    const localTodayStr = new Date(today.getTime() - offset).toISOString().split('T')[0];
+    const [branchSettings] = await connection.query('SELECT timezone FROM branch_settings WHERE branch_id = 1 LIMIT 1');
+    const timezone = branchSettings[0]?.timezone || 'Asia/Karachi';
+    const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
     if (cleanDate < localTodayStr) {
       await connection.rollback();
@@ -178,11 +177,11 @@ router.get('/available-tables', async (req, res) => {
 
   try {
     const cleanDate = date.includes('T') ? date.split('T')[0] : date;
-    const now = new Date();
     
-    // Format timezone offsets to match local time today
-    const offset = now.getTimezoneOffset() * 60000;
-    const localTodayStr = new Date(now.getTime() - offset).toISOString().split('T')[0];
+    const [branchSettings] = await db.query('SELECT timezone FROM branch_settings WHERE branch_id = 1 LIMIT 1');
+    const timezone = branchSettings[0]?.timezone || 'Asia/Karachi';
+    const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    
     const isToday = cleanDate === localTodayStr;
 
     console.log(`[TABLE AVAILABILITY] Fetching tables for ${cleanDate} @ ${time}. IsToday: ${isToday}`);
@@ -398,9 +397,9 @@ router.patch('/:id', async (req, res) => {
   // Strict Backend Validation: Block Past Dates if date is being updated
   if (date) {
     const cleanDate = date.includes('T') ? date.split('T')[0] : date;
-    const today = new Date();
-    const offset = today.getTimezoneOffset() * 60000;
-    const localTodayStr = new Date(today.getTime() - offset).toISOString().split('T')[0];
+    const [branchSettings] = await db.query('SELECT timezone FROM branch_settings WHERE branch_id = 1 LIMIT 1');
+    const timezone = branchSettings[0]?.timezone || 'Asia/Karachi';
+    const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
     if (cleanDate < localTodayStr) {
       return res.status(400).json({

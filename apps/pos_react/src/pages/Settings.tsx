@@ -638,6 +638,31 @@ export default function Settings() {
                     <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em]">Restaurant Timings</h3>
                   </div>
                   <div className="p-10 space-y-8">
+                    <div className="flex items-center justify-between group">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-slate-800">Timezone</h4>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Local timezone for daily operations</p>
+                      </div>
+                      <select 
+                        disabled={isSaving}
+                        value={settings?.branch?.timezone || 'Asia/Karachi'}
+                        onChange={(e) => handleUpdateBranch({ timezone: e.target.value })}
+                        className={cn(
+                          "bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-4 focus:ring-orange-500/5 focus:bg-white transition-all appearance-none min-w-[120px] text-right",
+                          isSaving ? "opacity-50 cursor-not-allowed" : ""
+                        )}
+                      >
+                        <option value="Asia/Karachi">Asia/Karachi (PKT)</option>
+                        <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                        <option value="Europe/London">Europe/London (GMT/BST)</option>
+                        <option value="America/New_York">America/New_York (EST/EDT)</option>
+                        <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+                        <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                        <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
+                        <option value="UTC">UTC (Standard)</option>
+                      </select>
+                    </div>
+
                     <SettingsInput 
                       disabled={isSaving}
                       label="Opening Time"

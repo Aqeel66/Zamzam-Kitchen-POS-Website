@@ -116,7 +116,8 @@ router.patch('/branch', async (req, res) => {
       'allow_cash_website',
       'allow_card_website',
       'allow_cash_pos',
-      'allow_card_pos'
+      'allow_card_pos',
+      'timezone'
     ];
     
     const updates = [];
