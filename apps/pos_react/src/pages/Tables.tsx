@@ -206,6 +206,14 @@ export default function Tables() {
   if (isToday) {
     activeOrders.forEach(o => {
       if (o.table_id) occupiedTableIds.add(String(o.table_id));
+      if (o.assigned_tables_json) {
+        try {
+          const parsed = typeof o.assigned_tables_json === 'string' ? JSON.parse(o.assigned_tables_json) : o.assigned_tables_json;
+          parsed.forEach((t: any) => {
+            if (t.table_id) occupiedTableIds.add(String(t.table_id));
+          });
+        } catch (e) {}
+      }
     });
   }
 
@@ -338,23 +346,22 @@ export default function Tables() {
                   {filteredTables.map((table) => {
                     // --- Live order guests (only relevant for today) ---
                     const tableOrders = isToday ? activeOrders.filter(o => {
-                      if (o.assigned_tables_json) {
-                        try {
-                          const parsed = JSON.parse(o.assigned_tables_json);
-                          if (parsed.some((t: any) => String(t.table_id) === String(table.id))) {
-                            return true;
-                          }
-                        } catch(e) {}
-                      }
-                      const orderTableId = o.table_id ? String(o.table_id) : null;
-                      const targetTableId = table.id ? String(table.id) : null;
-                      return orderTableId && orderTableId === targetTableId;
+                      const directMatch = o.table_id && String(o.table_id) === String(table.id);
+                      let junctionMatch = false;
+                      try {
+                        if (o.assigned_tables_json) {
+                          const parsed = typeof o.assigned_tables_json === 'string' ? JSON.parse(o.assigned_tables_json) : o.assigned_tables_json;
+                          junctionMatch = parsed.some((t: any) => String(t.table_id) === String(table.id));
+                        }
+                      } catch (e) {}
+                      return directMatch || junctionMatch;
                     }) : [];
+                    
                     const orderGuests = tableOrders.reduce((sum, o) => {
                       let seatsForThisTable = Number(o.party_size) || Number(o.guest_count) || 1;
                       try {
                         if (o.assigned_tables_json) {
-                          const parsed = JSON.parse(o.assigned_tables_json);
+                          const parsed = typeof o.assigned_tables_json === 'string' ? JSON.parse(o.assigned_tables_json) : o.assigned_tables_json;
                           const thisTable = parsed.find((t: any) => String(t.table_id) === String(table.id));
                           if (thisTable?.selected_seats) {
                             seatsForThisTable = thisTable.selected_seats.split(',').filter(Boolean).length;
