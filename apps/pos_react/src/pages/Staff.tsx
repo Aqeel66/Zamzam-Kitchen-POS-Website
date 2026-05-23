@@ -74,9 +74,6 @@ export default function Staff() {
       const res = await fetch(`${API_BASE_URL}/roles`);
       const data = await res.json();
       setRoles(data);
-      if (data.length > 0) {
-        setFormData(prev => ({ ...prev, role_id: data[0].id.toString() }));
-      }
     } catch (err) {
       console.error('Error fetching roles:', err);
     }
@@ -183,7 +180,7 @@ export default function Staff() {
             setIsEditMode(false);
             setFormData({
               first_name: '', last_name: '', username: '', password: '', 
-              email: '', phone: '', role_id: roles[0]?.id.toString() || ''
+              email: '', phone: '', role_id: ''
             });
             setIsModalOpen(true);
           }}
@@ -408,7 +405,7 @@ export default function Staff() {
                   </button>
                 </div>
 
-                <form onSubmit={handleAddStaff} className="space-y-6">
+                    <form onSubmit={handleAddStaff} className="space-y-6" autoComplete="off">
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">First Name</label>
@@ -441,6 +438,7 @@ export default function Staff() {
                         <input 
                           required
                           type="text" 
+                          autoComplete="new-username"
                           value={formData.username}
                           onChange={(e) => setFormData({...formData, username: e.target.value})}
                           className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
@@ -452,6 +450,7 @@ export default function Staff() {
                         <input 
                           required
                           type="password" 
+                          autoComplete="new-password"
                           value={formData.password}
                           onChange={(e) => setFormData({...formData, password: e.target.value})}
                           className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
@@ -481,6 +480,7 @@ export default function Staff() {
                         onChange={(e) => setFormData({...formData, role_id: e.target.value})}
                         className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all appearance-none cursor-pointer"
                       >
+                        <option value="" disabled>Select a role...</option>
                         {roles.map(role => (
                           <option key={role.id} value={role.id}>{role.name}</option>
                         ))}
