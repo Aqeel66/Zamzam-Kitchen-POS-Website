@@ -14,7 +14,8 @@ import {
   Timer,
   Smartphone,
   Trash2,
-  UserCheck
+  UserCheck,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
@@ -35,7 +36,10 @@ export default function Staff() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState('All');
+  const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     first_name: '',
@@ -82,34 +86,69 @@ export default function Staff() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/users`, {
-        method: 'POST',
+      const url = isEditMode ? `${API_BASE_URL}/users/${selectedUserId}` : `${API_BASE_URL}/users`;
+      const method = isEditMode ? 'PUT' : 'POST';
+      
+      const payload: any = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        phone: formData.phone,
+        role_ids: [parseInt(formData.role_id)]
+      };
+      
+      if (!isEditMode) {
+        payload.username = formData.username;
+        payload.password = formData.password;
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          role_ids: [parseInt(formData.role_id)]
-        })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ 
-          first_name: '', 
-          last_name: '', 
-          username: '', 
-          password: '', 
-          email: '', 
-          phone: '', 
-          role_id: roles[0]?.id.toString() || '' 
-        });
         fetchUsers();
       } else {
         const error = await res.json();
-        alert(`Error: ${error.message || error.error || 'Failed to add staff'}`);
+        alert(`Error: ${error.message || error.error || 'Failed to save staff'}`);
       }
     } catch (err) {
-      console.error('Add Staff Error:', err);
+      console.error('Save Staff Error:', err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEditClick = (user: any) => {
+    setIsEditMode(true);
+    setSelectedUserId(user.id);
+    const userRoleIds = typeof user.role_ids === 'string' ? user.role_ids.split(',').map((id: string) => id.trim()) : [];
+    setFormData({
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      username: user.username || '',
+      password: '',
+      email: user.email || '',
+      phone: user.phone || '',
+      role_id: userRoleIds[0] || (roles[0]?.id.toString() || '')
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = async (user: any) => {
+    if (window.confirm(`Are you sure you want to delete ${user.first_name} ${user.last_name}?`)) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/${user.id}`, { method: 'DELETE' });
+        if (res.ok) {
+          fetchUsers();
+        } else {
+          alert('Failed to delete user');
+        }
+      } catch (err) {
+        console.error('Delete User Error:', err);
+      }
     }
   };
 
@@ -140,7 +179,14 @@ export default function Staff() {
         </div>
 
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setIsEditMode(false);
+            setFormData({
+              first_name: '', last_name: '', username: '', password: '', 
+              email: '', phone: '', role_id: roles[0]?.id.toString() || ''
+            });
+            setIsModalOpen(true);
+          }}
           className="bg-zamzam-teal hover:bg-teal-700 text-white font-bold px-8 py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-teal-900/20 active:scale-95 transition-all flex items-center gap-3"
         >
           <UserPlus size={18} />
@@ -150,21 +196,79 @@ export default function Staff() {
 
       {/* Filters & Search */}
       <div className="flex flex-col md:flex-row gap-6 items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
-          {['All', 'Admin', 'Manager', 'Waiter', 'Chef', 'Cashier'].map((filter) => (
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto relative z-10">
+          <button
+            onClick={() => setActiveFilter('All')}
+            className={cn(
+              "px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap",
+              activeFilter === 'All' 
+                ? "bg-zamzam-teal text-white shadow-lg shadow-teal-900/10" 
+                : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+            )}
+          >
+            All
+          </button>
+          
+          {roles.slice(0, 4).map((role) => (
             <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
+              key={role.id}
+              onClick={() => setActiveFilter(role.name)}
               className={cn(
                 "px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap",
-                activeFilter === filter 
+                activeFilter === role.name 
                   ? "bg-zamzam-teal text-white shadow-lg shadow-teal-900/10" 
                   : "bg-slate-50 text-slate-400 hover:bg-slate-100"
               )}
             >
-              {filter}
+              {role.name}
             </button>
           ))}
+
+          {roles.length > 4 && (
+            <div className="relative">
+              <button 
+                onClick={() => setIsMoreDropdownOpen(!isMoreDropdownOpen)}
+                className={cn(
+                  "px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2",
+                  roles.slice(4).some(r => r.name === activeFilter)
+                    ? "bg-zamzam-teal text-white shadow-lg shadow-teal-900/10"
+                    : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+                )}
+              >
+                {roles.slice(4).some(r => r.name === activeFilter) ? activeFilter : 'More'} 
+                <ChevronDown size={14} className={cn("transition-transform", isMoreDropdownOpen ? "rotate-180" : "")} />
+              </button>
+              
+              <AnimatePresence>
+                {isMoreDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-[calc(100%+0.5rem)] right-0 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 min-w-[150px] flex flex-col py-2"
+                  >
+                    {roles.slice(4).map((role) => (
+                      <button
+                        key={role.id}
+                        onClick={() => {
+                          setActiveFilter(role.name);
+                          setIsMoreDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-all",
+                          activeFilter === role.name 
+                            ? "bg-zamzam-teal/10 text-zamzam-teal" 
+                            : "text-slate-500 hover:bg-slate-50"
+                        )}
+                      >
+                        {role.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
 
         <div className="relative w-full md:w-96 group">
@@ -201,54 +305,72 @@ export default function Staff() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredUsers.map((user: any) => {
-                const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map((r: any) => r.trim()) : [];
-                const roleName = userRoles[0] || 'Staff';
-                const matchedRoleKey = Object.keys(roleConfigs).find(k => k.toLowerCase() === roleName.toLowerCase());
-                const config = (matchedRoleKey ? roleConfigs[matchedRoleKey] : null) || { color: 'text-slate-600', bg: 'bg-slate-50', icon: UserIcon };
-                
-                return (
-                  <tr key={user.id} className="hover:bg-slate-50/30 transition-colors group">
-                    <td className="px-10 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 border border-slate-100 group-hover:border-zamzam-teal/30 transition-colors">
-                          <UserIcon size={20} />
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user: any) => {
+                  const userRoles = typeof user.roles === 'string' ? user.roles.split(',').map((r: any) => r.trim()) : [];
+                  const roleName = userRoles[0] || 'Staff';
+                  const matchedRoleKey = Object.keys(roleConfigs).find(k => k.toLowerCase() === roleName.toLowerCase());
+                  const config = (matchedRoleKey ? roleConfigs[matchedRoleKey] : null) || { color: 'text-slate-600', bg: 'bg-slate-50', icon: UserIcon };
+                  
+                  return (
+                    <tr key={user.id} className="hover:bg-slate-50/30 transition-colors group">
+                      <td className="px-10 py-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 border border-slate-100 group-hover:border-zamzam-teal/30 transition-colors">
+                            <UserIcon size={20} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 leading-tight">{user.first_name} {user.last_name}</p>
+                            <p className="text-[10px] font-bold text-zamzam-teal uppercase tracking-widest opacity-60">@{user.username}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900 leading-tight">{user.first_name} {user.last_name}</p>
-                          <p className="text-[10px] font-bold text-zamzam-teal uppercase tracking-widest opacity-60">@{user.username}</p>
+                      </td>
+                      <td className="px-10 py-6">
+                        <span className={cn("px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 w-fit", config.bg, config.color)}>
+                          <config.icon size={12} />
+                          {roleName}
+                        </span>
+                      </td>
+                      <td className="px-10 py-6">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                            <Mail size={12} className="text-slate-300" /> {user.email || 'N/A'}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                            <Phone size={12} className="text-slate-300" /> {user.phone || 'N/A'}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-10 py-6">
-                      <span className={cn("px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 w-fit", config.bg, config.color)}>
-                        <config.icon size={12} />
-                        {roleName}
-                      </span>
-                    </td>
-                    <td className="px-10 py-6">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                          <Mail size={12} className="text-slate-300" /> {user.email || 'N/A'}
+                      </td>
+                      <td className="px-10 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => handleEditClick(user)}
+                            className="p-2.5 bg-slate-50 text-slate-400 hover:text-zamzam-teal hover:bg-zamzam-teal/10 rounded-xl transition-all"
+                          >
+                            <UserCheck size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteClick(user)}
+                            className="p-2.5 bg-red-50 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                          <Phone size={12} className="text-slate-300" /> {user.phone || 'N/A'}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-10 py-6 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-zamzam-teal hover:bg-zamzam-teal/10 rounded-xl transition-all">
-                          <UserCheck size={16} />
-                        </button>
-                        <button className="p-2.5 bg-red-50 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-10 py-20 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-400">
+                      <Users size={48} className="mb-4 opacity-20" />
+                      <p className="text-lg font-bold text-slate-900 mb-1">No Team Members Found</p>
+                      <p className="text-xs uppercase tracking-widest">No users are currently assigned to the "{activeFilter}" role.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </motion.div>
@@ -274,8 +396,12 @@ export default function Staff() {
               <div className="p-10 space-y-8">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900 uppercase">New Team Member</h2>
-                    <p className="text-sm font-bold text-slate-400">Add a new professional to your restaurant staff.</p>
+                    <h2 className="text-2xl font-bold text-slate-900 uppercase">
+                      {isEditMode ? 'Edit Team Member' : 'New Team Member'}
+                    </h2>
+                    <p className="text-sm font-bold text-slate-400">
+                      {isEditMode ? 'Update details for this staff member.' : 'Add a new professional to your restaurant staff.'}
+                    </p>
                   </div>
                   <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 bg-slate-50 hover:bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center transition-all">
                     <X size={20} />
@@ -308,30 +434,32 @@ export default function Staff() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Username</label>
-                      <input 
-                        required
-                        type="text" 
-                        value={formData.username}
-                        onChange={(e) => setFormData({...formData, username: e.target.value})}
-                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
-                        placeholder="johndoe123"
-                      />
+                  {!isEditMode && (
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Username</label>
+                        <input 
+                          required
+                          type="text" 
+                          value={formData.username}
+                          onChange={(e) => setFormData({...formData, username: e.target.value})}
+                          className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
+                          placeholder="johndoe123"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Password</label>
+                        <input 
+                          required
+                          type="password" 
+                          value={formData.password}
+                          onChange={(e) => setFormData({...formData, password: e.target.value})}
+                          className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
+                          placeholder="••••••••"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Password</label>
-                      <input 
-                        required
-                        type="password" 
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
+                  )}
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Email Address</label>

@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL, resolveImageUrl } from '../config';
 import Communications from './Communications';
 import Payments from './Payments';
+import { useAuth } from '../context/AuthContext';
 
 const cn = (...inputs: (string | undefined | null | false)[]) => inputs.filter(Boolean).join(' ');
 
@@ -87,11 +88,17 @@ function SettingsInput({ label, sublabel, value, onSave, type = "number", disabl
 }
 
 export default function Settings() {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<any>(null);
   const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'operations' | 'communications' | 'payments' | 'reset'>('general');
   // Refresh comment to trigger Vite re-transform
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const hasPermission = (perm: string) => {
+    if (!user || !user.permissions) return false;
+    return user.permissions.some((p: string) => p.toLowerCase() === perm.toLowerCase());
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -275,13 +282,13 @@ export default function Settings() {
         {/* Navigation Sidebar */}
         <aside className="w-72 space-y-2">
           {[
-            { id: 'general', label: 'General Info', icon: Store },
-            { id: 'branding', label: 'Branding', icon: ImageIcon },
-            { id: 'operations', label: 'Operations', icon: Settings2 },
-            { id: 'communications', label: 'Communications', icon: MessageSquare },
-            { id: 'payments', label: 'Payments', icon: CreditCard },
-            { id: 'reset', label: 'System Reset', icon: ShieldAlert },
-          ].map((item) => (
+            { id: 'general', label: 'General Info', icon: Store, perm: 'manage_settings_general' },
+            { id: 'branding', label: 'Branding', icon: ImageIcon, perm: 'manage_settings_branding' },
+            { id: 'operations', label: 'Operations', icon: Settings2, perm: 'manage_settings_operations' },
+            { id: 'communications', label: 'Communications', icon: MessageSquare, perm: 'manage_settings_communications' },
+            { id: 'payments', label: 'Payments', icon: CreditCard, perm: 'manage_settings_payments' },
+            { id: 'reset', label: 'System Reset', icon: ShieldAlert, perm: 'manage_settings_reset' },
+          ].filter(item => hasPermission(item.perm)).map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveSection(item.id as any)}

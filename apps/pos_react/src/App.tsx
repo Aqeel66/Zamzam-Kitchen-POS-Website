@@ -1,5 +1,5 @@
 import { useState, useEffect, Component, type ErrorInfo, type ReactNode } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { 
@@ -96,6 +96,65 @@ const getTodayStr = () => {
   return localDate.toISOString().split('T')[0];
 };
 
+const rawNavItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/', perm: 'view_dashboard' },
+  { type: 'header', label: 'Menu Management' },
+  { icon: UtensilsCrossed, label: 'Food Items', path: '/food-items', perm: 'manage_menu' },
+  { icon: LayoutGrid, label: 'Categories', path: '/categories', perm: 'manage_menu' },
+  { type: 'header', label: 'Operations' },
+  { icon: Package, label: 'Inventory', path: '/inventory', perm: 'manage_inventory' },
+  { icon: Truck, label: 'Purchases', path: '/purchases', perm: 'manage_purchase' },
+  { icon: Users, label: 'Staff', path: '/staff', perm: 'manage_users' },
+  { icon: ShieldCheck, label: 'Roles & Permissions', path: '/permissions', perm: 'manage_roles' },
+  { icon: UserSquare2, label: 'Customers', path: '/customers', perm: 'manage_customers' },
+  { icon: BarChart3, label: 'Reports', path: '/reports', perm: 'view_reports' },
+  { icon: Ticket, label: 'Promotions', path: '/promotions', perm: 'manage_promotions' },
+  { icon: SettingsIcon, label: 'Settings', path: '/settings', perm: 'manage_settings_general' },
+];
+
+const ProtectedRoute = ({ perm, children }: { perm: string | string[], children: React.ReactNode }) => {
+  const { user } = useAuth();
+  const location = useLocation();
+  const perms = Array.isArray(perm) ? perm : [perm];
+  
+  const hasAccess = perms.some(p => {
+    if (!user || !user.permissions) return false;
+    return user.permissions.some((up: string) => up.toLowerCase() === p.toLowerCase());
+  });
+  
+  if (!hasAccess) {
+    if (location.pathname === '/') {
+      const allRoutes = [
+        { path: '/orders', perm: 'access_pos' },
+        { path: '/kds', perm: 'view_kds' },
+        { path: '/order-status', perm: 'manage_orders' },
+        { path: '/reservations', perm: 'manage_reservations' },
+        { path: '/tables', perm: 'manage_tables' },
+        ...rawNavItems
+      ];
+      const firstAccessibleRoute = allRoutes.find(item => {
+        if (!item.path || item.path === '/') return false;
+        if (!item.perm) return false;
+        return user?.permissions?.some((up: string) => up.toLowerCase() === (item.perm as string).toLowerCase());
+      });
+      if (firstAccessibleRoute) {
+        return <Navigate to={firstAccessibleRoute.path} replace />;
+      }
+    }
+
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-full">
+        <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-500 mb-6">
+          <Shield size={40} />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2 uppercase tracking-tight">Access Restricted</h2>
+        <p className="text-slate-500 mb-8 max-w-md text-sm font-medium">You don't have permission to view this module. Please contact your administrator if you need access.</p>
+      </div>
+    );
+  }
+  return <>{children}</>;
+};
+
 export default function App() {
   const { isAuthenticated, logout, user } = useAuth();
   const location = useLocation();
@@ -114,6 +173,11 @@ export default function App() {
   const [liveNotifications, setLiveNotifications] = useState<any[]>([]);
   const [lastNotificationId, setLastNotificationId] = useState<number>(0);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+  const hasPermission = (perm: string) => {
+    if (!user || !user.permissions) return false;
+    return user.permissions.some(p => p.toLowerCase() === perm.toLowerCase());
+  };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -244,21 +308,16 @@ export default function App() {
     return <Login />;
   }
 
-  const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { type: 'header', label: 'Menu Management' },
-    { icon: UtensilsCrossed, label: 'Food Items', path: '/food-items' },
-    { icon: LayoutGrid, label: 'Categories', path: '/categories' },
-    { type: 'header', label: 'Operations' },
-    { icon: Package, label: 'Inventory', path: '/inventory' },
-    { icon: Truck, label: 'Purchases', path: '/purchases' },
-    { icon: Users, label: 'Staff', path: '/staff' },
-    { icon: ShieldCheck, label: 'Roles & Permissions', path: '/permissions' },
-    { icon: UserSquare2, label: 'Customers', path: '/customers' },
-    { icon: BarChart3, label: 'Reports', path: '/reports' },
-    { icon: Ticket, label: 'Promotions', path: '/promotions' },
-    { icon: SettingsIcon, label: 'Settings', path: '/settings' },
-  ];
+  const navItems = rawNavItems.filter(item => {
+    if (item.type === 'header') {
+      if (item.label === 'Menu Management') return hasPermission('manage_menu');
+      if (item.label === 'Operations') {
+        return ['manage_inventory', 'manage_purchase', 'manage_users', 'manage_roles', 'manage_customers', 'view_reports', 'manage_promotions', 'manage_settings_general'].some(p => hasPermission(p));
+      }
+      return true;
+    }
+    return hasPermission(item.perm as string);
+  });
 
   const getSidebarBg = () => {
     const mode = settings?.tenant?.theme_mode || 'Light';
@@ -426,37 +485,45 @@ export default function App() {
             {/* LIVE STATUS BADGES - Unified Header Tabs */}
             {!isEmbedded && (
               <div className="flex items-center gap-3">
-                <Link to="/orders" className="flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-xl transition-all group shadow-sm">
-                  <ShoppingCart size={16} className="text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
-                  <span className="text-[10px] font-bold text-orange-900 uppercase tracking-widest">POS</span>
-                </Link>
+                {hasPermission('access_pos') && (
+                  <Link to="/orders" className="flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-xl transition-all group shadow-sm">
+                    <ShoppingCart size={16} className="text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
+                    <span className="text-[10px] font-bold text-orange-900 uppercase tracking-widest">POS</span>
+                  </Link>
+                )}
 
-                <Link to="/kds" className="flex items-center gap-2 px-4 py-2 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-all group shadow-sm">
-                  <div className="relative shrink-0">
-                    <ChefHat size={16} className="text-zamzam-teal group-hover:scale-110 transition-transform" />
-                    {kdsCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse shadow-sm shadow-teal-500/50" />}
-                  </div>
-                  <span className="text-[10px] font-bold text-zamzam-teal uppercase tracking-widest">KDS</span>
-                  <span className="text-[9px] font-bold bg-teal-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{kdsCount}</span>
-                </Link>
+                {hasPermission('view_kds') && (
+                  <Link to="/kds" className="flex items-center gap-2 px-4 py-2 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-all group shadow-sm">
+                    <div className="relative shrink-0">
+                      <ChefHat size={16} className="text-zamzam-teal group-hover:scale-110 transition-transform" />
+                      {kdsCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse shadow-sm shadow-teal-500/50" />}
+                    </div>
+                    <span className="text-[10px] font-bold text-zamzam-teal uppercase tracking-widest">KDS</span>
+                    <span className="text-[9px] font-bold bg-teal-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{kdsCount}</span>
+                  </Link>
+                )}
 
-                <Link to="/order-status" className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all group shadow-sm">
-                  <div className="relative shrink-0">
-                    <ClipboardList size={16} className="text-slate-600 group-hover:scale-110 transition-transform" />
-                    {pendingCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse shadow-sm shadow-amber-500/50" />}
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Orders</span>
-                  <span className="text-[9px] font-bold bg-slate-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{orderCount}</span>
-                </Link>
+                {hasPermission('manage_orders') && (
+                  <Link to="/order-status" className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all group shadow-sm">
+                    <div className="relative shrink-0">
+                      <ClipboardList size={16} className="text-slate-600 group-hover:scale-110 transition-transform" />
+                      {pendingCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse shadow-sm shadow-amber-500/50" />}
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Orders</span>
+                    <span className="text-[9px] font-bold bg-slate-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{orderCount}</span>
+                  </Link>
+                )}
 
-                <Link to="/waiting-list" className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-all group shadow-sm">
-                  <div className="relative shrink-0">
-                    <Users size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                    {waitingCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-sm shadow-blue-500/50" />}
-                  </div>
-                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Waiting</span>
-                  <span className="text-[9px] font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{waitingCount}</span>
-                </Link>
+                {(hasPermission('manage_reservations') || hasPermission('manage_tables')) && (
+                  <Link to="/waiting-list" className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-all group shadow-sm">
+                    <div className="relative shrink-0">
+                      <Users size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                      {waitingCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-sm shadow-blue-500/50" />}
+                    </div>
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Waiting</span>
+                    <span className="text-[9px] font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">{waitingCount}</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>
@@ -465,34 +532,38 @@ export default function App() {
           <div className="flex items-center gap-4">
             {!isEmbedded && (
               <div className="flex items-center gap-2">
-                <Link to="/reservations" className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl transition-all group shadow-sm border",
-                  location.pathname === '/reservations'
-                    ? "bg-indigo-600 text-white shadow-indigo-500/20"
-                    : "bg-indigo-50 text-indigo-600 border-indigo-100"
-                )}>
-                  <Calendar size={13} className={cn(
-                    "group-hover:scale-110 transition-transform shrink-0",
-                    location.pathname === '/reservations' ? "text-white" : "text-indigo-500"
-                  )} />
-                  <span className={cn(
-                    "text-[8px] font-bold uppercase tracking-wider",
-                    location.pathname === '/reservations' ? "text-white" : "text-indigo-600"
-                  )}>Reservation</span>
-                  <span className={cn(
-                    "text-[7px] font-bold px-1 py-0.5 rounded-full min-w-[14px] text-center",
-                    location.pathname === '/reservations' ? "bg-white/20 text-white" : "bg-indigo-500 text-white"
-                  )}>{reservationCount}</span>
-                </Link>
+                {hasPermission('manage_reservations') && (
+                  <Link to="/reservations" className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-xl transition-all group shadow-sm border",
+                    location.pathname === '/reservations'
+                      ? "bg-indigo-600 text-white shadow-indigo-500/20"
+                      : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                  )}>
+                    <Calendar size={13} className={cn(
+                      "group-hover:scale-110 transition-transform shrink-0",
+                      location.pathname === '/reservations' ? "text-white" : "text-indigo-500"
+                    )} />
+                    <span className={cn(
+                      "text-[8px] font-bold uppercase tracking-wider",
+                      location.pathname === '/reservations' ? "text-white" : "text-indigo-600"
+                    )}>Reservation</span>
+                    <span className={cn(
+                      "text-[7px] font-bold px-1 py-0.5 rounded-full min-w-[14px] text-center",
+                      location.pathname === '/reservations' ? "bg-white/20 text-white" : "bg-indigo-500 text-white"
+                    )}>{reservationCount}</span>
+                  </Link>
+                )}
    
-                <Link to="/tables" className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 hover:bg-green-100 border border-green-100 rounded-xl transition-all group shadow-sm shadow-green-500/5">
-                  <div className="relative shrink-0">
-                    <Table size={13} className="text-green-600 group-hover:scale-110 transition-transform" />
-                    {occupiedTableCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-green-500 rounded-full animate-pulse" />}
-                  </div>
-                  <span className="text-[8px] font-bold text-green-700 uppercase tracking-wider">Tables</span>
-                  <span className="text-[7px] font-bold bg-green-600 text-white px-1 py-0.5 rounded-full min-w-[14px] text-center">{occupiedTableCount}</span>
-                </Link>
+                {hasPermission('manage_tables') && (
+                  <Link to="/tables" className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 hover:bg-green-100 border border-green-100 rounded-xl transition-all group shadow-sm shadow-green-500/5">
+                    <div className="relative shrink-0">
+                      <Table size={13} className="text-green-600 group-hover:scale-110 transition-transform" />
+                      {occupiedTableCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-green-500 rounded-full animate-pulse" />}
+                    </div>
+                    <span className="text-[8px] font-bold text-green-700 uppercase tracking-wider">Tables</span>
+                    <span className="text-[7px] font-bold bg-green-600 text-white px-1 py-0.5 rounded-full min-w-[14px] text-center">{occupiedTableCount}</span>
+                  </Link>
+                )}
               </div>
             )}
  
@@ -582,24 +653,24 @@ export default function App() {
         <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50">
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/order-status" element={<OrderStatus />} />
-              <Route path="/waiting-list" element={<WaitingList />} />
-              <Route path="/reservations" element={<Reservations />} />
-              <Route path="/tables" element={<Tables />} />
-              <Route path="/kds" element={<KDS />} />
-              <Route path="/menu-designer" element={<MenuDesigner />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/food-items" element={<FoodItems />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/purchases" element={<Purchases />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/staff" element={<Staff />} />
-              <Route path="/permissions" element={<Permissions />} />
-              <Route path="/promotions" element={<Promotions />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/" element={<ProtectedRoute perm="view_dashboard"><Dashboard /></ProtectedRoute>} />
+              <Route path="/orders" element={<ProtectedRoute perm="access_pos"><Orders /></ProtectedRoute>} />
+              <Route path="/order-status" element={<ProtectedRoute perm="manage_orders"><OrderStatus /></ProtectedRoute>} />
+              <Route path="/waiting-list" element={<ProtectedRoute perm={['manage_reservations', 'manage_tables']}><WaitingList /></ProtectedRoute>} />
+              <Route path="/reservations" element={<ProtectedRoute perm="manage_reservations"><Reservations /></ProtectedRoute>} />
+              <Route path="/tables" element={<ProtectedRoute perm="manage_tables"><Tables /></ProtectedRoute>} />
+              <Route path="/kds" element={<ProtectedRoute perm="view_kds"><KDS /></ProtectedRoute>} />
+              <Route path="/menu-designer" element={<ProtectedRoute perm="manage_menu"><MenuDesigner /></ProtectedRoute>} />
+              <Route path="/categories" element={<ProtectedRoute perm="manage_menu"><Categories /></ProtectedRoute>} />
+              <Route path="/food-items" element={<ProtectedRoute perm="manage_menu"><FoodItems /></ProtectedRoute>} />
+              <Route path="/customers" element={<ProtectedRoute perm="manage_customers"><Customers /></ProtectedRoute>} />
+              <Route path="/inventory" element={<ProtectedRoute perm="manage_inventory"><Inventory /></ProtectedRoute>} />
+              <Route path="/purchases" element={<ProtectedRoute perm="manage_purchase"><Purchases /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute perm="view_reports"><Reports /></ProtectedRoute>} />
+              <Route path="/staff" element={<ProtectedRoute perm={['manage_users', 'manage_hr']}><Staff /></ProtectedRoute>} />
+              <Route path="/permissions" element={<ProtectedRoute perm="manage_roles"><Permissions /></ProtectedRoute>} />
+              <Route path="/promotions" element={<ProtectedRoute perm="manage_promotions"><Promotions /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute perm="manage_settings_general"><Settings /></ProtectedRoute>} />
             </Routes>
           </ErrorBoundary>
         </div>
