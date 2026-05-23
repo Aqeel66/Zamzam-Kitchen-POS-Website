@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS branch_settings (
     allow_card_website TINYINT(1) DEFAULT 1,
     allow_cash_pos TINYINT(1) DEFAULT 1,
     allow_card_pos TINYINT(1) DEFAULT 1,
+    timezone VARCHAR(50) DEFAULT 'Asia/Karachi',
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 
