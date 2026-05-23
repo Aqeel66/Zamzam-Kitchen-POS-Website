@@ -126,7 +126,7 @@ export default function Tables() {
       if (Array.isArray(data)) {
         setActiveOrders(data.filter((o: any) =>
           (o.table_id || o.table_number) &&
-          !['cancelled', 'rejected', 'paid', 'completed'].includes((o.status || '').toLowerCase().trim())
+          !['cancelled', 'rejected', 'completed'].includes((o.status || '').toLowerCase().trim())
         ));
       } else {
         setActiveOrders([]);

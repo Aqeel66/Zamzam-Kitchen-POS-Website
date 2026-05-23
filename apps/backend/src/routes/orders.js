@@ -200,7 +200,7 @@ router.post('/', async (req, res) => {
       }
 
       // 1.5 Update Table Status if Dine-In
-      if (normalizedOrderType === 'Dine-In' && orderStatus !== 'Paid') {
+      if (normalizedOrderType === 'Dine-In' && !['Completed', 'Cancelled', 'Rejected'].includes(orderStatus)) {
         const tableIdsToOccupy = finalTables.map(t => t.id);
         for (const tId of tableIdsToOccupy) {
           await connection.execute(
@@ -666,7 +666,7 @@ router.patch('/:id', async (req, res) => {
     let queryParams = [];
 
     if (status) {
-      const validStatuses = ['Pending', 'Preparing', 'Ready', 'Served', 'Cancelled', 'Ordered', 'Paid', 'Rejected'];
+      const validStatuses = ['Pending', 'Preparing', 'Ready', 'Served', 'Cancelled', 'Ordered', 'Paid', 'Rejected', 'Completed'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
       }
@@ -710,8 +710,8 @@ router.patch('/:id', async (req, res) => {
         return res.status(404).json({ error: 'Order not found' });
       }
 
-      // If status changed to Paid, Cancelled, or Rejected, release the table
-      if (status === 'Paid') {
+      // If status changed to Completed, Cancelled, or Rejected, release the table
+      if (status === 'Completed' || status === 'Cancelled' || status === 'Rejected') {
         await handleChildOrderStatusSync(connection, id);
         
         const [currOrder] = await connection.execute('SELECT parent_order_id, table_id FROM orders WHERE id = ?', [id]);

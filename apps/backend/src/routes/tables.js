@@ -12,7 +12,7 @@ const syncTableStatuses = async () => {
       FROM restaurant_tables t
       INNER JOIN orders o ON t.id = o.table_id
       WHERE t.status = 'Occupied'
-      AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')
+      AND o.status NOT IN ('Completed', 'Cancelled', 'Rejected')
       AND o.estimated_release_time IS NOT NULL
       AND o.estimated_release_time <= NOW()
     `);
@@ -97,6 +97,21 @@ router.patch('/:id', async (req, res) => {
      if (status !== undefined) {
          query += 'status = ?, ';
          params.push(status);
+         
+         if (status === 'Available') {
+             try {
+               await db.query(
+                 `UPDATE orders o
+                  LEFT JOIN order_tables ot ON o.id = ot.order_id
+                  SET o.status = 'Completed'
+                  WHERE (ot.table_id = ? OR (o.table_id = ? AND ot.table_id IS NULL))
+                  AND o.status NOT IN ('Completed', 'Cancelled', 'Rejected')`,
+                 [id, id]
+               );
+             } catch (err) {
+               console.error('Error completing table orders:', err);
+             }
+         }
      }
      if (pos_x !== undefined) {
          query += 'pos_x = ?, ';

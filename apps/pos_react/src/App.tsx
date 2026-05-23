@@ -256,7 +256,7 @@ export default function App() {
 
       if (Array.isArray(tablesData) && Array.isArray(ordersArray)) {
         const activeTableIdentifiers = new Set();
-        primaryOrders.filter((o: any) => (o.table_id || o.table_number) && !['cancelled', 'rejected', 'paid', 'completed'].includes(getLowerStatus(o))).forEach((o: any) => {
+        primaryOrders.filter((o: any) => (o.table_id || o.table_number) && !['cancelled', 'rejected', 'completed'].includes(getLowerStatus(o))).forEach((o: any) => {
           if (o.table_id) activeTableIdentifiers.add(String(o.table_id));
           else if (o.table_number) {
             const tableObj = tablesData.find((t: any) => String(t.table_number).toLowerCase().trim() === String(o.table_number).toLowerCase().trim());

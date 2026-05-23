@@ -195,7 +195,7 @@ router.get('/available-tables', async (req, res) => {
                  FROM orders o
                  LEFT JOIN order_tables ot ON o.id = ot.order_id
                  WHERE (ot.table_id = t.id OR (o.table_id = t.id AND ot.table_id IS NULL))
-                   AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')
+                   AND o.status NOT IN ('Completed', 'Cancelled', 'Rejected')
                ), 0
              ) as live_occupancy,
              (
@@ -203,7 +203,7 @@ router.get('/available-tables', async (req, res) => {
                FROM orders o
                LEFT JOIN order_tables ot ON o.id = ot.order_id
                WHERE (ot.table_id = t.id OR (o.table_id = t.id AND ot.table_id IS NULL))
-                 AND o.status NOT IN ('Paid', 'Cancelled', 'Rejected')
+                 AND o.status NOT IN ('Completed', 'Cancelled', 'Rejected')
              ) as live_seats_str,
              COALESCE(
                (
