@@ -137,7 +137,7 @@ const ProtectedRoute = ({ perm, children }: { perm: string | string[], children:
         if (!item.perm) return false;
         return user?.permissions?.some((up: string) => up.toLowerCase() === (item.perm as string).toLowerCase());
       });
-      if (firstAccessibleRoute) {
+      if (firstAccessibleRoute && firstAccessibleRoute.path) {
         return <Navigate to={firstAccessibleRoute.path} replace />;
       }
     }

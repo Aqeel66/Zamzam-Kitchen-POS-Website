@@ -43,7 +43,7 @@ export default function Permissions() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [showConfirm, setShowConfirm] = useState(false);
   
-  const isAdmin = user?.roles?.toLowerCase().includes('admin');
+  const isAdmin = user?.roles?.some((role: string) => role.toLowerCase() === 'admin');
   const isSelectedRoleAdmin = selectedRole?.name.toLowerCase() === 'admin';
   const canEditSelectedRole = !isSelectedRoleAdmin;
   const assignablePermissions = isAdmin 
