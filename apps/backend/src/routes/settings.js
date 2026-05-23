@@ -254,7 +254,9 @@ router.post('/reset-transactions', async (req, res) => {
     const tablesToReset = [
       'order_item_customizations',
       'order_items',
+      'order_tables',
       'payments',
+      'reservation_tables',
       'reservations',
       'expenses',
       'purchase_order_items',
@@ -267,6 +269,9 @@ router.post('/reset-transactions', async (req, res) => {
     for (const table of tablesToReset) {
       await connection.execute(`TRUNCATE TABLE ${table}`);
     }
+    
+    // Reset all tables to Available
+    await connection.execute('UPDATE restaurant_tables SET status = "Available"');
     
     await connection.execute('SET FOREIGN_KEY_CHECKS = 1');
     await connection.commit();

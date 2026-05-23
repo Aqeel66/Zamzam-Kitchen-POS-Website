@@ -745,7 +745,7 @@ function TableDetailModal({ data, filterDate, filterTime, isToday, onClose }: an
 
         {/* Bookings Timeline */}
         <div className="flex-1 overflow-y-auto no-scrollbar px-8 py-5 space-y-3">
-          {sortedReservations.length === 0 ? (
+          {sortedReservations.length === 0 && (!isToday || orderGuests === 0) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-3 border border-green-100">
                 <CheckCircle2 size={24} className="text-green-500" />
@@ -755,9 +755,36 @@ function TableDetailModal({ data, filterDate, filterTime, isToday, onClose }: an
             </div>
           ) : (
             <>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                {sortedReservations.length} Booking{sortedReservations.length !== 1 ? 's' : ''} on this date
-              </p>
+              {isToday && orderGuests > 0 && (
+                <div className="rounded-2xl border p-4 transition-all bg-red-50 border-red-200 shadow-sm shadow-red-100 mb-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="px-2 py-1 rounded-lg text-[10px] font-black tracking-tight bg-red-600 text-white">
+                        LIVE ORDER
+                      </div>
+                      <span className="text-[8px] font-bold text-red-600 uppercase tracking-widest animate-pulse">● Now</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border bg-red-50 text-red-700 border-red-100">
+                      Seated
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Walk-In / Dine-In</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
+                          <Users size={9} /> {orderGuests} {orderGuests === 1 ? 'guest' : 'guests'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {sortedReservations.length > 0 && (
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-4">
+                  {sortedReservations.length} Booking{sortedReservations.length !== 1 ? 's' : ''} on this date
+                </p>
+              )}
               {sortedReservations.map((r: any, idx: number) => {
                 const rTime = (r.reservation_time || '00:00').substring(0, 5);
                 const stayMins = Number(r.stay_duration) || 90;
@@ -853,7 +880,7 @@ function TableDetailModal({ data, filterDate, filterTime, isToday, onClose }: an
           <div className="text-right">
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Booked at Selected Time</p>
             <p className="text-sm font-black text-slate-900">
-              {activeReservations.reduce((s: number, r: any) => s + (Number(r.party_size) || 0), 0)} / {table.capacity} Seats
+              {activeReservations.reduce((s: number, r: any) => s + (Number(r.party_size) || 0), 0) + (isToday ? orderGuests : 0)} / {table.capacity} Seats
             </p>
           </div>
         </div>

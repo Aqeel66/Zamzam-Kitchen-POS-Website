@@ -114,12 +114,16 @@ router.post('/', async (req, res) => {
   
       // 0. Generate Centralized Order Number (Format: 0000DDMMYY)
       // Resets every month. Format: [4-digit sequence][DD][MM][YY]
+      // Fetch dynamic timezone from settings
+      const [branchSettings] = await connection.query('SELECT timezone FROM branch_settings WHERE branch_id = ? LIMIT 1', [branch_id || 1]);
+      const timezone = branchSettings[0]?.timezone || 'Asia/Karachi';
+
       const now = new Date();
-      const localNow = new Date(now.getTime() + (5 * 60 * 60 * 1000)); // UTC+5
+      // Use Intl to safely parse the local date parts according to the selected timezone
+      const localDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+      const [fullYear, month, day] = localDateStr.split('-');
+      const year = fullYear.slice(-2);
       
-      const day = String(localNow.getUTCDate()).padStart(2, '0');
-      const month = String(localNow.getUTCMonth() + 1).padStart(2, '0');
-      const year = String(localNow.getUTCFullYear()).slice(-2);
       const datePart = `${day}${month}${year}`;
       const monthPrefix = `${month}${year}`; // To track the monthly reset
 
@@ -190,7 +194,63 @@ router.post('/', async (req, res) => {
       // 1.3 Insert multi-table assignments into order_tables
       const finalTables = tablesPayload.length > 0 
         ? tablesPayload 
-        : (primaryTableId ? [{ id: primaryTableId, seats: req.body.guest_count || req.body.party_size || 1 }] : []);
+        : (primaryTableId ? [{ id: primaryTableId, seats: req.body.guest_count || req.body.party_size || 1, selected_seats: req.body.selected_seats || null }] : []);
+      
+      // 1.25 Server-Side Seat Validation for Dine-In
+      if (normalizedOrderType === 'Dine-In' && !['Completed', 'Cancelled', 'Rejected'].includes(orderStatus)) {
+        for (const t of finalTables) {
+          if (!t.selected_seats) continue;
+          const reqSeats = String(t.selected_seats).split(',').map(s => parseInt(s.trim())).filter(s => !isNaN(s));
+          if (reqSeats.length === 0) continue;
+
+          // 1. Get live occupancy for this table
+          const [occSum] = await connection.execute(`
+            SELECT SUM(COALESCE(ot.allocated_seats, o.party_size)) as live_occupancy
+            FROM orders o
+            LEFT JOIN order_tables ot ON o.id = ot.order_id
+            WHERE ot.table_id = ? AND o.status NOT IN ('Completed', 'Cancelled', 'Rejected')
+          `, [t.id]);
+          const liveOccupancy = parseInt(occSum[0]?.live_occupancy) || 0;
+
+          // 2. Get explicitly selected seats
+          const [occupiedRows] = await connection.execute(`
+            SELECT ot.selected_seats
+            FROM order_tables ot
+            JOIN orders o ON ot.order_id = o.id
+            WHERE ot.table_id = ? AND o.status NOT IN ('Completed', 'Cancelled', 'Rejected')
+          `, [t.id]);
+
+          let currentlyOccupied = new Set();
+          for (const row of occupiedRows) {
+            if (row.selected_seats) {
+              row.selected_seats.split(',').forEach(s => {
+                const num = parseInt(s.trim());
+                if (!isNaN(num)) currentlyOccupied.add(num);
+              });
+            }
+          }
+
+          // 3. Apply fallback assignment for orders missing seat selections
+          const [tableRow] = await connection.execute('SELECT capacity FROM restaurant_tables WHERE id = ?', [t.id]);
+          const capacity = tableRow[0]?.capacity || 0;
+          if (currentlyOccupied.size < liveOccupancy) {
+            for (let seatNum = 1; seatNum <= capacity; seatNum++) {
+              if (currentlyOccupied.size >= liveOccupancy) break;
+              currentlyOccupied.add(seatNum);
+            }
+          }
+
+          console.log(`VALIDATION [Table ${t.id}]: liveOccupancy=${liveOccupancy}, capacity=${capacity}, currentlyOccupied=`, Array.from(currentlyOccupied));
+
+          // 4. Reject if requested seat is already in the occupied set
+          for (const reqSeat of reqSeats) {
+            if (currentlyOccupied.has(reqSeat)) {
+              await connection.rollback();
+              return res.status(400).json({ success: false, message: `Seat ${reqSeat} on Table ${t.id} is already occupied!` });
+            }
+          }
+        }
+      }
       
       for (const t of finalTables) {
         await connection.execute(
@@ -911,7 +971,59 @@ router.put('/:id', async (req, res) => {
 
     const finalTables = tablesPayload.length > 0 
       ? tablesPayload 
-      : (primaryTableId ? [{ id: primaryTableId, seats: req.body.party_size || req.body.guest_count || 1 }] : []);
+      : (primaryTableId ? [{ id: primaryTableId, seats: req.body.party_size || req.body.guest_count || 1, selected_seats: req.body.selected_seats || null }] : []);
+
+    // 1.3 Server-Side Seat Validation for Dine-In updates
+    const normalizedOrderType = order_type || 'Dine-In';
+    if (normalizedOrderType === 'Dine-In' && !['Completed', 'Cancelled', 'Rejected'].includes(status || 'Pending')) {
+      for (const t of finalTables) {
+        if (!t.selected_seats) continue;
+        const reqSeats = String(t.selected_seats).split(',').map(s => parseInt(s.trim())).filter(s => !isNaN(s));
+        if (reqSeats.length === 0) continue;
+
+        // Get live occupancy excluding THIS order
+        const [occSum] = await connection.execute(`
+          SELECT SUM(COALESCE(ot.allocated_seats, o.party_size)) as live_occupancy
+          FROM orders o
+          LEFT JOIN order_tables ot ON o.id = ot.order_id
+          WHERE ot.table_id = ? AND o.id != ? AND o.status NOT IN ('Completed', 'Cancelled', 'Rejected')
+        `, [t.id, id]);
+        const liveOccupancy = parseInt(occSum[0]?.live_occupancy) || 0;
+
+        const [occupiedRows] = await connection.execute(`
+          SELECT ot.selected_seats
+          FROM order_tables ot
+          JOIN orders o ON ot.order_id = o.id
+          WHERE ot.table_id = ? AND o.id != ? AND o.status NOT IN ('Completed', 'Cancelled', 'Rejected')
+        `, [t.id, id]);
+
+        let currentlyOccupied = new Set();
+        for (const row of occupiedRows) {
+          if (row.selected_seats) {
+            row.selected_seats.split(',').forEach(s => {
+              const num = parseInt(s.trim());
+              if (!isNaN(num)) currentlyOccupied.add(num);
+            });
+          }
+        }
+
+        const [tableRow] = await connection.execute('SELECT capacity FROM restaurant_tables WHERE id = ?', [t.id]);
+        const capacity = tableRow[0]?.capacity || 0;
+        if (currentlyOccupied.size < liveOccupancy) {
+          for (let seatNum = 1; seatNum <= capacity; seatNum++) {
+            if (currentlyOccupied.size >= liveOccupancy) break;
+            currentlyOccupied.add(seatNum);
+          }
+        }
+
+        for (const reqSeat of reqSeats) {
+          if (currentlyOccupied.has(reqSeat)) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: `Seat ${reqSeat} on Table ${t.id} is already occupied!` });
+          }
+        }
+      }
+    }
 
     for (const t of finalTables) {
       await connection.execute(
@@ -936,6 +1048,16 @@ router.put('/:id', async (req, res) => {
       }
 
       // Occupy new tables
+      for (const newTId of newTableIds) {
+        await connection.execute(
+          'UPDATE restaurant_tables SET status = "Occupied" WHERE id = ?',
+          [newTId]
+        );
+      }
+    } else if (order_type === 'Dine-In' && status === 'Paid') {
+      // If Paid, it is still logically occupied, but we still ensure newTIds are set to Occupied
+      // just in case they were missed.
+      const newTableIds = finalTables.map(t => t.id);
       for (const newTId of newTableIds) {
         await connection.execute(
           'UPDATE restaurant_tables SET status = "Occupied" WHERE id = ?',
