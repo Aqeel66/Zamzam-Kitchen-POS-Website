@@ -97,6 +97,8 @@ export default function Staff() {
       if (!isEditMode) {
         payload.username = formData.username;
         payload.password = formData.password;
+      } else if (formData.password && formData.password.trim() !== '') {
+        payload.password = formData.password;
       }
 
       const res = await fetch(url, {
@@ -431,8 +433,8 @@ export default function Staff() {
                     </div>
                   </div>
 
-                  {!isEditMode && (
-                    <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    {!isEditMode && (
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Username</label>
                         <input 
@@ -445,20 +447,22 @@ export default function Staff() {
                           placeholder="johndoe123"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Password</label>
-                        <input 
-                          required
-                          type="password" 
-                          autoComplete="new-password"
-                          value={formData.password}
-                          onChange={(e) => setFormData({...formData, password: e.target.value})}
-                          className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
-                          placeholder="••••••••"
-                        />
-                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">
+                        {isEditMode ? 'New Password' : 'Password'}
+                      </label>
+                      <input 
+                        required={!isEditMode}
+                        type="password" 
+                        autoComplete="new-password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-transparent focus:border-zamzam-teal/20 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 outline-none transition-all"
+                        placeholder={isEditMode ? 'Leave blank to keep current' : '••••••••'}
+                      />
                     </div>
-                  )}
+                  </div>
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Email Address</label>

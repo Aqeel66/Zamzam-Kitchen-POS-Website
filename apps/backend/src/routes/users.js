@@ -69,10 +69,17 @@ router.put('/:id', async (req, res) => {
     await connection.beginTransaction();
 
     // 1. Update user details
-    await connection.query(
-      'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?',
-      [first_name, last_name, email, phone, id]
-    );
+    if (req.body.password && req.body.password.trim() !== '') {
+      await connection.query(
+        'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, password_hash = ? WHERE id = ?',
+        [first_name, last_name, email, phone, req.body.password, id]
+      );
+    } else {
+      await connection.query(
+        'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?',
+        [first_name, last_name, email, phone, id]
+      );
+    }
 
     // 2. Update roles (simple replace)
     await connection.query('DELETE FROM user_roles WHERE user_id = ?', [id]);
@@ -98,6 +105,26 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   } finally {
     connection.release();
+  }
+});
+
+// Change password (self-service)
+router.put('/:id/password', async (req, res) => {
+  const { id } = req.params;
+  const { old_password, new_password } = req.body;
+
+  try {
+    const [users] = await pool.query('SELECT password_hash FROM users WHERE id = ?', [id]);
+    if (users.length === 0) return res.status(404).json({ error: 'User not found' });
+    
+    if (users[0].password_hash !== old_password) {
+      return res.status(401).json({ error: 'Incorrect old password' });
+    }
+
+    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [new_password, id]);
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
