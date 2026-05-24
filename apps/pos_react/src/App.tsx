@@ -673,9 +673,6 @@ export default function App() {
                       <p className="text-xs font-bold text-slate-900 leading-none uppercase">{user?.first_name} {user?.last_name}</p>
                       <p className="text-[7px] font-bold text-teal-600 uppercase tracking-widest mt-0.5">{user?.roles}</p>
                     </div>
-                    <div className="w-7 h-7 bg-zamzam-yellow/10 rounded-lg flex items-center justify-center border border-zamzam-yellow/20 shadow-sm font-bold text-zamzam-yellow text-xs">
-                      {user?.first_name?.[0]}{user?.last_name?.[0]}
-                    </div>
                   </button>
 
                   <AnimatePresence>
