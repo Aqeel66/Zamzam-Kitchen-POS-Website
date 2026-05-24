@@ -161,6 +161,7 @@ export default function App() {
   const { isAuthenticated, logout, user } = useAuth();
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [changePasswordData, setChangePasswordData] = useState({ old_password: '', new_password: '', confirm_password: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -663,34 +664,61 @@ export default function App() {
                 
                 <div className="h-5 w-px bg-slate-200" />
                 
-                <div className="flex items-center gap-3">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs font-bold text-slate-900 leading-none uppercase">{user?.first_name} {user?.last_name}</p>
-                    <p className="text-[7px] font-bold text-teal-600 uppercase tracking-widest mt-0.5">{user?.roles}</p>
-                  </div>
-                  <div className="w-7 h-7 bg-zamzam-yellow/10 rounded-lg flex items-center justify-center border border-zamzam-yellow/20 shadow-sm font-bold text-zamzam-yellow text-xs">
-                    {user?.first_name?.[0]}{user?.last_name?.[0]}
-                  </div>
-                  
-                  <div className="flex gap-1 ml-1">
-                    <button 
-                      onClick={() => setIsChangePasswordModalOpen(true)}
-                      className="p-1.5 bg-indigo-50 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-lg transition-all border border-indigo-100 shadow-sm"
-                      title="Change Password"
-                    >
-                      <Key className="w-3.5 h-3.5" />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        logout();
-                        window.location.href = '/pos/';
-                      }}
-                      className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all border border-red-100 shadow-sm"
-                      title="Sign Out"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    className="flex items-center gap-3 hover:bg-slate-50 p-1.5 rounded-xl transition-all"
+                  >
+                    <div className="text-right hidden sm:block">
+                      <p className="text-xs font-bold text-slate-900 leading-none uppercase">{user?.first_name} {user?.last_name}</p>
+                      <p className="text-[7px] font-bold text-teal-600 uppercase tracking-widest mt-0.5">{user?.roles}</p>
+                    </div>
+                    <div className="w-7 h-7 bg-zamzam-yellow/10 rounded-lg flex items-center justify-center border border-zamzam-yellow/20 shadow-sm font-bold text-zamzam-yellow text-xs">
+                      {user?.first_name?.[0]}{user?.last_name?.[0]}
+                    </div>
+                  </button>
+
+                  <AnimatePresence>
+                    {showProfileMenu && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 flex flex-col p-2 gap-1"
+                        >
+                          <button 
+                            onClick={() => {
+                              setIsChangePasswordModalOpen(true);
+                              setShowProfileMenu(false);
+                            }}
+                            className="flex items-center gap-3 w-full p-2.5 text-left hover:bg-slate-50 rounded-xl transition-all group"
+                          >
+                            <div className="p-1.5 bg-indigo-50 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white rounded-lg transition-all">
+                              <Key className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Change Password</span>
+                          </button>
+                          
+                          <div className="h-px w-full bg-slate-100 my-1" />
+                          
+                          <button 
+                            onClick={() => {
+                              logout();
+                              window.location.href = '/pos/';
+                            }}
+                            className="flex items-center gap-3 w-full p-2.5 text-left hover:bg-red-50/50 rounded-xl transition-all group"
+                          >
+                            <div className="p-1.5 bg-red-50 text-red-500 group-hover:bg-red-500 group-hover:text-white rounded-lg transition-all">
+                              <LogOut className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Sign Out</span>
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             )}
