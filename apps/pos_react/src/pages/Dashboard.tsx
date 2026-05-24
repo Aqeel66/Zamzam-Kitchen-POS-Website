@@ -199,9 +199,9 @@ export default function Dashboard() {
         <div className="relative h-full flex flex-col justify-center px-16 max-w-3xl">
           <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
             <span className="px-5 py-2 bg-zamzam-yellow/20 backdrop-blur-md text-zamzam-yellow text-xs font-bold uppercase tracking-[0.4em] rounded-full mb-6 inline-block border border-zamzam-yellow/30">Master Terminal v1.5</span>
-            <h1 className="text-2xl font-bold text-white tracking-tighter leading-[0.9] mb-4 uppercase">
+            <h1 className="text-2xl font-bold text-white tracking-tighter leading-none mb-4 uppercase">
               {settings?.tenant?.restaurant_name || 'Zamzam'} <br />
-              <span className="text-zamzam-teal">Global Command</span>
+              <span className="text-zamzam-teal mt-1 inline-block">Global Command</span>
             </h1>
             <p className="text-white/50 text-sm font-medium uppercase tracking-[0.1em] leading-relaxed max-w-lg mb-8">
               {settings?.tenant?.tagline || 'Orchestrating culinary excellence across every terminal and table.'}
