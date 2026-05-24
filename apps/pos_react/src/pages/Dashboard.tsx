@@ -55,8 +55,8 @@ const KPIBlock = ({ title, value, subValue, icon: Icon, trend, color, currency }
 );
 
 const SalesBar = ({ hour, value, max }: any) => (
-  <div className="flex flex-col items-center gap-4 group">
-    <div className="flex-1 w-12 bg-slate-50 rounded-2xl relative overflow-hidden flex flex-col justify-end">
+  <div className="flex flex-col items-center gap-4 group flex-1">
+    <div className="flex-1 w-full max-w-[3rem] bg-slate-50 rounded-2xl relative overflow-hidden flex flex-col justify-end">
       <motion.div 
         initial={{ height: 0 }}
         animate={{ height: `${(value / max) * 100}%` }}
@@ -78,6 +78,7 @@ export default function Dashboard() {
   const [liveOrders, setLiveOrders] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isSyncing, setIsSyncing] = useState(false);
+  const [velocityTab, setVelocityTab] = useState('Hourly');
 
   const fetchDashboardData = async (controller?: AbortController) => {
     try {
@@ -271,18 +272,46 @@ export default function Dashboard() {
             </div>
             <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                {['Hourly', 'Daily', 'Monthly'].map(tab => (
-                 <button key={tab} className={cn("px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", tab === 'Hourly' ? "bg-white text-slate-900 shadow-lg" : "text-slate-400 hover:text-slate-600")}>{tab}</button>
+                 <button 
+                    key={tab} 
+                    onClick={() => setVelocityTab(tab)}
+                    className={cn("px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", tab === velocityTab ? "bg-white text-slate-900 shadow-lg" : "text-slate-400 hover:text-slate-600")}
+                 >
+                    {tab}
+                 </button>
                ))}
             </div>
           </div>
-          <div className="flex-1 min-h-[350px] flex items-stretch gap-8 px-6">
-            {[
-              { h: '11AM', v: 45 }, { h: '12PM', v: 85 }, { h: '01PM', v: 120 }, { h: '02PM', v: 95 },
-              { h: '03PM', v: 40 }, { h: '04PM', v: 35 }, { h: '05PM', v: 60 }, { h: '06PM', v: 90 },
-              { h: '07PM', v: 145 }, { h: '08PM', v: 160 }, { h: '09PM', v: 130 }, { h: '10PM', v: 80 }
-            ].map((d, i) => (
-              <SalesBar key={i} hour={d.h} value={d.v} max={160} />
-            ))}
+          <div className="flex-1 min-h-[350px] flex items-stretch gap-2 md:gap-4 px-2 md:px-6">
+            {(() => {
+              let chartData: any[] = [];
+              if (velocityTab === 'Hourly') {
+                const data = summary?.live?.velocity || [];
+                chartData = data.length > 0 ? data.map((d: any) => ({
+                  h: `${d.hour > 12 ? d.hour - 12 : (d.hour === 0 ? 12 : d.hour)}${d.hour >= 12 ? 'PM' : 'AM'}`,
+                  v: d.count
+                })) : [
+                  { h: '11AM', v: 45 }, { h: '12PM', v: 85 }, { h: '01PM', v: 120 }, { h: '02PM', v: 95 },
+                  { h: '03PM', v: 40 }, { h: '04PM', v: 35 }, { h: '05PM', v: 60 }, { h: '06PM', v: 90 },
+                  { h: '07PM', v: 145 }, { h: '08PM', v: 160 }, { h: '09PM', v: 130 }, { h: '10PM', v: 80 }
+                ];
+              } else if (velocityTab === 'Monthly') {
+                const data = summary?.trends || [];
+                chartData = data.length > 0 ? data.map((d: any) => ({ h: d.month, v: d.orders })) : [
+                  { h: 'Jan', v: 320 }, { h: 'Feb', v: 450 }, { h: 'Mar', v: 510 }, { h: 'Apr', v: 480 },
+                  { h: 'May', v: 600 }, { h: 'Jun', v: 720 }
+                ];
+              } else {
+                chartData = [
+                  { h: 'Mon', v: 120 }, { h: 'Tue', v: 140 }, { h: 'Wed', v: 110 }, { h: 'Thu', v: 160 },
+                  { h: 'Fri', v: 210 }, { h: 'Sat', v: 350 }, { h: 'Sun', v: 310 }
+                ];
+              }
+              const maxV = Math.max(...chartData.map((d: any) => d.v), 10);
+              return chartData.map((d, i) => (
+                <SalesBar key={i} hour={d.h} value={d.v} max={maxV} />
+              ));
+            })()}
           </div>
         </div>
 
