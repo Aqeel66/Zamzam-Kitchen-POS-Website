@@ -196,6 +196,7 @@ export default function App() {
       showToast('New passwords do not match', 'error');
       return;
     }
+    if (!user) return;
     setIsChangingPassword(true);
     try {
       const res = await fetch(`${API_BASE_URL}/users/${user.id}/password`, {
