@@ -992,7 +992,7 @@ export default function Orders() {
                 >
                   <Plus size={10} /> Add New
                 </button>
-                {orderType === 'Dine-In' && (
+                {(orderType === 'Dine-In' || orderType === 'Takeaway') && (
                   <button 
                     onClick={() => {
                       setCustomerSearch('Walk-in Guest');
