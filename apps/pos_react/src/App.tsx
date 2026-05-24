@@ -1,5 +1,5 @@
 import { useState, useEffect, Component, type ErrorInfo, type ReactNode } from 'react';
-import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { 
@@ -160,11 +160,39 @@ const ProtectedRoute = ({ perm, children }: { perm: string | string[], children:
 export default function App() {
   const { isAuthenticated, logout, user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [changePasswordData, setChangePasswordData] = useState({ old_password: '', new_password: '', confirm_password: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (!searchQuery || searchQuery.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+      setIsSearching(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/orders?search=${encodeURIComponent(searchQuery)}`);
+        const data = await res.json();
+        setSearchResults(Array.isArray(data) ? data.slice(0, 5) : []);
+      } catch (err) {
+        console.error('Search error:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
   
   const [settings, setSettings] = useState<any>({
     tenant: { restaurant_name: 'Zamzam Kitchen', tagline: 'Loading...' },
@@ -509,15 +537,65 @@ export default function App() {
         {!isEmbedded && (
         <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="relative w-56 group">
+            <div className="relative w-72 group z-50">
               {location.pathname !== '/menu-designer' && (
                 <>
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-zamzam-teal transition-colors" />
                   <input 
                     type="text" 
-                    placeholder="Search..."
+                    placeholder="Search orders or customers..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSearchResults(true);
+                    }}
+                    onFocus={() => setShowSearchResults(true)}
                     className="w-full bg-slate-100 border-none rounded-xl py-2 pl-9 pr-3 text-xs font-medium focus:ring-2 focus:ring-zamzam-teal/10 focus:bg-white transition-all outline-none shadow-inner"
                   />
+                  
+                  {showSearchResults && (searchQuery.length >= 2) && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowSearchResults(false)} />
+                      <div className="absolute top-full left-0 mt-2 w-full bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                        {isSearching ? (
+                          <div className="p-4 text-center text-xs text-slate-400 font-bold uppercase tracking-widest">Searching...</div>
+                        ) : searchResults.length > 0 ? (
+                          <div className="max-h-80 overflow-y-auto no-scrollbar">
+                            {searchResults.map(order => (
+                              <button 
+                                key={order.id}
+                                onClick={() => {
+                                  setShowSearchResults(false);
+                                  setSearchQuery('');
+                                  navigate('/orders'); // Assuming they can find it on the Orders page
+                                }}
+                                className="w-full text-left p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors flex items-center justify-between group"
+                              >
+                                <div>
+                                  <p className="text-xs font-bold text-slate-900 group-hover:text-zamzam-teal transition-colors">
+                                    Order #{order.order_number || order.id}
+                                  </p>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    {order.customer_name || 'Guest'}
+                                  </p>
+                                </div>
+                                <span className={cn(
+                                  "text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg",
+                                  order.status === 'Paid' ? "bg-green-50 text-green-600" :
+                                  order.status === 'Pending' ? "bg-orange-50 text-orange-600" :
+                                  "bg-slate-100 text-slate-500"
+                                )}>
+                                  {order.status}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-4 text-center text-xs text-slate-400 font-bold uppercase tracking-widest">No results found</div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>

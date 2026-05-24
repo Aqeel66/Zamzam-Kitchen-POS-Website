@@ -576,7 +576,7 @@ router.get('/summary', async (req, res) => {
 // @desc    Get orders with optional filtering by date, type, and status
 router.get('/', async (req, res) => {
   try {
-    const { startDate, endDate, type, status, customer_id } = req.query;
+    const { startDate, endDate, type, status, customer_id, search } = req.query;
     let query = `
       SELECT o.*, rt.table_number, 
              c.first_name as customer_first_name, 
@@ -599,6 +599,12 @@ router.get('/', async (req, res) => {
       WHERE 1=1
     `;
     const params = [];
+
+    if (search) {
+      query += ` AND (o.order_number LIKE ? OR o.customer_name LIKE ? OR o.customer_phone LIKE ? OR c.first_name LIKE ? OR c.phone LIKE ?)`;
+      const searchParam = `%${search}%`;
+      params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
+    }
 
     const { parentId, includeSplits } = req.query;
     if (parentId) {

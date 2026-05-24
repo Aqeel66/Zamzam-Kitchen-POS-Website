@@ -75,7 +75,30 @@ const SalesBar = ({ hour, value, max }: any) => (
 export default function Dashboard() {
   const [settings, setSettings] = useState<any>(null);
   const [summary, setSummary] = useState<any>(null);
+  const [liveOrders, setLiveOrders] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchDashboardData = async (controller?: AbortController) => {
+    try {
+      const summaryRes = await fetch(`${API_BASE_URL}/orders/summary`, { signal: controller?.signal });
+      const summaryData = await summaryRes.json();
+      setSummary(summaryData);
+
+      const ordersRes = await fetch(`${API_BASE_URL}/orders`, { signal: controller?.signal });
+      const ordersData = await ordersRes.json();
+      setLiveOrders(Array.isArray(ordersData) ? ordersData.slice(0, 5) : []);
+    } catch (err) {
+      console.error('Dashboard Data Error:', err);
+    }
+  };
+
+  const handleGlobalSync = async () => {
+    setIsSyncing(true);
+    await fetchSettings();
+    await fetchDashboardData();
+    setTimeout(() => setIsSyncing(false), 800);
+  };
 
   const fetchSettings = async () => {
     const controller = new AbortController();
@@ -96,11 +119,8 @@ export default function Dashboard() {
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
-    fetch(`${API_BASE_URL}/orders/summary`, { signal: controller.signal })
-      .then(res => res.json())
-      .then(data => setSummary(data))
-      .catch(err => console.error('Dashboard Summary Error:', err))
-      .finally(() => clearTimeout(timeoutId));
+    
+    fetchDashboardData(controller).finally(() => clearTimeout(timeoutId));
 
     window.addEventListener('settings-updated', fetchSettings);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -139,16 +159,31 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-right mr-4">
+          <div className="text-right">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Kitchen Load</p>
-            <p className="text-xs font-bold text-zamzam-yellow bg-slate-900 px-4 py-2 rounded-xl flex items-center gap-2">
-              <Flame size={14} className="text-orange-400" /> PEAK CAPACITY
-            </p>
+            {(() => {
+              const activeCount = summary?.live?.active || 0;
+              if (activeCount > 15) {
+                return (
+                  <p className="text-xs font-bold text-red-400 bg-slate-900 px-4 py-2 rounded-xl flex items-center gap-2">
+                    <Flame size={14} className="text-red-500" /> PEAK CAPACITY
+                  </p>
+                );
+              } else if (activeCount >= 5) {
+                return (
+                  <p className="text-xs font-bold text-zamzam-yellow bg-slate-900 px-4 py-2 rounded-xl flex items-center gap-2">
+                    <Activity size={14} className="text-orange-400" /> BUSY
+                  </p>
+                );
+              } else {
+                return (
+                  <p className="text-xs font-bold text-green-400 bg-slate-900 px-4 py-2 rounded-xl flex items-center gap-2">
+                    <Zap size={14} className="text-green-500" /> NORMAL
+                  </p>
+                );
+              }
+            })()}
           </div>
-          <button className="w-14 h-14 bg-white border border-slate-100 rounded-[1.5rem] flex items-center justify-center text-slate-400 hover:text-slate-900 hover:shadow-xl transition-all relative">
-            <Bell size={24} />
-            <div className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-4 border-white" />
-          </button>
         </div>
       </header>
 
@@ -172,8 +207,13 @@ export default function Dashboard() {
               {settings?.tenant?.tagline || 'Orchestrating culinary excellence across every terminal and table.'}
             </p>
             <div className="flex gap-4">
-              <button className="bg-zamzam-teal text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-2xl shadow-teal-500/40 hover:bg-teal-400 transition-all flex items-center gap-3 active:scale-95">
-                <Globe size={18} /> Global Sync
+              <button 
+                onClick={handleGlobalSync}
+                disabled={isSyncing}
+                className="bg-zamzam-teal text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-2xl shadow-teal-500/40 hover:bg-teal-400 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+              >
+                {isSyncing ? <Activity className="animate-spin" size={18} /> : <Globe size={18} />} 
+                {isSyncing ? 'Syncing...' : 'Global Sync'}
               </button>
               <button className="bg-white/10 backdrop-blur-lg border border-white/20 text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-3">
                 <Calendar size={18} /> Daily Report
@@ -185,11 +225,15 @@ export default function Dashboard() {
         <div className="absolute bottom-10 right-16 flex gap-10">
           <div className="text-right">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Web Orders</p>
-            <p className="text-xl font-bold text-white">42 <span className="text-xs text-zamzam-teal">+8</span></p>
+            <p className="text-xl font-bold text-white">
+              {summary?.types?.find((t: any) => t.order_type === 'Website' || t.order_type === 'Web' || t.order_type === 'QR-Menu')?.count || 0}
+            </p>
           </div>
           <div className="text-right">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-2">POS Terminal</p>
-            <p className="text-xl font-bold text-white">128 <span className="text-xs text-zamzam-yellow">+12</span></p>
+            <p className="text-xl font-bold text-white">
+              {summary?.types?.find((t: any) => t.order_type === 'Dine-In' || t.order_type === 'Takeaway')?.count || summary?.today?.count || 0}
+            </p>
           </div>
         </div>
       </motion.div>
@@ -250,28 +294,25 @@ export default function Dashboard() {
                 <span className="px-3 py-1 bg-zamzam-teal rounded-lg text-[9px] font-bold uppercase animate-pulse">LIVE STREAM</span>
               </div>
               <div className="space-y-4 flex-1">
-                 {[
-                   { id: '#1204', table: 'T-04', time: '4m ago', status: 'Cooking' },
-                   { id: '#1205', table: 'TA-02', time: '12m ago', status: 'Served' },
-                   { id: '#1206', table: 'T-12', time: '1m ago', status: 'New' },
-                   { id: '#1207', table: 'T-09', time: '8m ago', status: 'Ready' },
-                 ].map((order, i) => (
-                   <div key={i} className="flex items-center justify-between bg-white/5 p-5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer group">
+                 {liveOrders.length > 0 ? liveOrders.map((order, i) => (
+                   <div key={order.id} className="flex items-center justify-between bg-white/5 p-5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer group">
                       <div className="flex items-center gap-4">
-                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-xs">{order.id.slice(1)}</div>
+                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-xs">{order.order_number?.slice(-4) || order.id}</div>
                          <div>
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-zamzam-yellow">{order.table}</p>
-                            <p className="text-[9px] font-bold text-white/40 uppercase">{order.time}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-zamzam-yellow">{order.table_number ? `T-${order.table_number}` : (order.order_type || 'Takeaway')}</p>
+                            <p className="text-[9px] font-bold text-white/40 uppercase">{new Date(order.order_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                          </div>
                       </div>
                       <div className={cn("px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest", 
-                        order.status === 'Served' ? "bg-green-500/20 text-green-400" :
-                        order.status === 'Cooking' ? "bg-blue-500/20 text-blue-400" :
+                        order.status === 'Served' || order.status === 'Paid' ? "bg-green-500/20 text-green-400" :
+                        order.status === 'Preparing' ? "bg-blue-500/20 text-blue-400" :
                         order.status === 'Ready' ? "bg-zamzam-yellow/20 text-zamzam-yellow" : "bg-white/20 text-white")}>
                         {order.status}
                       </div>
                    </div>
-                 ))}
+                 )) : (
+                   <div className="text-center text-white/40 text-xs font-bold uppercase mt-10">No live orders</div>
+                 )}
               </div>
               <button className="mt-8 w-full bg-zamzam-yellow text-slate-900 py-4 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-yellow-500/20">
                  Launch Kitchen Monitor
